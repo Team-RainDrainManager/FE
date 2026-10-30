@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router'
 
 import MainLayout from './layouts/MainLayout'
 import MyDrainsPage from './pages/mydrains/MyDrainsPage'
+import DrainDetailPage from './pages/drainDetail/DrainDetailPage'
 
 export default function App() {
   return (
@@ -18,6 +19,10 @@ export default function App() {
           path="/my-drains"
           element={<MyDrainsPage />}
         />
+        <Route
+          path="/drains/:drainId"
+          element={<DrainDetailPage />}
+        />  
 
         <Route path="/map" element={null} />
         <Route path="/social" element={null} />
