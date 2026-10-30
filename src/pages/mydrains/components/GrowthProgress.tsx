@@ -1,26 +1,33 @@
 
-import type { MyDrain } from '../../../types/myDrains'
-import { nextXP, progressPercent } from '../utils'
+import type { MyAdoptionDto } from '../../../types/myDrains'
 
-export default function GrowthProgress({ drain }: { drain: MyDrain }) {
-  const percent = progressPercent(drain)
+export default function GrowthProgress({
+  adoption,
+}: {
+  adoption: MyAdoptionDto
+}) {
+  const percent = Math.min(
+    100,
+    Math.max(0, adoption.progress_percent),
+  )
 
   return (
     <div className="mt-4">
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex justify-between gap-2">
         <strong className="text-[13px] text-[#2784C9]">
-          {drain.xp} XP
+          {adoption.xp} XP
         </strong>
+
         <span className="text-[10px] text-[#7896AD]">
-          {drain.level >= 50
+          {adoption.level >= 50
             ? '최고 레벨'
-            : `다음 레벨까지 ${nextXP(drain)} XP`}
+            : `다음 레벨까지 ${adoption.next_level_xp} XP`}
         </span>
       </div>
 
       <div
         role="progressbar"
-        aria-label={`${drain.name} 성장 진행률`}
+        aria-label={`${adoption.adoption_name} 성장 진행률`}
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}

@@ -17,13 +17,22 @@ export default function Header() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
-  const title = PAGE_TITLES[pathname] ?? '또랑'
+  // 설정 및 빗물받이 상세 페이지 확인
   const isSettingsPage = pathname === '/settings'
+  const isDetailPage = /^\/drains\/[^/]+$/.test(pathname)
+
+  // 페이지 제목
+  const title = isDetailPage
+    ? '빗물받이 상세'
+    : PAGE_TITLES[pathname] ?? '또랑'
+
+  // 뒤로 가기 버튼 표시 여부
+  const showBackButton = isSettingsPage || isDetailPage
 
   return (
     <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between border-b border-[#E5EEF7] bg-white px-5">
       <div className="flex min-w-0 items-center gap-2">
-        {isSettingsPage && (
+        {showBackButton && (
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -43,7 +52,7 @@ export default function Header() {
         </h1>
       </div>
 
-      {!isSettingsPage && (
+      {!showBackButton && (
         <Link
           to="/settings"
           aria-label="설정"
