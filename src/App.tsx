@@ -4,6 +4,8 @@ import MainLayout from './layouts/MainLayout'
 import MyDrainsPage from './pages/mydrains/MyDrainsPage'
 import DrainDetailPage from './pages/drainDetail/DrainDetailPage'
 import MapPage from './pages/map/MapPage'
+import SocialPage from './pages/social/SocialPage'
+import LeaderboardPage from './pages/social/LeaderboardPage'
 
 export default function App() {
   return (
@@ -24,7 +26,8 @@ export default function App() {
         />
 
         <Route path="/map" element={<MapPage />} />
-        <Route path="/social" element={null} />
+        <Route path="/social" element={<SocialPage />} />
+        <Route path="/social/leaderboard" element={<LeaderboardPage />} />
         <Route path="/notifications" element={null} />
         <Route path="/profile" element={null} />
         <Route path="/settings" element={null} />
