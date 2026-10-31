@@ -19,18 +19,18 @@ export default function BottomNavigation() {
   return (
     <nav
       aria-label="하단 메뉴"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E5EEF7] bg-white pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#EDF1F6] bg-white pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="mx-auto grid h-[68px] max-w-[480px] grid-cols-5 items-center px-2">
+      <div className="mx-auto grid h-[68px] max-w-[480px] grid-cols-5 items-center gap-1 px-3">
         {NAV_ITEMS.map(({ label, path, icon }) => (
           <NavLink
             key={path}
             to={path}
             className={({ isActive }) =>
-              `flex h-full flex-col items-center justify-center gap-1 rounded-xl transition-colors ${
+              `flex h-[56px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7] ${
                 isActive
-                  ? 'bg-[#EEF7FF] text-[#338CF0]'
-                  : 'text-[#8D9AB0]'
+                  ? 'bg-[#EAF2FF] text-[#3981F7]'
+                  : 'text-[#8C9AB0] hover:bg-[#F8FAFD]'
               }`
             }
           >
@@ -38,16 +38,16 @@ export default function BottomNavigation() {
               <>
                 <span
                   aria-hidden="true"
-                  className="block h-[22px] w-[22px]"
+                  className="block h-6 w-6"
                   style={{
                     backgroundColor: isActive
-                      ? '#338CF0'
-                      : '#8D9AB0',
+                      ? '#3981F7'
+                      : '#8C9AB0',
                     mask: `url("${icon}") center / contain no-repeat`,
                     WebkitMask: `url("${icon}") center / contain no-repeat`,
                   }}
                 />
-                <span className="text-[10px] font-medium">
+                <span className={`truncate text-[10px] leading-tight ${isActive ? 'font-bold' : 'font-medium'}`}>
                   {label}
                 </span>
               </>

@@ -30,25 +30,34 @@ export default function Header() {
   const showBackButton = isSettingsPage || isDetailPage
 
   return (
-    <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between border-b border-[#E5EEF7] bg-white px-5">
+    <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between border-b border-[#EDF1F6] bg-white px-5">
       <div className="flex min-w-0 items-center gap-2">
         {showBackButton && (
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="뒤로 가기"
-            className="flex h-10 w-10 items-center justify-center"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] active:bg-[#EAF2FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
           >
-            <img
-              src={backIcon}
-              alt=""
-              className="h-[22px] w-[22px]"
+            <span
+              aria-hidden="true"
+              className="block h-[22px] w-[22px] bg-current"
+              style={{
+                mask: `url("${backIcon}") center / contain no-repeat`,
+                WebkitMask: `url("${backIcon}") center / contain no-repeat`,
+              }}
             />
           </button>
         )}
 
-        <h1 className="truncate text-xl font-bold text-[#24496B]">
-          {title}
+        <h1
+          className={
+            isDetailPage
+              ? 'pointer-events-none absolute inset-x-[64px] top-0 flex h-[60px] items-center justify-center text-xl font-bold tracking-tight text-[#203451]'
+              : 'truncate text-xl font-bold tracking-tight text-[#203451]'
+          }
+        >
+          <span className="truncate">{title}</span>
         </h1>
       </div>
 
@@ -56,13 +65,16 @@ export default function Header() {
         <Link
           to="/settings"
           aria-label="설정"
-          className="flex h-10 w-10 items-center justify-center"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] active:bg-[#EAF2FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
         >
-          <img
-            src={gearIcon}
-            alt=""
-            className="h-[22px] w-[22px]"
-          />
+          <span
+              aria-hidden="true"
+              className="block h-[22px] w-[22px] bg-current"
+              style={{
+                mask: `url("${gearIcon}") center / contain no-repeat`,
+                WebkitMask: `url("${gearIcon}") center / contain no-repeat`,
+              }}
+            />
         </Link>
       )}
     </header>

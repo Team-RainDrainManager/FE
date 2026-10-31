@@ -28,17 +28,17 @@ export default function DrainDetailPage() {
   if (!drain) {
     return (
       <div className="px-5 py-16 text-center">
-        <h2 className="text-lg font-bold text-[#24496B]">
+        <h2 className="text-lg font-bold text-[#203451]">
           빗물받이 정보를 찾을 수 없어요.
         </h2>
 
-        <p className="mt-2 text-xs text-[#8297AC]">
+        <p className="mt-2 text-xs text-[#78899F]">
           등록되지 않은 빗물받이 번호예요.
         </p>
 
         <Link
           to="/my-drains"
-          className="mt-5 inline-block rounded-full bg-[#329BEC] px-5 py-3 text-xs font-bold text-white"
+          className="mt-5 inline-block rounded-full bg-[#6099E8] px-5 py-3 text-xs font-bold text-white"
         >
           또랑이 페이지로 돌아가기
         </Link>
@@ -53,13 +53,15 @@ export default function DrainDetailPage() {
     MOCK_MY_ADOPTION_IDS.includes(drain.adoption.adoptionId)
 
   return (
-    <div className="space-y-4 bg-[#F5FAFF] px-[18px] pb-7 pt-5">
+    <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] space-y-4 bg-[#F4F7FC] px-4 pb-7 pt-5">
+      <div className="overflow-hidden rounded-[24px] border border-[#E8EDF5] bg-white shadow-[0_4px_18px_rgba(23,43,77,0.04)]">
       <DrainInfo drain={drain} />
 
       <DrainGrowth
         adoption={drain.adoption}
         growth={growth}
       />
+      </div>
 
       <DrainPhoto drain={drain} />
 
