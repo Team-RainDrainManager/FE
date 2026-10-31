@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 
 import type { DrainDetailDto } from '../../../types/drainDetail'
 
@@ -15,7 +16,7 @@ export default function DrainInfo({
   const adopted = drain.adoptionStatus === 'ADOPTED'
 
   return (
-    <section className="rounded-[20px] bg-white p-4">
+    <section className="bg-white p-4">
       <div className="flex flex-wrap gap-2">
         <span className="rounded-full bg-[#EEF4FA] px-3 py-1 text-[11px] font-bold text-[#728CA4]">
           {STATUS_LABELS[drain.status]}
@@ -32,28 +33,19 @@ export default function DrainInfo({
         </span>
       </div>
 
-      <h2 className="mt-4 text-xl font-extrabold text-[#24496B]">
+      <h2 className="mt-4 text-xl font-extrabold text-[#203451]">
         {drain.adoption?.nickname ?? `빗물받이 #${drain.id}`}
       </h2>
 
-      <p className="mt-1 text-xs text-[#8297AC]">
+      <p className="mt-1 text-xs text-[#78899F]">
         빗물받이 번호 #{drain.id}
       </p>
 
-      <div className="mt-4 rounded-xl bg-[#F5FAFF] p-3">
-        <p className="text-xs font-semibold text-[#607C99]">
-          위치 정보
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#EDF1F6] pt-3">
+        <p className="text-[11px] tabular-nums text-[#78899F]">
+          위치 {drain.latitude.toFixed(5)}, {drain.longitude.toFixed(5)}
         </p>
-
-        <p className="mt-2 text-[11px] text-[#8297AC]">
-          위도 {drain.latitude.toFixed(5)}
-          <br />
-          경도 {drain.longitude.toFixed(5)}
-        </p>
-
-        <p className="mt-2 text-[10px] text-[#9BAABD]">
-          주소는 현재 상세 API에서 제공하지 않아요.
-        </p>
+        <Link to="/map" className="rounded-full bg-[#EAF2FF] px-3 py-2 text-xs font-semibold text-[#3981F7]">지도 보기 ›</Link>
       </div>
     </section>
   )

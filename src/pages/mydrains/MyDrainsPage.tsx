@@ -118,14 +118,14 @@ export default function MyDrainsPage() {
   }
 
   return (
-    <div className="px-[18px] pb-7 pt-5 text-[#24496B]">
+    <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] bg-[#F4F7FC] px-4 pb-7 pt-5 text-[#203451]">
       <section className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-[15px] font-bold">
+          <h2 className="text-base font-bold tracking-tight">
             각자의 속도로 자라는 또랑
           </h2>
 
-          <p className="mt-2 text-[11px] text-[#7F96AF]">
+          <p className="mt-2 text-xs leading-relaxed text-[#78899F]">
             빗물받이마다 레벨과 경험치가 따로 있어요.
           </p>
         </div>
@@ -133,12 +133,12 @@ export default function MyDrainsPage() {
         <Character
           type="state"
           state="happy"
-          size={66}
+          size={60}
         />
       </section>
 
       <div className="mb-4 mt-6 flex justify-between px-1">
-        <h3 className="text-sm font-extrabold">
+        <h3 className="text-base font-bold">
           함께 돌보는 또랑
         </h3>
 
@@ -189,7 +189,7 @@ export default function MyDrainsPage() {
 
       <Link
         to="/map"
-        className="mt-4 flex min-h-12 items-center justify-center rounded-full bg-white text-[13px] font-bold text-[#7B889F] shadow-md"
+        className="mt-4 flex min-h-12 items-center justify-center rounded-full bg-white text-[13px] font-bold text-[#3981F7] border border-[#E0E8F3] shadow-sm"
       >
         지도에서 찾아보기
       </Link>
@@ -197,7 +197,7 @@ export default function MyDrainsPage() {
       <button
         type="button"
         onClick={() => openModal({ type: 'pause' })}
-        className="mt-4 block text-xs font-semibold text-[#3489DC]"
+        className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-[#E0E8F3] bg-white px-3 text-xs font-semibold text-[#3981F7]"
       >
         점검 쉬기 신청
       </button>
@@ -212,7 +212,7 @@ export default function MyDrainsPage() {
                 data.adoptions[0].drain.drain_id,
             })
           }
-          className="mt-3 block text-xs font-semibold text-[#3489DC]"
+          className="ml-2 mt-3 inline-flex min-h-10 items-center rounded-xl border border-[#E0E8F3] bg-white px-3 text-xs font-semibold text-[#3981F7]"
         >
           Lv.0~50 성장 도감
         </button>

@@ -38,7 +38,7 @@ export default function DrainActions({
 
   if (drain.status === 'REMOVED') {
     return (
-      <p className="rounded-xl bg-[#F1F6FB] p-4 text-xs text-[#8297AC]">
+      <p className="rounded-xl bg-[#F1F6FB] p-4 text-xs text-[#78899F]">
         삭제 처리된 빗물받이입니다.
       </p>
     )
@@ -46,13 +46,13 @@ export default function DrainActions({
 
   return (
     <>
-      <section className="rounded-[20px] border border-[#E7EFF7] bg-white p-4">
-        <h3 className="mb-3 text-sm font-bold text-[#24496B]">
+      <section className="rounded-[24px] border border-[#E8EDF5] bg-white p-4">
+        <h3 className="mb-3 text-base font-bold text-[#203451]">
           돌봄 정보
         </h3>
 
         {drain.adoption ? (
-          <div className="space-y-2 text-xs text-[#607C99]">
+          <div className="space-y-2 rounded-2xl bg-[#F4F7FC] p-3 text-xs leading-relaxed text-[#637790]">
             <p>
               {isMyAdoption
                 ? '내가 돌보고 있는 또랑이에요.'
@@ -68,7 +68,7 @@ export default function DrainActions({
                 : '기록 없음'}
             </p>
 
-            <p>
+            <p className="font-bold text-[#203451]">
               다음 점검:{' '}
               {drain.adoption.nextManagementAt
                 ? new Date(
@@ -78,7 +78,7 @@ export default function DrainActions({
             </p>
           </div>
         ) : (
-          <p className="text-xs text-[#8297AC]">
+          <p className="text-xs text-[#78899F]">
             아직 입양한 집사가 없어요.
           </p>
         )}
@@ -87,7 +87,7 @@ export default function DrainActions({
           <button
             type="button"
             onClick={() => setAction('adopt')}
-            className="mt-4 w-full rounded-full bg-[#329BEC] p-3 text-xs font-bold text-white"
+            className="mt-4 min-h-11 w-full rounded-full bg-[#6099E8] p-3 text-xs font-bold text-white"
           >
             이 빗물받이 입양하기
           </button>
@@ -98,18 +98,20 @@ export default function DrainActions({
             <button
               type="button"
               onClick={() => setAction('inspect')}
-              className="mt-4 w-full rounded-full bg-[#329BEC] p-3 text-xs font-bold text-white"
+              className="mt-4 min-h-11 w-full rounded-full bg-[#6099E8] p-3 text-xs font-bold text-white"
             >
               사진으로 점검 기록
             </button>
 
-            <button
-              type="button"
-              onClick={() => setAction('release')}
-              className="mt-3 text-xs font-semibold text-[#3489DC]"
-            >
-              입양 그만두기
-            </button>
+            <details className="relative mt-3 text-right" onKeyDown={(event) => {
+              if (event.key === 'Escape') event.currentTarget.open = false
+            }}>
+              <summary className="inline-flex cursor-pointer list-none items-center rounded-lg px-3 py-2 text-xs font-semibold text-[#78899F] [&::-webkit-details-marker]:hidden">입양 관리 ···</summary>
+              <button type="button" onClick={(event) => {
+                event.currentTarget.closest('details')?.removeAttribute('open')
+                setAction('release')
+              }} className="absolute right-0 top-full z-10 whitespace-nowrap rounded-xl border border-[#E8EDF5] bg-white px-4 py-3 text-xs font-semibold text-[#C85D5D] shadow-lg">입양 그만두기</button>
+            </details>
           </>
         )}
       </section>
@@ -117,7 +119,7 @@ export default function DrainActions({
       <button
         type="button"
         onClick={() => setAction('report')}
-        className="w-full rounded-full border border-[#E7EFF7] bg-white p-3 text-xs font-bold text-[#3489DC]"
+        className="w-full rounded-full border border-[#E8EDF5] bg-white p-3 text-xs font-bold text-[#3981F7]"
       >
         이곳을 제보하기
       </button>

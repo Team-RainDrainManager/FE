@@ -12,13 +12,13 @@ export default function GrowthProgress({
   )
 
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <div className="mb-2 flex justify-between gap-2">
-        <strong className="text-[13px] text-[#2784C9]">
+        <strong className="text-sm text-[#427ED0]">
           {adoption.xp} XP
         </strong>
 
-        <span className="text-[10px] text-[#7896AD]">
+        <span className="text-[11px] text-[#78899F]">
           {adoption.level >= 50
             ? '최고 레벨'
             : `다음 레벨까지 ${adoption.next_level_xp} XP`}
@@ -34,7 +34,7 @@ export default function GrowthProgress({
         className="h-2 overflow-hidden rounded-full bg-[#EDF3F9]"
       >
         <div
-          className="h-full rounded-full bg-[#329BEC]"
+          className="h-full rounded-full bg-[#6099E8]"
           style={{ width: `${percent}%` }}
         />
       </div>
