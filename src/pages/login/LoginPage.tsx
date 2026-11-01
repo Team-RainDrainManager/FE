@@ -1,23 +1,55 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import Character from '../../components/common/Character'
+import './LoginPage.css'
 
 const FEATURES = [
-  { number: '01', title: '우리 동네 빗물받이 입양', detail: '매일 지나는 길을 함께 돌봐요.' },
-  { number: '02', title: '14일마다 간편 점검', detail: '사진으로 관리 기록을 남겨요.' },
-  { number: '03', title: '비 오기 전 미리 알림', detail: '놓치지 않도록 점검을 알려드려요.' },
+  { number: '01', title: '빗물받이 입양', detail: '우리 동네를 함께 돌봐요' },
+  { number: '02', title: '간편한 점검', detail: '14일마다 사진으로 기록' },
+  { number: '03', title: '비 예보 알림', detail: '비 오기 전에 미리 확인' },
 ]
+
+// 고정된 값으로 비를 생성해 버튼을 누르더라도 빗방울의 위치가 갑자기 바뀌지 않습니다.
+const RAIN_DROPS = Array.from({ length: 42 }, (_, index) => ({
+  id: index,
+  left: `${(index * 43 + 13) % 100}%`,
+  duration: `${1.7 + (index % 7) * 0.21}s`,
+  delay: `${-((index * 19) % 47) / 10}s`,
+  opacity: 0.13 + (index % 4) * 0.05,
+}))
+
+// 터치할 때마다 동작과 표정이 달라집니다. (기존 캐릭터 SVG 사용)
+const REACTIONS = [
+  { motion: 'superjump', face: 'joy', text: '짜잔! 나 불렀어?' },
+  { motion: 'wiggle', face: 'wink', text: '헤헤, 또 놀자!' },
+  { motion: 'spin', face: 'surprised', text: '앗! 간지러워!' },
+  { motion: 'dance', face: 'proud', text: '내 춤 어때?' },
+] as const
+
+type Reaction = (typeof REACTIONS)[number] & { id: number }
 
 export default function LoginPage() {
   const [message, setMessage] = useState('')
+  const [hovered, setHovered] = useState(false)
+  const [reaction, setReaction] = useState<Reaction | null>(null)
+  const actionCount = useRef(0)
+
+  useEffect(() => {
+    if (!reaction) return
+    const timeoutId = window.setTimeout(() => setReaction(null), 1250)
+    return () => window.clearTimeout(timeoutId)
+  }, [reaction])
+
+  const handleCharacterClick = () => {
+    const index = actionCount.current++
+    setReaction({ ...REACTIONS[index % REACTIONS.length], id: index })
+  }
 
   const handleKakaoLogin = () => {
-    // 실제 로그인 주소는 백엔드 담당자에게 받은 뒤 .env에 설정합니다.
-    // 주소가 없는 동안에는 실제로 로그인된 것처럼 처리하지 않습니다.
     const loginUrl = import.meta.env.VITE_KAKAO_LOGIN_URL?.trim()
 
     if (!loginUrl) {
-      setMessage('카카오 로그인은 아직 서버와 연결되지 않았습니다. 화면만 미리 확인할 수 있습니다.')
+      setMessage('카카오 로그인은 아직 서버와 연결되지 않았습니다.')
       return
     }
 
@@ -33,70 +65,101 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#F5FAFF] text-[#24496B]">
-      <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-gradient-to-b from-[#EAF6FF] via-[#F8FBFF] to-white px-6 shadow-sm">
-        <header className="flex items-center gap-2 pt-10">
-          <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-xl bg-[#338CF0] text-xl font-bold text-white">
-            물
-          </span>
-          <span className="text-xl font-extrabold tracking-[-0.04em]">또랑</span>
+    <div className="dd-login-viewport">
+      <main className="dd-login" aria-label="또랑 로그인">
+        <div className="dd-login-rain" aria-hidden="true">
+          {RAIN_DROPS.map((drop) => (
+            <span
+              key={drop.id}
+              className="dd-login-raindrop"
+              style={{
+                left: drop.left,
+                animationDuration: drop.duration,
+                animationDelay: drop.delay,
+                opacity: drop.opacity,
+              }}
+            />
+          ))}
+        </div>
+
+        <header className="dd-login-intro">
+          <p className="dd-login-kicker">우리 동네 빗물받이 돌봄</p>
+          <h1>
+            비 오기 전, 함께 돌보는
+            <span>우리 동네 또랑이</span>
+          </h1>
+          <p className="dd-login-subtitle">작은 관심 하나가 동네의 침수를 막는 시작이 됩니다.</p>
         </header>
 
-        <section className="pt-14 text-center">
-          <p className="text-xs font-bold tracking-[0.12em] text-[#338CF0]">우리 동네 빗물받이 돌봄</p>
-          <h1 className="mt-4 text-[29px] font-extrabold leading-[1.35] tracking-[-0.055em]">
-            비 오기 전, 함께 돌보는<br />
-            <span className="text-[#338CF0]">우리 동네 또랑이</span>
-          </h1>
-          <p className="mt-4 text-[13px] leading-6 text-[#7C90A8]">
-            작은 관심 하나가 동네의 침수를 막는 시작이 됩니다.
-          </p>
+        <section className="dd-login-character-stage" aria-label="또랑이와 놀기">
+          <button
+            type="button"
+            className="dd-login-character-button"
+            aria-label="또랑이를 눌러서 반응 보기"
+            onPointerEnter={(event) => {
+              if (event.pointerType !== 'touch') setHovered(true)
+            }}
+            onPointerLeave={() => setHovered(false)}
+            onClick={handleCharacterClick}
+          >
+            <span className="dd-login-character-entrance">
+              <span
+                key={reaction?.id ?? 'idle'}
+                className={`dd-login-character-action ${
+                  reaction ? `dd-login-character-action--${reaction.motion}` : 'dd-login-character-action--idle'
+                }`}
+              >
+                <Character
+                  type="state"
+                  state={reaction?.face ?? (hovered ? 'joy' : 'happy')}
+                  size={220}
+                  className="dd-login-character-image"
+                  alt=""
+                />
+                {!reaction && !hovered && (
+                  <Character
+                    type="state"
+                    state="wink"
+                    size={220}
+                    className="dd-login-character-image dd-login-character-auto-wink"
+                    alt=""
+                  />
+                )}
+              </span>
+            </span>
+            <span className={`dd-login-character-speech${reaction || hovered ? ' is-visible' : ''}`} aria-hidden="true">
+              {reaction?.text ?? '나랑 놀자!'}
+            </span>
+            <span className="dd-login-character-sparkles" aria-hidden="true">
+              <span>✦</span><span>✧</span><span>✦</span>
+            </span>
+          </button>
+          <p className="dd-login-character-hint">또랑이를 살짝 눌러보세요!</p>
         </section>
 
-        <section aria-label="또랑이 캐릭터" className="relative flex min-h-[220px] flex-1 items-center justify-center py-8">
-          <div aria-hidden="true" className="absolute size-[210px] rounded-full bg-[#DBEFFF]" />
-          <div aria-hidden="true" className="absolute left-[14%] top-[23%] size-3 rounded-full bg-[#AED9FF]" />
-          <div aria-hidden="true" className="absolute right-[12%] bottom-[25%] size-2 rounded-full bg-[#82C4FF]" />
-          <Character type="state" state="happy" size={205} className="relative z-10 drop-shadow-md" />
-        </section>
-
-        <section className="rounded-[22px] border border-[#E3EEF9] bg-white/95 px-5 py-5 shadow-[0_8px_30px_rgba(41,105,162,0.06)]">
-          <h2 className="mb-4 text-sm font-extrabold">또랑에서는 이렇게 함께해요</h2>
-          <div className="space-y-4">
+        <section className="dd-login-features" aria-label="또랑 서비스 이용 방법">
+          <h2>또랑이와 함께하는 3단계</h2>
+          <div className="dd-login-features-grid">
             {FEATURES.map(({ number, title, detail }) => (
-              <div key={number} className="flex items-start gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#EDF7FF] text-[11px] font-extrabold text-[#338CF0]">
-                  {number}
-                </span>
-                <div>
-                  <p className="text-[13px] font-bold">{title}</p>
-                  <p className="mt-0.5 text-[11px] text-[#8193AA]">{detail}</p>
-                </div>
+              <div className="dd-login-feature" key={number}>
+                <span className="dd-login-feature-number">{number}</span>
+                <strong>{title}</strong>
+                <small>{detail}</small>
               </div>
             ))}
           </div>
         </section>
 
-        <div className="pb-[calc(28px+env(safe-area-inset-bottom))] pt-6">
-          <button
-            type="button"
-            onClick={handleKakaoLogin}
-            className="flex min-h-[54px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#FEE500] px-5 text-[15px] font-bold text-[#191919] transition-colors hover:bg-[#FADA00] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#338CF0]"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="size-5">
+        <footer className="dd-login-footer">
+          <button type="button" onClick={handleKakaoLogin} className="dd-login-kakao-button">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="dd-login-kakao-icon">
               <path d="M12 3C6.75 3 2.5 6.38 2.5 10.55c0 2.64 1.72 4.97 4.32 6.32l-.87 3.67a.5.5 0 0 0 .73.54l4.18-2.45c.37.04.75.06 1.14.06 5.25 0 9.5-3.38 9.5-7.55S17.25 3 12 3Z" />
             </svg>
             카카오로 시작하기
           </button>
-          {message && (
-            <p role="status" className="mt-3 rounded-xl bg-[#EDF7FF] px-3 py-3 text-center text-xs leading-5 text-[#34668F]">
-              {message}
-            </p>
-          )}
-          <p className="mt-4 text-center text-[11px] text-[#95A5B8]">
-            함께 돌보고, 함께 지키는 우리 동네
-          </p>
-        </div>
+          <p>함께 돌보고, 함께 지키는 우리 동네</p>
+          {message && <div className="dd-login-message" role="status">{message}</div>}
+        </footer>
       </main>
     </div>
   )
