@@ -1,0 +1,356 @@
+/* 흰색/유리질감/캐릭터 주변 큰 원 없이, 부드러운 파란 배경과 비 효과만 사용합니다. */
+.dd-login-viewport {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #d9ecfc;
+  color: #23476a;
+}
+
+.dd-login {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+  /* 타이틀은 더 아래로, 3단계/카카오 버튼은 화면 아래에서 살짝 위로 */
+  padding: clamp(52px, 7.5dvh, 84px) clamp(18px, 5vw, 28px)
+    max(clamp(32px, 5.5dvh, 60px), env(safe-area-inset-bottom));
+  overflow: hidden;
+  background: linear-gradient(170deg, #bedffe 0%, #d9edff 48%, #eff7ff 100%);
+}
+
+.dd-login-rain {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dd-login-raindrop {
+  position: absolute;
+  top: -42px;
+  width: 1.5px;
+  height: 32px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, transparent, #358bcc);
+  animation: dd-login-rain-fall linear infinite;
+  will-change: transform;
+}
+
+.dd-login-intro { flex: none; text-align: center; }
+.dd-login-kicker {
+  margin: 0;
+  color: #287fcb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+}
+.dd-login-intro h1 {
+  margin: clamp(12px, 2.3dvh, 19px) 0 0;
+  font-size: clamp(25px, 7.3vw, 34px);
+  line-height: 1.33;
+  font-weight: 850;
+  letter-spacing: -0.06em;
+  word-break: keep-all;
+}
+.dd-login-intro h1 span { display: block; color: #2584e4; }
+.dd-login-subtitle {
+  margin: 12px 0 0;
+  color: #5d7b9a;
+  font-size: clamp(11px, 3.3vw, 13px);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+/* 캐릭터는 배경 장식 없이 자유롭게 움직입니다. */
+.dd-login-character-stage {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.dd-login-character-button {
+  position: relative;
+  display: grid;
+  width: clamp(142px, 27dvh, 232px);
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  appearance: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.dd-login-character-button:focus-visible {
+  outline: 3px solid #2584e4;
+  outline-offset: 7px;
+  border-radius: 18px;
+}
+.dd-login-character-entrance,
+.dd-login-character-action {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 83%;
+}
+.dd-login-character-entrance {
+  animation: dd-login-character-entrance 1.35s cubic-bezier(0.2, 0.75, 0.3, 1) both;
+}
+.dd-login-character-action--idle { animation: dd-login-showoff 3.15s ease-in-out 1.35s infinite; }
+.dd-login-character-button:hover .dd-login-character-action--idle,
+.dd-login-character-button:focus-visible .dd-login-character-action--idle {
+  animation: dd-login-hover-dance 0.84s ease-in-out infinite;
+}
+.dd-login-character-action--superjump { animation: dd-login-superjump 1.2s ease-in-out both; }
+.dd-login-character-action--wiggle { animation: dd-login-wiggle 1.2s ease-in-out both; }
+.dd-login-character-action--spin { animation: dd-login-spin 1.2s ease-in-out both; }
+.dd-login-character-action--dance { animation: dd-login-dance 1.2s ease-in-out both; }
+.dd-login-character-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 7px rgba(32, 85, 129, 0.10));
+  user-select: none;
+  pointer-events: none;
+}
+.dd-login-character-auto-wink {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: dd-login-auto-wink 5.4s step-end 1.5s infinite;
+}
+.dd-login-character-speech {
+  position: absolute;
+  z-index: 2;
+  top: -11px;
+  right: -23px;
+  max-width: 140px;
+  padding: 7px 11px;
+  border: 1px solid #b1dafb;
+  border-radius: 13px 13px 13px 2px;
+  background: #fff;
+  color: #287fcb;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(8px) scale(0.86);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+.dd-login-character-speech.is-visible { opacity: 1; transform: translateY(0) scale(1); }
+.dd-login-character-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.dd-login-character-sparkles span {
+  position: absolute;
+  color: #318ee2;
+  font-size: 18px;
+}
+.dd-login-character-sparkles span:nth-child(1) { left: -3%; top: 14%; }
+.dd-login-character-sparkles span:nth-child(2) { right: -5%; top: 52%; font-size: 23px; }
+.dd-login-character-sparkles span:nth-child(3) { left: 12%; bottom: 0; font-size: 13px; }
+.dd-login-character-button:active .dd-login-character-sparkles { opacity: 1; }
+.dd-login-character-button:has(.dd-login-character-action--superjump) .dd-login-character-sparkles,
+.dd-login-character-button:has(.dd-login-character-action--wiggle) .dd-login-character-sparkles,
+.dd-login-character-button:has(.dd-login-character-action--spin) .dd-login-character-sparkles,
+.dd-login-character-button:has(.dd-login-character-action--dance) .dd-login-character-sparkles {
+  animation: dd-login-sparkles 1.2s ease-out both;
+}
+.dd-login-character-hint {
+  margin: -6px 0 0;
+  color: #6e94b5;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.dd-login-features {
+  flex: none;
+  padding: clamp(13px, 2dvh, 18px) 12px 15px;
+  border: 1px solid #d9e9f6;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(49, 113, 165, 0.045);
+}
+.dd-login-features h2 {
+  margin: 0 0 13px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: -0.025em;
+}
+.dd-login-features-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dd-login-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+.dd-login-feature + .dd-login-feature { border-left: 1px solid #e8f1f8; }
+.dd-login-feature-number {
+  display: grid;
+  width: 29px;
+  height: 27px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e6f3ff;
+  color: #2789ed;
+  font-size: 11px;
+  font-weight: 800;
+}
+.dd-login-feature strong { margin-top: 8px; font-size: 11px; letter-spacing: -0.03em; word-break: keep-all; }
+.dd-login-feature small { margin-top: 4px; color: #829ab0; font-size: 9px; line-height: 1.5; word-break: keep-all; }
+
+.dd-login-footer { position: relative; flex: none; padding-top: clamp(13px, 2.3dvh, 22px); }
+.dd-login-kakao-button {
+  display: flex;
+  width: 100%;
+  height: clamp(50px, 7dvh, 56px);
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 15px;
+  background: #fee500;
+  color: #191919;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+.dd-login-kakao-button:hover { background: #f7da00; }
+.dd-login-kakao-button:active { transform: scale(0.99); }
+.dd-login-kakao-button:focus-visible { outline: 2px solid #2789ed; outline-offset: 3px; }
+.dd-login-kakao-icon { width: 19px; height: 19px; }
+.dd-login-footer > p { margin: 12px 0 0; color: #829bb1; font-size: 10px; text-align: center; }
+.dd-login-message {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  padding: 12px;
+  border: 1px solid #d9e9f6;
+  border-radius: 12px;
+  background: #fff;
+  color: #356a94;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  box-shadow: 0 5px 18px rgba(44, 98, 140, 0.08);
+}
+
+@keyframes dd-login-rain-fall {
+  from { transform: translate3d(0, -40px, 0); }
+  to { transform: translate3d(-32px, calc(100dvh + 105px), 0); }
+}
+@keyframes dd-login-character-entrance {
+  0% { opacity: 0; transform: translateY(95px) scale(0.63) rotate(-16deg); }
+  38% { opacity: 1; transform: translateY(-38px) scale(1.10) rotate(11deg); }
+  54% { transform: translateY(10px) scale(0.93, 1.06) rotate(-10deg); }
+  70% { transform: translateY(-19px) scale(1.05) rotate(9deg); }
+  86% { transform: translateY(0) scale(0.97, 1.03) rotate(-5deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+}
+@keyframes dd-login-showoff {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  12% { transform: translateY(4px) rotate(-5deg) scale(1.035, 0.96); }
+  25% { transform: translateY(-22px) rotate(9deg) scale(0.95, 1.06); }
+  39% { transform: translateY(2px) rotate(-7deg) scale(1.05, 0.96); }
+  53% { transform: translateY(-13px) rotate(-9deg) scale(1.02); }
+  68% { transform: translateY(0) rotate(8deg) scale(1); }
+  82% { transform: translateY(-16px) rotate(-5deg) scale(1.03); }
+}
+@keyframes dd-login-hover-dance {
+  0%, 100% { transform: rotate(-8deg) translateY(1px) scale(1.045); }
+  25% { transform: rotate(11deg) translateY(-17px) scale(1.07); }
+  50% { transform: rotate(-12deg) translateY(1px) scale(1.05, 0.97); }
+  75% { transform: rotate(12deg) translateY(-13px) scale(1.1); }
+}
+@keyframes dd-login-superjump {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  18% { transform: translateY(9px) scale(1.18, 0.80); }
+  39% { transform: translateY(-52px) rotate(-17deg) scale(0.91, 1.15); }
+  61% { transform: translateY(-27px) rotate(16deg) scale(1.04); }
+  78% { transform: translateY(4px) rotate(-5deg) scale(1.12, 0.90); }
+  92% { transform: translateY(-8px) scale(1.02); }
+}
+@keyframes dd-login-wiggle {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  14% { transform: translateY(-13px) rotate(-18deg) scale(1.08); }
+  28% { transform: translateY(0) rotate(18deg) scale(0.95, 1.05); }
+  42% { transform: translateY(-18px) rotate(-17deg); }
+  56% { transform: translateY(0) rotate(18deg); }
+  70% { transform: translateY(-8px) rotate(-11deg); }
+  84% { transform: translateY(0) rotate(7deg); }
+}
+@keyframes dd-login-spin {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  22% { transform: translateY(-25px) rotate(-20deg) scale(1.06); }
+  52% { transform: translateY(-48px) rotate(360deg) scale(0.95); }
+  76% { transform: translateY(6px) rotate(374deg) scale(1.1, 0.88); }
+  88% { transform: translateY(-10px) rotate(358deg); }
+}
+@keyframes dd-login-dance {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  18% { transform: translate(-20px, -12px) rotate(-16deg) scale(1.07); }
+  35% { transform: translate(20px, 1px) rotate(16deg) scale(0.96, 1.08); }
+  51% { transform: translate(-17px, -19px) rotate(-12deg); }
+  68% { transform: translate(18px, 0) rotate(14deg); }
+  84% { transform: translate(0, -11px) rotate(-6deg); }
+}
+@keyframes dd-login-auto-wink {
+  0%, 40%, 49%, 100% { opacity: 0; }
+  41%, 48% { opacity: 1; }
+}
+@keyframes dd-login-sparkles {
+  0% { opacity: 0; transform: scale(0.5); }
+  30% { opacity: 1; transform: scale(1.3); }
+  75% { opacity: 0.8; transform: scale(1.05) rotate(20deg); }
+  100% { opacity: 0; transform: scale(1.2) rotate(30deg); }
+}
+
+/* 낮은 높이에서는 간격을 압축해 주요 동작 버튼을 지킵니다. */
+@media (max-height: 720px) {
+  .dd-login { padding-top: 35px; padding-bottom: max(23px, env(safe-area-inset-bottom)); }
+  .dd-login-intro h1 { margin-top: 9px; font-size: clamp(24px, 6.6vw, 30px); }
+  .dd-login-subtitle { margin-top: 7px; }
+  .dd-login-features { padding-top: 11px; padding-bottom: 10px; }
+  .dd-login-features h2 { margin-bottom: 8px; }
+  .dd-login-feature strong { margin-top: 5px; }
+  .dd-login-feature small { margin-top: 2px; }
+  .dd-login-footer { padding-top: 12px; }
+  .dd-login-footer > p { margin-top: 8px; }
+  .dd-login-character-button { width: clamp(124px, 25dvh, 180px); }
+}
+@media (max-height: 560px) {
+  .dd-login { min-height: 560px; height: auto; }
+  .dd-login-character-stage { min-height: 150px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-login-raindrop,
+  .dd-login-character-entrance,
+  .dd-login-character-action,
+  .dd-login-character-auto-wink,
+  .dd-login-character-sparkles { animation: none !important; }
+  .dd-login-character-auto-wink { opacity: 0; }
+  .dd-login-character-speech { transition: none; }
+  .dd-login-kakao-button { transition: none; }
+}
