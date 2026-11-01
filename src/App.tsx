@@ -6,6 +6,7 @@ import DrainDetailPage from './pages/drainDetail/DrainDetailPage'
 import MapPage from './pages/map/MapPage'
 import SocialPage from './pages/social/SocialPage'
 import LeaderboardPage from './pages/social/LeaderboardPage'
+import NotificationsPage from './pages/notifications/NotificationsPage'
 
 export default function App() {
   return (
@@ -14,21 +15,12 @@ export default function App() {
 
       <Route element={<MainLayout />}>
         <Route path="/" element={null} />
-
-        <Route
-          path="/my-drains"
-          element={<MyDrainsPage />}
-        />
-
-        <Route
-          path="/drains/:drainId"
-          element={<DrainDetailPage />}
-        />
-
+        <Route path="/my-drains" element={<MyDrainsPage />}/>
+        <Route path="/drains/:drainId" element={<DrainDetailPage />}/>
         <Route path="/map" element={<MapPage />} />
         <Route path="/social" element={<SocialPage />} />
         <Route path="/social/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/notifications" element={null} />
+        <Route path="/notifications"element={<NotificationsPage />}/>
         <Route path="/profile" element={null} />
         <Route path="/settings" element={null} />
       </Route>
