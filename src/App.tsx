@@ -7,11 +7,12 @@ import MapPage from './pages/map/MapPage'
 import SocialPage from './pages/social/SocialPage'
 import LeaderboardPage from './pages/social/LeaderboardPage'
 import NotificationsPage from './pages/notifications/NotificationsPage'
+import LoginPage from './pages/login/LoginPage'
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={null} />
+      <Route path="/login" element={<LoginPage />} />
 
       <Route element={<MainLayout />}>
         <Route path="/" element={null} />
