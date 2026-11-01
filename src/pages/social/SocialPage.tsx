@@ -1,7 +1,7 @@
 
 import { useState } from 'react'
 
-import Character from '../../components/common/Character'
+import happyCharacter from '../../assets/characters/states/happy.svg'
 import type { SocialTab } from '../../types/social'
 
 import LeagueTab from './components/LeagueTab'
@@ -38,13 +38,12 @@ export default function SocialPage() {
         </div>
 
         <div className="absolute bottom-1 right-3">
-          <Character
-            type="level"
-            level={3}
-            size={88}
-            className="drop-shadow-sm"
-          />
-        </div>
+  <img
+    src={happyCharacter}
+    alt="행복한 또랑이 캐릭터"
+    className="h-[88px] w-[88px] object-contain drop-shadow-sm"
+  />
+</div>
 
         <div className="absolute -right-8 -top-9 h-32 w-32 rounded-full bg-white/35" />
       </section>
