@@ -17,6 +17,7 @@ export interface SocialUser {
   id: number
   nickname: string
   avatar: string
+  avatarUrl?: string
   organization: string | null
   zone: string
   weeklyScore: number

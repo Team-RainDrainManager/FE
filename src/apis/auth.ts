@@ -5,7 +5,7 @@ import { useAuthStore, type AuthTokens } from '../store/useAuthStore'
 export type ApiEnvelope<T> = {
   success: boolean
   data: T
-  error: { code: string; message: string; fieldErrors?: { field?: string; message?: string }[] } | null
+  error: { code: string; message?: string; reason?: string; fieldErrors?: { field?: string; message?: string }[] } | null
 }
 
 export type KakaoLoginResponse = AuthTokens & { isNewUser: boolean }
@@ -37,7 +37,7 @@ export type MeResponse = {
 
 function unwrap<T>(response: { data: ApiEnvelope<T> }): T {
   const body = response.data
-  if (!body.success) throw new Error(body.error?.message || '서버 요청을 처리하지 못했습니다.')
+  if (!body.success) throw new Error(body.error?.message || body.error?.reason || '서버 요청을 처리하지 못했습니다.')
   return body.data
 }
 
@@ -92,16 +92,22 @@ export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError<ApiEnvelope<unknown>>(error)) {
     const detail = error.response?.data?.error
     if (detail?.fieldErrors?.length) {
-      return detail.fieldErrors.map((item) => item.message).filter(Boolean).join('\n') || detail.message
+      return detail.fieldErrors.map((item) => item.message).filter(Boolean).join('\n') || detail.message || detail.reason || '입력값을 확인해 주세요.'
     }
-    return detail?.message || (error.response ? `요청 실패 (${error.response.status})` : '서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.')
+    return detail?.message || detail?.reason || (error.response ? `요청 실패 (${error.response.status})` : '서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.')
   }
   return error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
 }
 
 export async function getKakaoLoginUrl(redirectUri: string): Promise<string> {
-  const result = unwrap<{ url: string }>(await publicClient.get('/api/v1/auth/kakao/login-url', { params: { redirectUri } }))
-  return result.url
+  const result = unwrap<{ loginUrl?: unknown; url?: unknown }>(
+    await publicClient.get('/api/v1/auth/kakao/login-url', { params: { redirectUri } }),
+  )
+  const url = result.loginUrl ?? result.url
+  if (typeof url !== 'string' || !url.startsWith('https://kauth.kakao.com/')) {
+    throw new Error('카카오 로그인 주소 응답을 확인할 수 없습니다. 백엔드 응답의 loginUrl/url을 확인해 주세요.')
+  }
+  return url
 }
 
 export async function kakaoLogin(code: string, redirectUri: string): Promise<KakaoLoginResponse> {

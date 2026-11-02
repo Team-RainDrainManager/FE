@@ -7,14 +7,17 @@ import {
 } from '../../../mocks/social'
 
 export default function FeedTab() {
-  const [likedIds, setLikedIds] = useState<number[]>([])
+  const [likedIds, setLikedIds] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('ddorang:demo-feed-likes')??'[]') as number[] }
+    catch { return [] }
+  })
 
   const toggleLike = (id: number) => {
-    setLikedIds((previous) =>
-      previous.includes(id)
-        ? previous.filter((value) => value !== id)
-        : [...previous, id],
-    )
+    setLikedIds(previous=>{
+      const next=previous.includes(id)?previous.filter(value=>value!==id):[...previous,id]
+      try {localStorage.setItem('ddorang:demo-feed-likes',JSON.stringify(next))} catch { /* ignore */ }
+      return next
+    })
   }
 
   return (
@@ -125,7 +128,7 @@ export default function FeedTab() {
       )}
 
       <p className="px-1 pb-2 text-center text-[11px] text-[#9AA9B6]">
-        미리보기 · 응원은 현재 화면에서만 기록돼요.
+        시연용 피드 · 좋아요는 이 브라우저에만 기록됩니다.
       </p>
     </div>
   )

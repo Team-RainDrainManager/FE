@@ -2,14 +2,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import Character from '../../components/common/Character'
-import {
-  MOCK_MY_ADOPTIONS,
-  MOCK_PAUSE_STATUS,
-} from '../../mocks/myDrain'
+import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import type {
   DrainModalType,
-  MyAdoptionsResponse,
-  MyPauseStatus,
   PageModal,
   ReleaseAdoptionRequest,
 } from '../../types/myDrains'
@@ -26,20 +21,9 @@ const REASON_LABELS: Record<
 }
 
 export default function MyDrainsPage() {
-  const [data, setData] = useState<MyAdoptionsResponse>(
-    () => ({
-      ...MOCK_MY_ADOPTIONS,
-      adoptions: MOCK_MY_ADOPTIONS.adoptions.map(
-        (item) => ({
-          ...item,
-          drain: { ...item.drain },
-        }),
-      ),
-    }),
-  )
-
-  const [pauseStatus] =
-    useState<MyPauseStatus>({ ...MOCK_PAUSE_STATUS })
+  const data = useMyDrainsStore((state) => state.data)
+  const setData = useMyDrainsStore((state) => state.setData)
+  const pauseStatus = useMyDrainsStore((state) => state.pauseStatus)
 
   const [modal, setModal] = useState<PageModal>(null)
   const [feedback, setFeedback] = useState('')

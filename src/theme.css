@@ -1,0 +1,16 @@
+/* 기존 Tailwind 색상을 보존하면서 어두운 테마에서만 화면의 주요 표면을 재매핑합니다. */
+html[data-dd-theme="dark"] { color-scheme: dark; background:#0e1725; }
+html[data-dd-theme="dark"] #root { background:#0e1725; color:#e5eef9; }
+html[data-dd-theme="dark"] :where([class*="bg-white"], [class*="bg-[#F4F7FC]"], [class*="bg-[#F5FAFF]"], [class*="bg-[#F7FAFE]"]) { background-color:#162338 !important; }
+html[data-dd-theme="dark"] :where([class*="bg-[#F2F8"], [class*="bg-[#EAF"], [class*="bg-[#EFF"], [class*="bg-[#F0F8"], [class*="bg-[#E8F"], [class*="bg-[#DDF"]) { background-color:#21344d !important; }
+html[data-dd-theme="dark"] :where([class*="text-[#203451]"], [class*="text-[#24496B]"], [class*="text-[#385A73]"], [class*="text-[#23476a]"]) { color:#edf5ff !important; }
+html[data-dd-theme="dark"] :where([class*="text-[#78899F]"], [class*="text-[#8299B0]"], [class*="text-[#71889B]"], [class*="text-[#7C94AD]"]) { color:#aec2d9 !important; }
+html[data-dd-theme="dark"] :where([class*="border-[#E"], [class*="border-[#D"]) { border-color:#314760 !important; }
+html[data-dd-theme="dark"] input, html[data-dd-theme="dark"] textarea { background:#122237; color:#edf5ff; border-color:#43556d; }
+html[data-dd-theme="dark"] .dd-login { background:linear-gradient(160deg,#14283f,#1d3952,#122031); color:#eef6ff; }
+html[data-dd-theme="dark"] .dd-login-viewport { background:#122031; }
+html[data-dd-theme="dark"] .dd-login h1 { color:#eef6ff; }
+html[data-dd-theme="dark"] .dd-login .dd-login-subtitle { color:#b1c4d8; }
+@media(prefers-reduced-motion:reduce) { .dd-level-joy { animation:none !important; } }
+@keyframes dd-level-jump { 0%,100%{transform:translateY(0) rotate(0)} 28%{transform:translateY(-64px) rotate(-7deg)} 55%{transform:translateY(0) rotate(5deg)} 70%{transform:translateY(-24px)} }
+.dd-level-joy{animation:dd-level-jump 1.6s ease-in-out infinite;}
