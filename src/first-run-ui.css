@@ -1,0 +1,133 @@
+/* 새로운 회원 가이드 및 계정 확인창 / 기존 테마 토큰 사용 */
+.dd-tour-layer{position:fixed;inset:0;z-index:140;display:flex;justify-content:center;align-items:flex-end;padding:20px 16px max(90px,calc(84px + env(safe-area-inset-bottom)));pointer-events:none}
+.dd-tour-dim{position:absolute;inset:0;background:rgba(8,24,43,.63);pointer-events:auto}
+.dd-tour-card{position:relative;width:min(100%,430px);padding:19px 23px 24px;border-radius:27px;background:var(--dd-surface,#fff);color:var(--dd-ink,#203451);box-shadow:0 22px 75px rgba(7,28,47,.27);pointer-events:auto;text-align:center}
+.dd-tour-top{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;color:var(--dd-muted,#71889b)}
+.dd-tour-top button{padding:8px;color:var(--dd-blue,#338cf0);font-size:12px}
+.dd-tour-character{height:93px;margin-top:1px;display:grid;place-items:center;animation:dd-friendly-hop 3s cubic-bezier(.34,.7,.2,1) infinite}
+.dd-tour-step{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--dd-blue,#338cf0)}
+.dd-tour-card h2{margin-top:9px;font-size:clamp(17px,4.7vw,21px);font-weight:850;line-height:1.4;letter-spacing:-.035em;word-break:keep-all}
+.dd-tour-description{margin:9px auto 0;max-width:330px;font-size:13px;line-height:1.7;color:var(--dd-muted,#70839a);word-break:keep-all}
+.dd-tour-dots{display:flex;justify-content:center;gap:6px;margin:19px 0 14px}
+.dd-tour-dots span{width:6px;height:6px;border-radius:99px;background:var(--dd-line,#d7e3ec);transition:width .2s}
+.dd-tour-dots .active{width:20px;background:var(--dd-blue,#3981f7)}
+.dd-tour-actions{display:flex;gap:9px}
+.dd-tour-actions button{min-height:45px;flex:1;border:1px solid var(--dd-line,#d7e3ec);border-radius:14px;font-size:13px;font-weight:800;color:var(--dd-ink,#203451)}
+.dd-tour-actions button.primary{background:#287bd6;color:#fff;border-color:#287bd6}
+.dd-account-confirm-backdrop{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(6,20,36,.72);backdrop-filter:blur(4px)}
+.dd-account-confirm{width:min(100%,365px);padding:22px 21px 23px;border-radius:27px;border:1px solid var(--dd-line,#dce6ee);background:var(--dd-surface,#fff);color:var(--dd-ink,#203451);text-align:center;box-shadow:0 18px 65px rgba(0,0,0,.24)}
+.dd-account-cry{height:148px;display:grid;place-items:center;animation:dd-sad-wobble 2.5s ease-in-out infinite}
+.dd-account-confirm h3{margin-top:8px;font-size:18px;line-height:1.45;font-weight:850;word-break:keep-all}
+.dd-account-confirm p{margin-top:12px;font-size:12px;line-height:1.7;color:var(--dd-muted,#70839a);word-break:keep-all}
+.dd-account-confirm-actions{display:flex;gap:8px;margin-top:22px}
+.dd-account-confirm-actions button{flex:1;min-height:46px;border:1px solid var(--dd-line,#dce6ee);border-radius:13px;font-size:12px;font-weight:800}
+.dd-account-confirm-actions .danger{background:#a62e46;border-color:#a62e46;color:white}
+.dd-login-features h2{font-size:15px!important;letter-spacing:-.035em}
+.dd-login-features{padding:15px 12px!important}
+.dd-login-feature{gap:2px}
+.dd-login-feature-illustration{display:grid;place-items:center;width:38px;height:38px;border-radius:13px;background:#e3f2ff;margin-bottom:2px;animation:dd-feature-floating 3s ease-in-out infinite}
+.dd-login-feature:nth-child(2) .dd-login-feature-illustration{animation-delay:-1s}
+.dd-login-feature:nth-child(3) .dd-login-feature-illustration{animation-delay:-2s}
+.dd-login-feature-illustration img{width:21px;height:21px;filter:invert(40%) sepia(83%) saturate(1801%) hue-rotate(184deg) brightness(98%)}
+.dd-login-feature-number{font-size:12px!important;width:34px;height:22px}
+.dd-login-feature strong{font-size:13px!important;line-height:1.4;margin-top:5px!important}
+.dd-login-feature small{font-size:10px!important;line-height:1.4}
+.dd-login-raindrop{width:1.8px;height:43px;filter:drop-shadow(0 0 1px #59a4dc)}
+.dd-login-raindrop:nth-child(3n){height:26px;animation-timing-function:linear}
+.dd-login-raindrop:nth-child(4n){height:36px;opacity:.25!important}
+/* 입구 등장 이후 이미지의 미세한 좌우 움직임을 별도 레이어로 합성 */
+.dd-login-character-action--idle .dd-login-character-image{animation:dd-body-follow 3.15s ease-in-out 1.35s infinite;transform-origin:48% 70%}
+.dd-login-character-action--superjump .dd-login-character-image,.dd-login-character-action--dance .dd-login-character-image{animation:dd-body-follow .6s ease-in-out infinite alternate}
+.dd-login-character-action--wiggle .dd-login-character-image{animation:dd-body-follow .4s ease-in-out infinite alternate}
+.dd-login-character-action--idle{transform-origin:40% 85%;filter:drop-shadow(0 11px 8px rgba(30,93,135,.14))}
+.dd-login-character-stage::before{content:'';position:absolute;width:90px;height:13px;bottom:calc(50% - 108px);left:50%;transform:translateX(-50%);background:rgba(41,109,155,.15);filter:blur(8px);border-radius:50%;animation:dd-shadow-breathe 3.15s ease-in-out infinite;pointer-events:none}
+@keyframes dd-body-follow{0%,100%{transform:translate3d(-3px,1px,0) rotate(-3deg) scale(1.01,.99)}35%{transform:translate3d(4px,-3px,0) rotate(3deg) scale(.98,1.03)}70%{transform:translate3d(-2px,2px,0) rotate(-2deg) scale(1.02,.98)}}
+@keyframes dd-shadow-breathe{0%,100%{opacity:.8;transform:translateX(-50%) scaleX(1)}40%{opacity:.3;transform:translateX(-45%) scaleX(.6)}}
+@keyframes dd-friendly-hop{0%,100%{transform:translate3d(0,0,0) rotate(-2deg)}15%{transform:translate3d(-9px,4px,0) scale(1.07,.94) rotate(-7deg)}38%{transform:translate3d(12px,-20px,0) scale(.94,1.08) rotate(8deg)}60%{transform:translate3d(-3px,0,0) scale(1.04,.96)}78%{transform:translate3d(5px,-6px,0) rotate(4deg)}}
+@keyframes dd-feature-floating{0%,100%{transform:translateY(0)}45%{transform:translateY(-3px)}}
+@keyframes dd-sad-wobble{0%,100%{transform:translateY(0) rotate(-2deg)}30%{transform:translate(-3px,3px) rotate(3deg)}60%{transform:translate(2px,-4px) rotate(-3deg)}}
+@media(max-height:680px){.dd-login-feature-illustration{width:29px;height:29px}.dd-login-feature-illustration img{width:17px;height:17px}.dd-login-features{padding:10px!important}.dd-tour-character{height:72px}.dd-tour-character img{width:75px;height:75px}}
+@media(prefers-reduced-motion:reduce){.dd-tour-character,.dd-account-cry,.dd-login-feature-illustration,.dd-login-character-image,.dd-login-character-stage::before{animation:none!important}}
+
+/* 어느 탭에서도 또랑이가 딱딱한 그림처럼 멈춰 있지 않도록 작고 비대칭인 호흡 동작 */
+.dd-character-live:not(.dd-login-character-image){transform-origin:48% 80%;animation:dd-character-live 4.9s cubic-bezier(.48,.01,.45,1) infinite;filter:drop-shadow(0 3px 3px rgba(32,91,136,.08))}
+@keyframes dd-character-live{0%,100%{transform:translate3d(-2px,1px,0) rotate(-2deg) scale(1,.995)}22%{transform:translate3d(2px,-3px,0) rotate(2.3deg) scale(.987,1.015)}48%{transform:translate3d(4px,-1px,0) rotate(-1.5deg) scale(1.015,.99)}75%{transform:translate3d(-3px,-5px,0) rotate(2deg) scale(.995,1.02)}}
+@media(prefers-reduced-motion:reduce){.dd-character-live:not(.dd-login-character-image){animation:none!important}}
+
+/* v3: 화면을 가리지 않는 하단 탭별 말풍선 가이드. 기존 설정 모달 및 캐릭터 CSS는 유지합니다. */
+.dd-tour-bubble {
+  position: fixed;
+  z-index: 160;
+  left: 50%;
+  bottom: calc(83px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(calc(100vw - 36px), 420px);
+  padding: 14px 16px 13px;
+  border: 1px solid var(--dd-line, #dce7f2);
+  border-radius: 19px;
+  background: var(--dd-surface, #fff);
+  color: var(--dd-ink, #203451);
+  box-shadow: 0 14px 44px rgba(12, 36, 65, .21);
+  animation: dd-tour-bubble-in .18s ease-out both;
+  --dd-tour-arrow: 50%;
+}
+.dd-tour-bubble[data-tour-tab="my-drains"] { --dd-tour-arrow: 5.5%; }
+.dd-tour-bubble[data-tour-tab="map"] { --dd-tour-arrow: 28%; }
+.dd-tour-bubble[data-tour-tab="social"] { --dd-tour-arrow: 50%; }
+.dd-tour-bubble[data-tour-tab="notifications"] { --dd-tour-arrow: 72%; }
+.dd-tour-bubble[data-tour-tab="profile"] { --dd-tour-arrow: 94.5%; }
+.dd-tour-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: var(--dd-tour-arrow);
+  width: 16px;
+  height: 16px;
+  background: var(--dd-surface, #fff);
+  border-right: 1px solid var(--dd-line, #dce7f2);
+  border-bottom: 1px solid var(--dd-line, #dce7f2);
+  transform: translateX(-50%) rotate(45deg);
+}
+.dd-tour-bubble-header,
+.dd-tour-bubble-footer,
+.dd-tour-bubble-content { display: flex; align-items: center; }
+.dd-tour-bubble-header { justify-content: space-between; gap: 10px; }
+.dd-tour-kicker { font-size: 11px; font-weight: 750; color: var(--dd-muted, #687d94); }
+.dd-tour-kicker span { margin-left: 6px; color: var(--dd-blue, #2779d4); font-variant-numeric: tabular-nums; }
+.dd-tour-skip { padding: 4px 0 4px 9px; background: transparent; color: var(--dd-blue, #2779d4); font-size: 11px; font-weight: 750; white-space: nowrap; }
+.dd-tour-bubble-content { gap: 9px; margin-top: 9px; align-items: flex-start; }
+.dd-tour-bubble-character { flex: 0 0 65px; display: flex; justify-content: center; animation: dd-friendly-hop 3.4s ease-in-out infinite; }
+.dd-tour-bubble-text { flex: 1; min-width: 0; }
+.dd-tour-bubble-label { font-size: 10px; font-weight: 800; color: var(--dd-blue, #2779d4); }
+.dd-tour-bubble-text h2 { margin: 2px 0 0; font-size: 15px; line-height: 1.35; font-weight: 850; letter-spacing: -.025em; word-break: keep-all; }
+.dd-tour-bubble-text p { margin-top: 5px; font-size: 12px; line-height: 1.55; color: var(--dd-muted, #687d94); word-break: keep-all; }
+.dd-tour-bubble-footer { justify-content: space-between; margin-top: 11px; gap: 12px; }
+.dd-tour-mini-dots { display: flex; align-items: center; gap: 4px; }
+.dd-tour-mini-dots span { width: 5px; height: 5px; border-radius: 100px; background: var(--dd-line, #dce7f2); transition: width .15s ease; }
+.dd-tour-mini-dots .active { width: 17px; background: var(--dd-blue, #2779d4); }
+.dd-tour-bubble-actions { display: flex; align-items: center; gap: 7px; }
+.dd-tour-bubble-actions button { min-width: 67px; min-height: 35px; border-radius: 10px; font-size: 12px; font-weight: 800; }
+.dd-tour-previous { background: transparent; border: 1px solid var(--dd-line, #dce7f2); color: var(--dd-ink, #203451); }
+.dd-tour-next { background: var(--dd-blue, #287bd6); color: white; border: 1px solid transparent; }
+html[data-dd-tour-target] nav[aria-label="하단 메뉴"] { z-index: 155; }
+html[data-dd-tour-target="my-drains"] nav[aria-label="하단 메뉴"] a[href="/my-drains"],
+html[data-dd-tour-target="map"] nav[aria-label="하단 메뉴"] a[href="/map"],
+html[data-dd-tour-target="social"] nav[aria-label="하단 메뉴"] a[href="/social"],
+html[data-dd-tour-target="notifications"] nav[aria-label="하단 메뉴"] a[href="/notifications"],
+html[data-dd-tour-target="profile"] nav[aria-label="하단 메뉴"] a[href="/profile"] {
+  background: var(--dd-surface, #fff);
+  outline: 2px solid var(--dd-blue, #287bd6);
+  outline-offset: -3px;
+  box-shadow: 0 0 0 5px rgba(54, 139, 235, .15);
+  transform: translateY(-2px);
+}
+@keyframes dd-tour-bubble-in { from { opacity: 0; transform: translate(-50%, 7px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (max-width: 340px) {
+  .dd-tour-bubble { padding: 12px 12px 11px; }
+  .dd-tour-bubble-character { flex-basis: 55px; }
+  .dd-tour-bubble-text h2 { font-size: 13px; }
+  .dd-tour-bubble-text p { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-tour-bubble, .dd-tour-bubble-character { animation: none !important; }
+}

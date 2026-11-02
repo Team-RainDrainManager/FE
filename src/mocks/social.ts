@@ -15,13 +15,10 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
     avatar: '🌱',
     organization: '역곡동 환경동아리',
     zone: '성심교정–역곡역',
-    weeklyScore: 185,
-    totalScore: 1420,
+    weeklyScore: 0,
+    totalScore: 0,
     isMe: true,
-    drains: [
-      { id: 4, name: '등굣길 또랑', level: 3 },
-      { id: 5, name: '공원 새싹', level: 1 },
-    ],
+    drains: [],
   },
   {
     id: 2,
@@ -46,7 +43,7 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
     weeklyScore: 245,
     totalScore: 1890,
     isMe: false,
-    drains: [{ id: 18, name: '학교 앞 물길', level: 6 }],
+    drains: [{ id: 18, name: '학교 앞 물길', level: 50 }],
   },
   {
     id: 4,
@@ -84,6 +81,8 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
 ]
 
 export const MOCK_SOCIAL_FEED: SocialFeedItem[] = [
+  {id:105,userId:2,drainName:'역곡역 앞 또랑',type:'inspection',description:'7일 연속 돌봄 기록을 달성했어요! (시연용 활동)',dateLabel:'오늘',likes:24},
+  {id:106,userId:3,drainName:'학교 앞 물길',type:'growth',description:'또랑이가 Lv.50 만렙을 달성했어요! (시연용 활동)',dateLabel:'오늘',likes:39},
   {
     id: 101,
     userId: 2,
@@ -98,18 +97,9 @@ export const MOCK_SOCIAL_FEED: SocialFeedItem[] = [
     userId: 3,
     drainName: '학교 앞 물길',
     type: 'growth',
-    description: '또랑이가 Lv.6으로 성장했어요!',
+    description: '또랑이가 Lv.50으로 성장했어요!',
     dateLabel: '어제',
     likes: 8,
-  },
-  {
-    id: 103,
-    userId: 1,
-    drainName: '등굣길 또랑',
-    type: 'inspection',
-    description: '정기 점검을 완료했어요.',
-    dateLabel: '2일 전',
-    likes: 5,
   },
   {
     id: 104,

@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router'
 import { emailSignup, getErrorMessage } from '../../apis/auth'
 import { useAuthStore } from '../../store/useAuthStore'
 import { nextAfterLogin } from './auth-flow'
+import { beginFirstRun } from '../../utils/firstRun'
+import { useMyDrainsStore } from '../../store/useMyDrainsStore'
+import { useDecorationStore } from '../../store/useDecorationStore'
 import './auth-pages.css'
 
 export default function EmailSignupPage() {
@@ -27,6 +30,9 @@ export default function EmailSignupPage() {
     setPending(true); setError('')
     try {
       const tokens = await emailSignup(email.trim(), password, nickname.trim())
+      beginFirstRun()
+      useMyDrainsStore.getState().reset()
+      useDecorationStore.getState().reset()
       setTokens(tokens)
       navigate(await nextAfterLogin(), { replace: true })
     } catch (err: unknown) { setError(getErrorMessage(err)) }

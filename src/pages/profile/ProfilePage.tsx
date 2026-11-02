@@ -164,7 +164,7 @@ export default function ProfilePage() {
     <div className="min-h-[calc(100dvh-128px)] space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]">
       <section className="rounded-[24px] bg-[#EAF5FF] px-5 pb-5 pt-6">
         <p className="text-[11px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
-        <h2 className="mt-1 text-[21px] font-extrabold tracking-[-0.04em]">오늘도 우리 동네를 돌보는 중</h2>
+        <h2 className="mt-1 text-[21px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? '내 첫 또랑이를 만나볼까요?' : '오늘도 우리 동네를 돌보는 중'}</h2>
         <p className="mt-1 text-[12px] text-[#7C94AD]">나의 작은 활동이 동네를 더 안전하게 만들어요.</p>
 
         <div className="mt-5 flex items-center gap-4 rounded-[20px] bg-white p-4">
@@ -246,7 +246,7 @@ export default function ProfilePage() {
             <span>점검이 필요한 또랑이가 {needsCare.length}개 있어요.</span><span aria-hidden="true">›</span>
           </Link>
         ) : (
-          <p className="mt-4 rounded-xl bg-[#EAF8F2] p-3 text-[12px] font-semibold text-[#268466]">최근 점검 기록이 모두 14일 이내예요.</p>
+          <p className="mt-4 rounded-xl bg-[#EAF8F2] p-3 text-[12px] font-semibold text-[#268466]">{adoptedCount === 0 ? '아직 돌봄 기록이 없어요. 첫 또랑이를 입양해 보세요.' : '현재 점검이 필요한 또랑이는 없어요.'}</p>
         )}
       </section>
 
@@ -281,6 +281,7 @@ export default function ProfilePage() {
         <Link to="/social" className="flex min-h-12 items-center justify-between border-b border-[#EFF4F8] text-[13px] font-semibold">
           <span>친구와 소셜 활동</span><span className="text-lg text-[#A0B1C2]" aria-hidden="true">›</span>
         </Link>
+        <Link to="/shop" className="flex min-h-12 items-center justify-between border-b border-[#EFF4F8] text-[13px] font-semibold"><span>💧 꾸미기 상점</span><span className="text-lg text-[#A0B1C2]" aria-hidden="true">›</span></Link>
         <Link to="/settings" className="flex min-h-12 items-center justify-between text-[13px] font-semibold">
           <span>설정</span><span className="text-lg text-[#A0B1C2]" aria-hidden="true">›</span>
         </Link>

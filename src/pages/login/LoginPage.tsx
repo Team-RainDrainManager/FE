@@ -4,12 +4,17 @@ import { getErrorMessage, getKakaoLoginUrl } from '../../apis/auth'
 import { kakaoRedirectUri, markKakaoRedirect } from './auth-flow'
 
 import Character from '../../components/common/Character'
+import drainIcon from '../../assets/icons/drain.svg'
+import mapIcon from '../../assets/icons/map.svg'
+import bellIcon from '../../assets/icons/bell.svg'
+import { useThemeStore } from '../../store/useThemeStore'
+import { fetchSky, type SkyData } from '../../utils/sky'
 import './LoginPage.css'
 
 const FEATURES = [
-  { number: '01', title: '빗물받이 입양', detail: '우리 동네를 함께 돌봐요' },
-  { number: '02', title: '간편한 점검', detail: '14일마다 사진으로 기록' },
-  { number: '03', title: '비 예보 알림', detail: '비 오기 전에 미리 확인' },
+  { number: '01', title: '빗물받이 입양', detail: '우리 동네를 함께 돌봐요', icon: mapIcon },
+  { number: '02', title: '간편한 점검', detail: '14일마다 사진으로 기록', icon: drainIcon },
+  { number: '03', title: '비 예보 알림', detail: '비 오기 전에 미리 확인', icon: bellIcon },
 ]
 
 // 고정된 값으로 비를 생성해 버튼을 누르더라도 빗방울의 위치가 갑자기 바뀌지 않습니다.
@@ -41,6 +46,18 @@ export default function LoginPage() {
   const [hovered, setHovered] = useState(false)
   const [reaction, setReaction] = useState<Reaction | null>(null)
   const actionCount = useRef(0)
+  const locationForWeather = useThemeStore(s => s.location)
+  const [sky,setSky] = useState<SkyData|null>(null)
+  const [weatherMessage,setWeatherMessage] = useState('')
+
+  useEffect(() => {
+    const controller=new AbortController()
+    void fetchSky(locationForWeather.latitude,locationForWeather.longitude,controller.signal)
+      .then(data=>{setSky(data);setWeatherMessage('')})
+      .catch(()=>{if(!controller.signal.aborted)setWeatherMessage('현재 날씨를 불러오지 못했습니다.')})
+    return ()=>controller.abort()
+  },[locationForWeather.latitude,locationForWeather.longitude])
+
 
   useEffect(() => {
     if (!reaction) return
@@ -74,9 +91,9 @@ export default function LoginPage() {
 
   return (
     <div className="dd-login-viewport">
-      <main className="dd-login" aria-label="또랑 로그인">
+      <main className={`dd-login ${sky ? sky.rain ? 'dd-login--rain' : sky.weatherCode<=2 ? 'dd-login--sun' : 'dd-login--cloud' : 'dd-login--cloud'}`} aria-label="또랑 로그인">
         <div className="dd-login-rain" aria-hidden="true">
-          {RAIN_DROPS.map((drop) => (
+          {(!sky || sky.rain) && RAIN_DROPS.map((drop) => (
             <span
               key={drop.id}
               className="dd-login-raindrop"
@@ -97,6 +114,7 @@ export default function LoginPage() {
             <span>우리 동네 또랑이</span>
           </h1>
           <p className="dd-login-subtitle">작은 관심 하나가 동네의 침수를 막는 시작이 됩니다.</p>
+          <p className="dd-login-weather" role="status">{sky ? `${sky.rain?'☔ 비 오는 중':sky.weatherCode<=2?'☀ 맑음':'☁ 흐림'}${sky.temperature===null?'':` · ${Math.round(sky.temperature)}°C`} · ${locationForWeather.latitude===37.487?'역곡 인근':'선택한 위치'} 기준` : weatherMessage||'지역 날씨 확인 중…'}</p>
         </header>
 
         <section className="dd-login-character-stage" aria-label="또랑이와 놀기">
@@ -148,8 +166,9 @@ export default function LoginPage() {
         <section className="dd-login-features" aria-label="또랑 서비스 이용 방법">
           <h2>또랑이와 함께하는 3단계</h2>
           <div className="dd-login-features-grid">
-            {FEATURES.map(({ number, title, detail }) => (
+            {FEATURES.map(({ number, title, detail, icon }) => (
               <div className="dd-login-feature" key={number}>
+                <span className="dd-login-feature-illustration" aria-hidden="true"><img src={icon} alt="" /></span>
                 <span className="dd-login-feature-number">{number}</span>
                 <strong>{title}</strong>
                 <small>{detail}</small>

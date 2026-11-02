@@ -3,9 +3,9 @@ import { Link, useParams } from 'react-router'
 import {
   MOCK_DRAIN_DETAILS,
   MOCK_DRAIN_GROWTH,
-  MOCK_MY_ADOPTION_IDS,
 } from '../../mocks/drainDetail'
 
+import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import DrainInfo from './components/DrainInfo'
 import DrainPhoto from './components/DrainPhoto'
 import DrainGrowth from './components/DrainGrowth'
@@ -14,6 +14,7 @@ import DrainActions from './components/DrainActions'
 export default function DrainDetailPage() {
   const { drainId } = useParams()
   const id = Number(drainId)
+  const adoptions = useMyDrainsStore((state) => state.data.adoptions)
 
   // UI 시연용 데이터
   // API 연동 시 TanStack Query로 교체
@@ -46,11 +47,10 @@ export default function DrainDetailPage() {
     )
   }
 
-  // 이 값은 상세 조회 API에 없음
-  // 추후 GET /api/users/me/adoptions 결과로 판단
+  // 사용자 본인의 입양 기록을 기준으로 소유 여부를 표시합니다.
   const isMine =
     drain.adoption !== null &&
-    MOCK_MY_ADOPTION_IDS.includes(drain.adoption.adoptionId)
+    adoptions.some((item) => item.adoption_id === drain.adoption?.adoptionId)
 
   return (
     <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] space-y-4 bg-[#F4F7FC] px-4 pb-7 pt-5">

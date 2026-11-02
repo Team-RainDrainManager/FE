@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { completeOnboarding, getErrorMessage } from '../../apis/auth'
 import { useOnboardingStore } from '../../store/useOnboardingStore'
 import { clearOnboardingProgress } from '../login/auth-flow'
+import { markNicknamePending } from '../login/auth-flow'
 import '../login/auth-pages.css'
 
 export default function VerifyPage() {
@@ -22,7 +23,8 @@ export default function VerifyPage() {
       if (!result.completed) throw new Error('온보딩 완료 상태를 확인하지 못했습니다.')
       clearOnboardingProgress()
       clear()
-      navigate('/my-drains', { replace: true })
+      markNicknamePending()
+      navigate('/onboarding/nickname', { replace: true })
     } catch (err: unknown) { setError(getErrorMessage(err)) }
     finally { setPending(false) }
   }

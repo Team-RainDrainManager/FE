@@ -12,19 +12,52 @@ export default function FriendsTab() {
     (user) => user.id !== CURRENT_SOCIAL_USER_ID,
   )
 
-  const [friendIds, setFriendIds] = useState<number[]>([2, 3])
+  const [friendIds, setFriendIds] = useState<number[]>(()=>{
+    try {const value=JSON.parse(localStorage.getItem('ddorang:demo-friends')??'[]') as unknown
+      return Array.isArray(value)?value.filter((item):item is number=>typeof item==='number'):[]
+    } catch {return []}
+  })
   const [selectedUser, setSelectedUser] = useState<SocialUser | null>(
     null,
   )
   const [invitationOpen, setInvitationOpen] = useState(false)
   const [cheeredIds, setCheeredIds] = useState<number[]>([])
+  const [pokeIds, setPokeIds] = useState<number[]>([])
+  const [notice, setNotice] = useState('')
+
+  async function shareInvite() {
+    const url=window.location.origin
+    if(['localhost','127.0.0.1'].includes(window.location.hostname)) {
+      setNotice('localhost 주소는 다른 사람이 열 수 없습니다. 사이트를 배포한 뒤 초대 링크를 공유해 주세요.')
+      return
+    }
+    const text='또랑에서 함께 우리 동네 빗물받이를 돌봐요!'
+    try {
+      if(navigator.share) {
+        await navigator.share({title:'또랑 친구 초대',text,url})
+        setNotice('공유 화면을 열었습니다. 전송할 친구를 선택해 주세요.')
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`)
+        setNotice('초대 링크를 복사했습니다. 카카오톡으로 친구에게 보내 주세요.')
+      }
+    } catch(error:unknown) {
+      if(error instanceof DOMException&&error.name==='AbortError')return
+      setNotice('공유할 수 없습니다. 서비스 주소를 복사해서 직접 보내 주세요.')
+    }
+  }
+
+  function pokeFriend(id:number) {
+    if(!friendIds.includes(id)||pokeIds.includes(id))return
+    setPokeIds(previous=>[...previous,id]);setNotice('찌르기를 시연했습니다. 실제 알림은 전송되지 않습니다.')
+  }
+
 
   const toggleFriend = (id: number) => {
-    setFriendIds((previous) =>
-      previous.includes(id)
-        ? previous.filter((value) => value !== id)
-        : [...previous, id],
-    )
+    setFriendIds((previous) => {
+      const next=previous.includes(id)?previous.filter((value)=>value!==id):[...previous,id]
+      try {localStorage.setItem('ddorang:demo-friends',JSON.stringify(next))} catch { /* ignore */ }
+      return next
+    })
   }
 
   const cheerForFriend = (id: number) => {
@@ -62,7 +95,7 @@ export default function FriendsTab() {
       </section>
 
       <p className="px-1 text-xs leading-5 text-[#78899F]">
-        친구 미리보기 · 초대 기능은 준비 중이에요.
+        추천 친구는 시연 데이터입니다. 카카오 친구 목록 조회는 별도의 권한·서버 연동이 필요합니다.
       </p>
 
       <div className="space-y-3">
@@ -76,7 +109,7 @@ export default function FriendsTab() {
             >
               <div className="flex items-center gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#EAF6F0] text-2xl">
-                  {user.avatar}
+                  {user.avatarUrl?<img src={user.avatarUrl} alt={`${user.nickname} 프로필 사진`} className="h-full w-full rounded-full object-cover"/>:user.avatar}
                 </span>
 
                 <div className="min-w-0 flex-1">
@@ -115,6 +148,8 @@ export default function FriendsTab() {
         })}
       </div>
 
+      {notice&&<p role="status" className="rounded-xl bg-[#EAF4FF] p-3 text-xs text-[#3976B5]">{notice}</p>}
+
       {invitationOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
           <section
@@ -131,16 +166,16 @@ export default function FriendsTab() {
             </h3>
 
             <p className="mt-3 text-sm leading-6 text-[#71889B]">
-              카카오 친구 초대 기능은 추후 연결할 예정이에요.
-              현재는 초대 메시지가 전송되지 않습니다.
+              휴대폰에서는 공유 메뉴를 통해 카카오톡으로 초대 링크를 보낼 수 있습니다. 데스크톱에서는 링크가 복사됩니다.
+              카카오톡 친구 목록은 자동으로 조회하지 않습니다.
             </p>
 
             <button
               type="button"
-              onClick={() => setInvitationOpen(false)}
+              onClick={() => { void shareInvite() }}
               className="mt-5 w-full rounded-xl bg-[#3981F7] py-3 text-sm font-bold text-white"
             >
-              확인
+              초대 링크 공유하기
             </button>
           </section>
         </div>
@@ -172,6 +207,7 @@ export default function FriendsTab() {
               </button>
             </div>
 
+            <div className="mt-3 flex justify-center"><span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#EAF6F0] text-3xl">{selectedUser.avatarUrl?<img src={selectedUser.avatarUrl} alt="친구 프로필 사진" className="h-full w-full object-cover"/>:selectedUser.avatar}</span></div>
             <div className="mt-4 space-y-2">
               {selectedUser.drains.length === 0 ? (
                 <p className="rounded-xl bg-[#F5F9FC] p-4 text-center text-sm text-[#78899F]">
@@ -207,13 +243,12 @@ export default function FriendsTab() {
               {!friendIds.includes(selectedUser.id)
                 ? '친구 추가 후 응원 가능'
                 : cheeredIds.includes(selectedUser.id)
-                  ? '♥ 응원했어요 (시연)'
+                  ? '♥ 응원 표시됨'
                   : '♡ 돌봄 응원 보내기'}
             </button>
 
-            <p className="mt-2 text-center text-[11px] text-[#78899F]">
-              응원은 현재 화면에서만 기록되며 알림은 전송되지 않아요.
-            </p>
+            <button type="button" disabled={!friendIds.includes(selectedUser.id)||pokeIds.includes(selectedUser.id)} onClick={()=>pokeFriend(selectedUser.id)} className="mt-2 w-full rounded-xl border border-[#C9DBEA] bg-[#F5F9FC] py-3 text-sm font-bold text-[#3976B5] disabled:opacity-50">{pokeIds.includes(selectedUser.id)?'오늘 찌르기 시연 완료':'관리 잊지 말기 · 찌르기'}</button>
+            <p className="mt-2 text-center text-[11px] text-[#78899F]">응원과 찌르기는 화면 시연이며 상대방에게 실제 알림이 전송되지 않습니다.</p>
           </section>
         </div>
       )}
