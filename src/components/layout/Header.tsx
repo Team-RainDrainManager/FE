@@ -1,13 +1,14 @@
 
-import { useLocation, useNavigate } from 'react-router'
-import { SettingsModalDemo } from '../settings/SettingsModal'
+import { Link, useLocation, useNavigate } from 'react-router'
 
 import backIcon from '../../assets/icons/back.svg'
+import gearIcon from '../../assets/icons/gear.svg'
 
 const PAGE_TITLES: Record<string, string> = {
   '/my-drains': '또랑이',
   '/map': '지도',
   '/social': '소셜',
+  '/social/leaderboard': '리더보드',
   '/notifications': '알림',
   '/profile': '프로필',
   '/settings': '설정',
@@ -35,7 +36,7 @@ export default function Header() {
         {showBackButton && (
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => isSettingsPage ? navigate('/profile') : navigate(-1)}
             aria-label="뒤로 가기"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] active:bg-[#EAF2FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
           >
@@ -61,7 +62,22 @@ export default function Header() {
         </h1>
       </div>
 
-      {!showBackButton && <SettingsModalDemo />}
+      {pathname === '/profile' && (
+        <Link
+          to="/settings"
+          aria-label="설정"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] active:bg-[#EAF2FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
+        >
+          <span
+              aria-hidden="true"
+              className="block h-[22px] w-[22px] bg-current"
+              style={{
+                mask: `url("${gearIcon}") center / contain no-repeat`,
+                WebkitMask: `url("${gearIcon}") center / contain no-repeat`,
+              }}
+            />
+        </Link>
+      )}
     </header>
   )
 }
