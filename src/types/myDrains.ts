@@ -50,6 +50,5 @@ export type DrainModalType =
   | { type: 'preview'; drainId: number | null; level: number }
   | { type: 'inspect'; drainId: number }
   | { type: 'release'; drainId: number }
-  | { type: 'pause' }
 
 export type PageModal = DrainModalType | null

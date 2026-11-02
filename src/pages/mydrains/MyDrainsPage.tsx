@@ -15,9 +15,6 @@ import type {
 } from '../../types/myDrains'
 import DrainCard from './components/DrainCard'
 import DrainModal from './components/DrainModal'
-import { isPauseActive } from './utils'
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 const REASON_LABELS: Record<
   ReleaseAdoptionRequest['reason'],
@@ -41,7 +38,7 @@ export default function MyDrainsPage() {
     }),
   )
 
-  const [pauseStatus, setPauseStatus] =
+  const [pauseStatus] =
     useState<MyPauseStatus>({ ...MOCK_PAUSE_STATUS })
 
   const [modal, setModal] = useState<PageModal>(null)
@@ -74,44 +71,6 @@ export default function MyDrainsPage() {
       `시연 목록에서 입양을 해제했어요. 사유: ${
         REASON_LABELS[payload.reason]
       }`,
-    )
-
-    closeModal()
-  }
-
-  // A-11 점검 쉬기 UI 시연
-  const handleApplyPause = () => {
-    if (
-      !pauseStatus.can_apply ||
-      isPauseActive(pauseStatus.active_until) ||
-      data.adoptions.length === 0
-    ) {
-      return
-    }
-
-    const now = Date.now()
-    const until = new Date(now + 14 * DAY_MS).toISOString()
-    const nextAvailable = new Date(
-      now + 90 * DAY_MS,
-    ).toISOString()
-
-    setPauseStatus({
-      can_apply: false,
-      active_until: until,
-      next_available_at: nextAvailable,
-    })
-
-    // 내 입양 전체에 점검 쉬기 표시
-    setData((previous) => ({
-      ...previous,
-      adoptions: previous.adoptions.map((item) => ({
-        ...item,
-        pause_until: until,
-      })),
-    }))
-
-    setFeedback(
-      '점검 쉬기를 시연 화면에만 적용했어요.',
     )
 
     closeModal()
@@ -194,14 +153,6 @@ export default function MyDrainsPage() {
         지도에서 찾아보기
       </Link>
 
-      <button
-        type="button"
-        onClick={() => openModal({ type: 'pause' })}
-        className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-[#E0E8F3] bg-white px-3 text-xs font-semibold text-[#3981F7]"
-      >
-        점검 쉬기 신청
-      </button>
-
       {data.adoptions.length > 0 && (
         <button
           type="button"
@@ -222,11 +173,9 @@ export default function MyDrainsPage() {
         <DrainModal
           modal={modal}
           adoptions={data.adoptions}
-          pauseStatus={pauseStatus}
           onOpen={openModal}
           onClose={closeModal}
           onRelease={handleRelease}
-          onApplyPause={handleApplyPause}
         />
       )}
     </div>
