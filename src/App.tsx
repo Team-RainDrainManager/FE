@@ -1,3 +1,4 @@
+
 import { Navigate, Route, Routes } from 'react-router'
 
 import MainLayout from './layouts/MainLayout'
@@ -12,24 +13,21 @@ import LoginPage from './pages/login/LoginPage'
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
 
       <Route element={<MainLayout />}>
-        <Route path="/" element={null} />
-        <Route path="/my-drains" element={<MyDrainsPage />}/>
-        <Route path="/drains/:drainId" element={<DrainDetailPage />}/>
+        <Route path="/my-drains" element={<MyDrainsPage />} />
+        <Route path="/drains/:drainId" element={<DrainDetailPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/social" element={<SocialPage />} />
         <Route path="/social/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/notifications"element={<NotificationsPage />}/>
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/profile" element={null} />
         <Route path="/settings" element={null} />
       </Route>
 
-      <Route
-        path="*"
-        element={<Navigate to="/" replace />}
-      />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }
