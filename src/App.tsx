@@ -24,7 +24,6 @@ export default function App() {
         <Route path="/social/leaderboard" element={<LeaderboardPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/profile" element={null} />
-        <Route path="/settings" element={null} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
