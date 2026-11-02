@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-
+import { useNavigate } from 'react-router'
 import Character from '../../components/common/Character'
 import './LoginPage.css'
 
@@ -29,6 +29,7 @@ const REACTIONS = [
 type Reaction = (typeof REACTIONS)[number] & { id: number }
 
 export default function LoginPage() {
+  const navigate = useNavigate()
   const [message, setMessage] = useState('')
   const [hovered, setHovered] = useState(false)
   const [reaction, setReaction] = useState<Reaction | null>(null)
@@ -46,6 +47,10 @@ export default function LoginPage() {
   }
 
   const handleKakaoLogin = () => {
+     if (import.meta.env.DEV) {
+    navigate('/my-drains')
+    return
+  }
     const loginUrl = import.meta.env.VITE_KAKAO_LOGIN_URL?.trim()
 
     if (!loginUrl) {

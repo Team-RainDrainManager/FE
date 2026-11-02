@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none" role="img" aria-labelledby="title">
+  <title id="title">새싹</title>
+  <path d="M64 112V66" stroke="#489B43" stroke-width="9" stroke-linecap="round"/>
+  <path d="M63 77C35 80 16 62 14 29C43 27 65 44 63 77Z" fill="#80C95B"/>
+  <path d="M64 68C62 37 82 17 115 16C116 46 97 69 64 68Z" fill="#57B54B"/>
+  <path d="M63 78L33 48" stroke="#60AD46" stroke-width="5" stroke-linecap="round"/>
+  <path d="M65 68L96 35" stroke="#429B40" stroke-width="5" stroke-linecap="round"/>
+</svg>
