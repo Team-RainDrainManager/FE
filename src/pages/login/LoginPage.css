@@ -354,3 +354,9 @@
   .dd-login-character-speech { transition: none; }
   .dd-login-kakao-button { transition: none; }
 }
+
+.dd-login-kakao-button:disabled { cursor: wait; opacity: .75; }
+.dd-login-email-links { margin-top: 11px; display: flex; justify-content: center; align-items: center; gap: 15px; font-size: 12px; }
+.dd-login-email-links a { color: #396e9e; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+.dd-login-email-links span { color: #91a9bc; }
+@media (max-height: 720px) { .dd-login-email-links { margin-top: 7px; } }

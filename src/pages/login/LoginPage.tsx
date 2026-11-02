@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useLocation } from 'react-router'
+import { getErrorMessage, getKakaoLoginUrl } from '../../apis/auth'
+import { kakaoRedirectUri, markKakaoRedirect } from './auth-flow'
+
 import Character from '../../components/common/Character'
 import './LoginPage.css'
 
@@ -29,8 +32,12 @@ const REACTIONS = [
 type Reaction = (typeof REACTIONS)[number] & { id: number }
 
 export default function LoginPage() {
-  const navigate = useNavigate()
-  const [message, setMessage] = useState('')
+  const location = useLocation()
+  const [message, setMessage] = useState(() => {
+    const state = location.state as { logoutNotice?: string } | null
+    return state?.logoutNotice ?? ''
+  })
+  const [loginPending, setLoginPending] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [reaction, setReaction] = useState<Reaction | null>(null)
   const actionCount = useRef(0)
@@ -46,26 +53,22 @@ export default function LoginPage() {
     setReaction({ ...REACTIONS[index % REACTIONS.length], id: index })
   }
 
-  const handleKakaoLogin = () => {
-     if (import.meta.env.DEV) {
-    navigate('/my-drains')
-    return
-  }
-    const loginUrl = import.meta.env.VITE_KAKAO_LOGIN_URL?.trim()
-
-    if (!loginUrl) {
-      setMessage('카카오 로그인은 아직 서버와 연결되지 않았습니다.')
-      return
-    }
-
+  const handleKakaoLogin = async () => {
+    setMessage('')
+    setLoginPending(true)
     try {
-      const url = new URL(loginUrl, window.location.origin)
-      if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-        throw new Error('Invalid login URL')
+      const loginUrl = await getKakaoLoginUrl(kakaoRedirectUri())
+      const url = new URL(loginUrl)
+      if (url.protocol !== 'https:' || url.hostname !== 'kauth.kakao.com') {
+        throw new Error('카카오 로그인 주소가 올바르지 않습니다.')
       }
+      // 카카오계정 세션이 남아 있어도 다음 로그인 때 직접 인증하도록 합니다.
+      url.searchParams.set('prompt', 'login')
+      markKakaoRedirect()
       window.location.assign(url.href)
-    } catch {
-      setMessage('로그인 주소 설정을 확인해주세요.')
+    } catch (err: unknown) {
+      setMessage(getErrorMessage(err))
+      setLoginPending(false)
     }
   }
 
@@ -156,12 +159,17 @@ export default function LoginPage() {
         </section>
 
         <footer className="dd-login-footer">
-          <button type="button" onClick={handleKakaoLogin} className="dd-login-kakao-button">
+          <button type="button" onClick={() => { void handleKakaoLogin() }} disabled={loginPending} className="dd-login-kakao-button">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="dd-login-kakao-icon">
               <path d="M12 3C6.75 3 2.5 6.38 2.5 10.55c0 2.64 1.72 4.97 4.32 6.32l-.87 3.67a.5.5 0 0 0 .73.54l4.18-2.45c.37.04.75.06 1.14.06 5.25 0 9.5-3.38 9.5-7.55S17.25 3 12 3Z" />
             </svg>
-            카카오로 시작하기
+            {loginPending ? '카카오 로그인 연결 중…' : '카카오로 시작하기'}
           </button>
+          <nav className="dd-login-email-links" aria-label="이메일 계정">
+            <Link to="/login/email">이메일 로그인</Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/signup">이메일 회원가입</Link>
+          </nav>
           <p>함께 돌보고, 함께 지키는 우리 동네</p>
           {message && <div className="dd-login-message" role="status">{message}</div>}
         </footer>
