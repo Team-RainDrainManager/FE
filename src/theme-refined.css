@@ -250,3 +250,471 @@ html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴'
   }
 }
 /* DDORANG_SOCIAL_DARK_V1_END */
+
+/* DDORANG-ISSUE-32-SETTINGS-UI-START */
+/*
+ * DDORANG / Issue #32 / Settings UI-only styling
+ * Applies only to the existing SettingsOverlay/SettingsPage surfaces.
+ * No React components, callback signatures, backend/API calls or other tabs are changed.
+ * The teammate-owned SettingsModal.tsx is intentionally untouched.
+ */
+
+.dd-settings-backdrop {
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 14px 0;
+  background: rgb(8 20 35 / 55%);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.dd-settings-modal {
+  --setting-sheet: #fff;
+  --setting-surface: #f6f9fc;
+  --setting-ink: #20364e;
+  --setting-muted: #74869a;
+  --setting-line: #e5edf4;
+  --setting-accent: #257acb;
+  --setting-selected: #edf5fd;
+  width: min(100%, 460px);
+  max-height: min(88dvh, 860px);
+  border-radius: 28px 28px 0 0;
+  border: 1px solid var(--setting-line);
+  border-bottom: none;
+  background: var(--setting-sheet);
+  color: var(--setting-ink);
+  box-shadow: 0 -20px 72px rgb(11 25 44 / 18%);
+  animation: dd-setting-sheet-rise .35s cubic-bezier(.18,.89,.32,1.12) both;
+}
+
+.dd-settings-modal__heading {
+  position: relative;
+  flex-shrink: 0;
+  padding: 30px 22px 17px;
+  border-bottom: 1px solid var(--setting-line);
+  background: var(--setting-sheet);
+}
+
+.dd-settings-modal__heading::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 5px;
+  border-radius: 99px;
+  background: #c8d3df;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dd-settings-modal__heading h2 {
+  font-size: 21px;
+  letter-spacing: -0.7px;
+  line-height: 1.3;
+  color: var(--setting-ink);
+}
+
+.dd-settings-modal__eyebrow {
+  color: var(--setting-accent);
+  letter-spacing: .14em;
+}
+
+.dd-settings-modal__close {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: var(--setting-surface);
+  color: var(--setting-muted);
+}
+
+.dd-settings-modal__scroll {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  scrollbar-width: thin;
+  scrollbar-color: #cbd7e3 transparent;
+}
+
+.dd-settings-modal .dd-settings-page--embedded {
+  padding: 21px 19px 28px;
+  background: transparent !important;
+  color: var(--setting-ink) !important;
+}
+
+.dd-settings-modal .dd-settings-page--embedded > .px-1:first-child {
+  display: none; /* Parent overlay already has the Settings heading. */
+}
+
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-sheet);
+  border: 1px solid var(--setting-line);
+  border-radius: 21px;
+  padding: 19px;
+  color: var(--setting-ink);
+  box-shadow: 0 5px 19px rgb(17 40 64 / 4%);
+}
+
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card > h3 {
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 750;
+  letter-spacing: -.35px;
+  color: var(--setting-ink);
+}
+
+.dd-settings-modal .dd-settings-page--embedded :is(p, small)[class*='text-[#8299B0]'] {
+  color: var(--setting-muted);
+}
+
+.dd-settings-modal .dd-settings-option {
+  min-height: 64px;
+  border: 1px solid var(--setting-line);
+  border-radius: 16px;
+  background: var(--setting-sheet);
+  color: var(--setting-ink);
+  box-shadow: 0 1px 2px rgb(18 39 58 / 2%);
+}
+
+.dd-settings-modal .dd-settings-option[aria-checked='true'] {
+  background: var(--setting-selected);
+  border-color: #69a1e0;
+  box-shadow: 0 0 0 2px rgb(58 135 208 / 8%);
+}
+
+.dd-settings-modal .dd-settings-option > span:first-child {
+  background: var(--setting-surface);
+  color: var(--setting-accent);
+}
+
+.dd-settings-modal :is(input, textarea, select) {
+  color: var(--setting-ink);
+  background: var(--setting-surface);
+  border-color: var(--setting-line);
+}
+
+.dd-settings-modal :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid #77adeb;
+  outline-offset: 3px;
+}
+
+/* Keep the confirmation and report dialogs above the Settings overlay. */
+.dd-settings-modal .dd-account-confirm {
+  border: 1px solid var(--setting-line);
+  box-shadow: 0 20px 65px rgb(8 19 34 / 28%);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal {
+  --setting-sheet: #121d2b;
+  --setting-surface: #1c2b3c;
+  --setting-ink: #f0f5fb;
+  --setting-muted: #afc0d2;
+  --setting-line: #2d4053;
+  --setting-accent: #92c3ff;
+  --setting-selected: #1b3753;
+  border-color: var(--setting-line);
+  background: var(--setting-sheet) !important;
+  color: var(--setting-ink) !important;
+  box-shadow: 0 -24px 80px rgb(0 0 0 / 44%);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal__heading {
+  background: var(--setting-sheet);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal__heading::before {
+  background: #53677c;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal__close {
+  background: var(--setting-surface);
+  color: var(--setting-ink);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-sheet) !important;
+  color: var(--setting-ink) !important;
+  border-color: var(--setting-line) !important;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 7%);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-option {
+  background: var(--setting-sheet) !important;
+  color: var(--setting-ink) !important;
+  border-color: var(--setting-line) !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-option[aria-checked='true'] {
+  background: var(--setting-selected) !important;
+  border-color: #7db5ec !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-option > span:first-child {
+  background: var(--setting-surface) !important;
+  color: var(--setting-accent) !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-page--embedded :is(p, small)[class*='text-[#8299B0]'] {
+  color: var(--setting-muted) !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal :is(input, select, textarea) {
+  color: var(--setting-ink) !important;
+  background: var(--setting-surface) !important;
+  border-color: #3c5064 !important;
+}
+
+@keyframes dd-setting-sheet-rise {
+  from { transform: translateY(26px); opacity: .6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (min-width: 720px) {
+  .dd-settings-backdrop { align-items: center; padding: 20px; }
+  .dd-settings-modal { max-height: min(86dvh, 820px); border-radius: 28px; border-bottom: 1px solid var(--setting-line); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-modal { animation: none; }
+}
+/* DDORANG-ISSUE-32-SETTINGS-UI-END */
+
+/* DDORANG-ISSUE-32-SETTINGS-MOTION-START */
+/* DDORANG / #32 / UI interaction polish. Styles only; no event handlers or API changes. */
+
+/* The existing header gear is an SVG mask inside a span, not an image to replace. */
+header button[aria-label="설정 열기"] > span[aria-hidden="true"] {
+  transform-origin: 50% 50%;
+  transition: transform 360ms cubic-bezier(.2,.8,.2,1), opacity 220ms ease;
+  will-change: transform;
+}
+header button[aria-label="설정 열기"]:focus-visible > span[aria-hidden="true"] {
+  transform: rotate(23deg);
+}
+@media (hover: hover) {
+  header button[aria-label="설정 열기"]:hover > span[aria-hidden="true"] {
+    transform: rotate(27deg);
+  }
+}
+/* The React portal opens after a click. Run one full playful turn when it appears. */
+body:has(.dd-settings-backdrop) header button[aria-label="설정 열기"] > span[aria-hidden="true"] {
+  animation: dd-settings-gear-open 740ms cubic-bezier(.2,.76,.28,1.05) both;
+}
+@keyframes dd-settings-gear-open {
+  0% { transform: rotate(0deg) scale(1); }
+  38% { transform: rotate(136deg) scale(.89); }
+  72% { transform: rotate(332deg) scale(1.12); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Respect the teammate's bottom-sheet language without changing SettingsModal.tsx. */
+.dd-settings-modal {
+  --setting-sheet: #f5f7fa;
+  --setting-card: #fff;
+  --setting-tap: #eef3f9;
+  --setting-tap-strong: #e1eaf5;
+  --setting-blue-base: #edf5ff;
+  --setting-blue-hover: #daeafe;
+  --setting-blue-active: #c5dfff;
+  --setting-red-base: #fff0f1;
+  --setting-red-hover: #ffe0e4;
+  --setting-red-active: #ffcbd3;
+  --setting-ink: #1b3047;
+  --setting-muted: #677b91;
+  --setting-line: #e5eaf0;
+  --setting-selected: #e8f2ff;
+  background: var(--setting-sheet) !important;
+}
+.dd-settings-modal__heading {
+  background: var(--setting-sheet) !important;
+  border-bottom-color: var(--setting-line);
+}
+.dd-settings-modal__heading h2 {
+  font-weight: 760;
+  letter-spacing: -.055em;
+}
+.dd-settings-modal__scroll { scrollbar-width: thin; }
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-card) !important;
+  border: 1px solid var(--setting-line) !important;
+  border-radius: 19px;
+  box-shadow: 0 2px 14px rgb(35 59 82 / 3%);
+}
+.dd-settings-modal .dd-settings-page--embedded :is(button, a) {
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 180ms ease, border-color 180ms ease,
+    color 180ms ease, box-shadow 180ms ease, transform 160ms ease;
+}
+.dd-settings-modal .dd-settings-page--embedded :is(button, a):not(:disabled):active {
+  transform: scale(.985);
+}
+.dd-settings-modal__close {
+  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+.dd-settings-modal__close:hover { background: var(--setting-tap-strong) !important; color: var(--setting-ink); }
+.dd-settings-modal__close:active { transform: scale(.92); }
+
+/* iOS-like selectable setting cells: soft base, stronger tint on hover/press. */
+.dd-settings-modal .dd-settings-option:not(:disabled) {
+  background: var(--setting-card) !important;
+  border-color: var(--setting-line) !important;
+  border-radius: 15px;
+}
+.dd-settings-modal .dd-settings-option[aria-checked="true"] {
+  background: var(--setting-selected) !important;
+  border-color: #8bb9ec !important;
+}
+@media (hover: hover) {
+  .dd-settings-modal .dd-settings-option:not(:disabled):hover {
+    background: var(--setting-tap) !important;
+    border-color: #bbcee2 !important;
+    box-shadow: 0 2px 9px rgb(34 76 122 / 5%);
+  }
+  .dd-settings-modal .dd-settings-option[aria-checked="true"]:not(:disabled):hover {
+    background: var(--setting-blue-hover) !important;
+    border-color: #6ca8e9 !important;
+  }
+}
+.dd-settings-modal .dd-settings-option:not(:disabled):active,
+.dd-settings-modal .dd-settings-option[aria-checked="true"]:not(:disabled):active {
+  background: var(--setting-tap-strong) !important;
+}
+
+/* The account actions are the two buttons in the second section's two-column grid. */
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child {
+  background: var(--setting-blue-base) !important;
+  color: #2766ac !important;
+  border: 1px solid transparent;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child {
+  background: var(--setting-red-base) !important;
+  color: #a33e52 !important;
+  border: 1px solid #f1d2d9 !important;
+}
+@media (hover: hover) {
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child:not(:disabled):hover {
+    background: var(--setting-blue-hover) !important;
+  }
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child:not(:disabled):hover {
+    background: var(--setting-red-hover) !important;
+    border-color: #e5aebc !important;
+  }
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(3) > button:hover,
+  .dd-settings-modal .dd-settings-page--embedded a[href="/profile"]:hover {
+    background: var(--setting-tap) !important;
+  }
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child:not(:disabled):active {
+  background: var(--setting-blue-active) !important;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child:not(:disabled):active {
+  background: var(--setting-red-active) !important;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(3) > button,
+.dd-settings-modal .dd-settings-page--embedded a[href="/profile"] {
+  border-radius: 12px;
+  padding-inline: 10px;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(3) > button:active,
+.dd-settings-modal .dd-settings-page--embedded a[href="/profile"]:active {
+  background: var(--setting-tap-strong) !important;
+}
+.dd-settings-modal .dd-settings-page--embedded :is(button, a):focus-visible {
+  outline: 2px solid #5b9de5;
+  outline-offset: 3px;
+}
+
+/* Dark has a distinctly darker sheet while keeping every label legible. */
+html[data-dd-theme="dark"] .dd-settings-modal {
+  --setting-sheet: #111b28;
+  --setting-card: #1b2a3b;
+  --setting-tap: #25374a;
+  --setting-tap-strong: #30465d;
+  --setting-blue-base: #1e3852;
+  --setting-blue-hover: #294c6d;
+  --setting-blue-active: #345f84;
+  --setting-red-base: #392630;
+  --setting-red-hover: #512e3b;
+  --setting-red-active: #633747;
+  --setting-ink: #f2f6fb;
+  --setting-muted: #afc0d3;
+  --setting-line: #2c3e52;
+  --setting-selected: #24425e;
+  background: var(--setting-sheet) !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-card) !important;
+  border-color: var(--setting-line) !important;
+  box-shadow: 0 3px 15px rgb(0 0 0 / 7%);
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option:not(:disabled) {
+  background: var(--setting-card) !important;
+  border-color: var(--setting-line) !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option[aria-checked="true"] {
+  background: var(--setting-selected) !important;
+  border-color: #5d91c2 !important;
+}
+@media (hover: hover) {
+  html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option:not(:disabled):hover {
+    background: var(--setting-tap) !important;
+    border-color: #46617b !important;
+  }
+  html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option[aria-checked="true"]:not(:disabled):hover {
+    background: #2c5072 !important;
+    border-color: #76a8dc !important;
+  }
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option:not(:disabled):active {
+  background: var(--setting-tap-strong) !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child {
+  color: #bfdfff !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child {
+  color: #ffc4ce !important;
+  border-color: #734454 !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-modal__close:hover {
+  color: #f2f6fb;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header button[aria-label="설정 열기"] > span[aria-hidden="true"],
+  body:has(.dd-settings-backdrop) header button[aria-label="설정 열기"] > span[aria-hidden="true"],
+  .dd-settings-modal .dd-settings-page--embedded :is(button, a),
+  .dd-settings-modal__close { animation: none !important; transition: none !important; }
+}
+/* DDORANG-ISSUE-32-SETTINGS-MOTION-END */
+
+/* DDORANG-ISSUE-32-GEAR-FIX-START */
+/* DDORANG #32: Dark-mode settings gear visibility fix.
+   Keep the existing header button, SVG mask and rotation animation intact. */
+html[data-dd-theme='dark'] header button[aria-label='설정 열기'] {
+  background: transparent !important;
+  color: #d9e8f8 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) {
+  html[data-dd-theme='dark'] header button[aria-label='설정 열기']:hover {
+    background: rgb(217 232 248 / 10%) !important;
+  }
+}
+
+html[data-dd-theme='dark'] header button[aria-label='설정 열기']:focus-visible {
+  background: rgb(217 232 248 / 10%) !important;
+}
+
+html[data-dd-theme='dark'] header button[aria-label='설정 열기']:active {
+  background: rgb(217 232 248 / 16%) !important;
+}
+
+/* Restore the exact SVG silhouette even when a global dark-theme rule
+   overrides the icon background or mask. The source path is relative to
+   src/theme-refined.css and Vite will bundle it normally. */
+html[data-dd-theme='dark'] header button[aria-label='설정 열기'] > span[aria-hidden='true'] {
+  background: currentColor !important;
+  -webkit-mask: url('./assets/icons/gear.svg') center / contain no-repeat !important;
+  mask: url('./assets/icons/gear.svg') center / contain no-repeat !important;
+  opacity: 1 !important;
+}
+/* DDORANG-ISSUE-32-GEAR-FIX-END */
