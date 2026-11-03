@@ -683,3 +683,38 @@ html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-modal__close:hover {
   .dd-settings-modal__close { animation: none !important; transition: none !important; }
 }
 /* DDORANG-ISSUE-32-SETTINGS-MOTION-END */
+
+/* DDORANG-ISSUE-32-GEAR-FIX-START */
+/* DDORANG #32: Dark-mode settings gear visibility fix.
+   Keep the existing header button, SVG mask and rotation animation intact. */
+html[data-dd-theme='dark'] header button[aria-label='설정 열기'] {
+  background: transparent !important;
+  color: #d9e8f8 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) {
+  html[data-dd-theme='dark'] header button[aria-label='설정 열기']:hover {
+    background: rgb(217 232 248 / 10%) !important;
+  }
+}
+
+html[data-dd-theme='dark'] header button[aria-label='설정 열기']:focus-visible {
+  background: rgb(217 232 248 / 10%) !important;
+}
+
+html[data-dd-theme='dark'] header button[aria-label='설정 열기']:active {
+  background: rgb(217 232 248 / 16%) !important;
+}
+
+/* Restore the exact SVG silhouette even when a global dark-theme rule
+   overrides the icon background or mask. The source path is relative to
+   src/theme-refined.css and Vite will bundle it normally. */
+html[data-dd-theme='dark'] header button[aria-label='설정 열기'] > span[aria-hidden='true'] {
+  background: currentColor !important;
+  -webkit-mask: url('./assets/icons/gear.svg') center / contain no-repeat !important;
+  mask: url('./assets/icons/gear.svg') center / contain no-repeat !important;
+  opacity: 1 !important;
+}
+/* DDORANG-ISSUE-32-GEAR-FIX-END */
