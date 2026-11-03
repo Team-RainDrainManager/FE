@@ -1,5 +1,6 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import FriendInviteDialog from './FriendInviteDialog'
 
 import {
   CURRENT_SOCIAL_USER_ID,
@@ -21,30 +22,15 @@ export default function FriendsTab() {
     null,
   )
   const [invitationOpen, setInvitationOpen] = useState(false)
+  const [inviteNotice, setInviteNotice] = useState('')
+  useEffect(() => {
+    if (!inviteNotice) return
+    const timeout = window.setTimeout(() => setInviteNotice(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [inviteNotice])
   const [cheeredIds, setCheeredIds] = useState<number[]>([])
   const [pokeIds, setPokeIds] = useState<number[]>([])
   const [notice, setNotice] = useState('')
-
-  async function shareInvite() {
-    const url=window.location.origin
-    if(['localhost','127.0.0.1'].includes(window.location.hostname)) {
-      setNotice('localhost 주소는 다른 사람이 열 수 없습니다. 사이트를 배포한 뒤 초대 링크를 공유해 주세요.')
-      return
-    }
-    const text='또랑에서 함께 우리 동네 빗물받이를 돌봐요!'
-    try {
-      if(navigator.share) {
-        await navigator.share({title:'또랑 친구 초대',text,url})
-        setNotice('공유 화면을 열었습니다. 전송할 친구를 선택해 주세요.')
-      } else {
-        await navigator.clipboard.writeText(`${text} ${url}`)
-        setNotice('초대 링크를 복사했습니다. 카카오톡으로 친구에게 보내 주세요.')
-      }
-    } catch(error:unknown) {
-      if(error instanceof DOMException&&error.name==='AbortError')return
-      setNotice('공유할 수 없습니다. 서비스 주소를 복사해서 직접 보내 주세요.')
-    }
-  }
 
   function pokeFriend(id:number) {
     if(!friendIds.includes(id)||pokeIds.includes(id))return
@@ -151,35 +137,9 @@ export default function FriendsTab() {
       {notice&&<p role="status" className="rounded-xl bg-[#EAF4FF] p-3 text-xs text-[#3976B5]">{notice}</p>}
 
       {invitationOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="invite-title"
-            className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-xl"
-          >
-            <h3
-              id="invite-title"
-              className="text-lg font-extrabold text-[#203451]"
-            >
-              카카오 친구 초대
-            </h3>
-
-            <p className="mt-3 text-sm leading-6 text-[#71889B]">
-              휴대폰에서는 공유 메뉴를 통해 카카오톡으로 초대 링크를 보낼 수 있습니다. 데스크톱에서는 링크가 복사됩니다.
-              카카오톡 친구 목록은 자동으로 조회하지 않습니다.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => { void shareInvite() }}
-              className="mt-5 w-full rounded-xl bg-[#3981F7] py-3 text-sm font-bold text-white"
-            >
-              초대 링크 공유하기
-            </button>
-          </section>
-        </div>
+        <FriendInviteDialog onClose={() => setInvitationOpen(false)} onNotice={setInviteNotice} />
       )}
+      {inviteNotice && <div className="rd-invite-toast" role="status" aria-live="polite">{inviteNotice}</div>}
 
       {selectedUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">

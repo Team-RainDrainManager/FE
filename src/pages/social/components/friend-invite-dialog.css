@@ -1,0 +1,39 @@
+/* Only the friend-invitation dialog, not the rest of teammate-owned Social UI. */
+.rd-invite-backdrop {
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  padding: 20px; background: rgba(5,18,28,.60); backdrop-filter: blur(3px);
+}
+.rd-invite-modal {
+  width: min(100%, 392px); padding: 22px 23px 18px; border-radius: 26px;
+  background: #fff; box-shadow: 0 24px 80px rgba(0,15,30,.28); color: #213a50;
+}
+.rd-invite-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
+.rd-invite-logo { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 15px; background: #eaf3ff; color: #3981f7; font-size: 23px; font-weight: 750; }
+.rd-invite-close { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: #74869b; font-size: 24px; line-height: 1; }
+.rd-invite-close:hover,.rd-invite-cancel:hover { background: #edf3f9; }
+.rd-invite-modal h3 { font-size: 19px; line-height: 1.4; font-weight: 800; letter-spacing: -.035em; }
+.rd-invite-modal p { margin-top: 12px; font-size: 13px; line-height: 1.7; color: #687e91; }
+.rd-invite-modal .rd-invite-note { margin-top: 13px; color: #798ca0; font-size: 11px; }
+.rd-invite-modal .rd-invite-local { color: #b16e31; font-size: 11px; }
+.rd-invite-share { display: block; width: 100%; min-height: 48px; margin-top: 21px; border-radius: 13px; background: #3981f7; color: #fff; font-size: 14px; font-weight: 800; transition: background .15s,transform .15s; }
+.rd-invite-share:hover { background: #246ae0; }
+.rd-invite-share:active { transform: scale(.985); background: #195ac7; }
+.rd-invite-cancel { display: block; width: 100%; min-height: 38px; margin-top: 5px; border-radius: 11px; color: #71889d; font-size: 12px; font-weight: 650; }
+.rd-invite-modal button:focus-visible { outline: 2px solid #3981f7; outline-offset: 3px; }
+.rd-invite-toast {
+  position: fixed; z-index: 130; bottom: max(88px, calc(env(safe-area-inset-bottom) + 78px));
+  left: 50%; transform: translateX(-50%); max-width: calc(100vw - 34px); white-space: nowrap;
+  padding: 12px 18px; border-radius: 14px; color: #fff; background: #243c50;
+  box-shadow: 0 12px 35px rgba(0,0,0,.25); font-size: 12px; font-weight: 750;
+  animation: rd-invite-appear .24s ease-out both;
+}
+@keyframes rd-invite-appear { from {opacity:0; transform:translate(-50%,8px)} to {opacity:1; transform:translate(-50%,0)} }
+html[data-dd-theme='dark'] .rd-invite-modal { background: #18273b; color: #f2f7ff; border: 1px solid #3b4b62; }
+html[data-dd-theme='dark'] .rd-invite-logo { background: #283f61; color: #99beff; }
+html[data-dd-theme='dark'] .rd-invite-close,html[data-dd-theme='dark'] .rd-invite-cancel { color: #b8c7da; }
+html[data-dd-theme='dark'] .rd-invite-close:hover,html[data-dd-theme='dark'] .rd-invite-cancel:hover { background: #293b53; }
+html[data-dd-theme='dark'] .rd-invite-modal p { color: #bac7d7; }
+html[data-dd-theme='dark'] .rd-invite-modal .rd-invite-note { color: #92a7c3; }
+html[data-dd-theme='dark'] .rd-invite-modal .rd-invite-local { color: #edba77; }
+html[data-dd-theme='dark'] .rd-invite-toast { background: #34506d; }
+@media (prefers-reduced-motion:reduce) { .rd-invite-share {transition:none} .rd-invite-toast {animation:none} }

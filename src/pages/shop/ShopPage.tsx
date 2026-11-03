@@ -1,7 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router'
-import Character from '../../components/common/Character'
+import happyCharacter from '../../assets/characters/states/happy.svg'
 import './shop-studio.css'
+import './shop-motion.css'
 
 type Category = 'headwear' | 'expression' | 'accessory' | 'scene' | 'effect' | 'palette'
 type StudioItem = {
@@ -172,10 +173,59 @@ function DecorationArt({ item, size = 'small' }: { item: StudioItem; size?: 'sma
   )
 }
 
+/** The selected item is previewed ON the character instead of in a detached sticker. */
+function ShopCharacter({ item }: { item: StudioItem }) {
+  const expression = item.category === 'expression' ? Number(item.id.slice(1)) : 1
+  const paletteShift = item.category === 'palette'
+    ? [0, 104, 55, 186, 260, -18, 215, 130][Number(item.id.slice(1)) - 1] ?? 0
+    : 0
+  const faceStroke = { stroke: '#1E2B38', strokeWidth: 3.6, fill: 'none' as const, strokeLinecap: 'round' as const }
+
+  return (
+    <div className="dshop-avatar" style={{ '--dshop-palette-rotate': `${paletteShift}deg` } as CSSProperties}>
+      {item.category === 'scene' && <span className="dshop-avatar__scene" aria-hidden="true"><DecorationArt item={item} /></span>}
+      <svg className="dshop-avatar__body" viewBox="0 0 200 200" role="img" aria-label={`${item.title}을 적용한 또랑이 미리보기`}>
+        <image href={happyCharacter} width="200" height="200" />
+        {/* Keep the original character asset; redraw only the facial area. */}
+        <rect x="60" y="90" width="80" height="41" fill="#6A92B5" />
+        <g className="dshop-avatar__eyes">
+          {expression === 2 ? (
+            <><path d="M73 104q9-8 18 0" {...faceStroke}/><circle cx="119" cy="104" r="4.2" fill="#1E2B38" /></>
+          ) : expression === 4 ? (
+            <><path d="M73 103l8-8 9 8-9 10Z M110 103l8-8 9 8-9 10Z" fill="#E5718E" /></>
+          ) : expression === 5 ? (
+            <><path d="M73 103q8 7 17 0 M111 103q8 7 17 0" {...faceStroke}/></>
+          ) : expression === 6 ? (
+            <><circle cx="82" cy="104" r="5.6" fill="#1E2B38"/><circle cx="118" cy="104" r="5.6" fill="#1E2B38"/></>
+          ) : expression === 7 ? (
+            <><path d="m73 98 18 6-18 5 M111 105l17-9" {...faceStroke}/></>
+          ) : (
+            <><path d="M74 106q8-11 16 0 M110 106q8-11 16 0" {...faceStroke}/></>
+          )}
+        </g>
+        {expression === 6 ? <ellipse cx="100" cy="120" rx="6" ry="9" fill="#1E2B38" />
+          : expression === 5 ? <path d="M93 120h14" {...faceStroke}/>
+          : expression === 7 ? <><path d="M91 119q9 12 18 0" {...faceStroke}/><path d="M98 122q3-4 7 1" stroke="#F58CA2" strokeWidth="3" fill="none" /></>
+          : <path d="M90 118q10 14 20 0" {...faceStroke}/>
+        }
+        <ellipse cx="68" cy="119" rx="6.5" ry="3.5" fill="#F4A3B4" />
+        <ellipse cx="132" cy="119" rx="6.5" ry="3.5" fill="#F4A3B4" />
+        {expression === 3 && <><ellipse cx="73" cy="121" rx="9" ry="5" fill="#F58AA6" opacity=".84"/><ellipse cx="127" cy="121" rx="9" ry="5" fill="#F58AA6" opacity=".84"/></>}
+        {expression === 8 && <><path d="M125 110q11 8 0 16-8-2 0-16Z" fill="#9EDAF0"/><path d="M75 110q-10 8 0 16 8-2 0-16Z" fill="#9EDAF0"/></>}
+      </svg>
+      {item.category === 'headwear' && <span className="dshop-avatar__wear" aria-hidden="true"><DecorationArt item={item} size="large"/></span>}
+      {item.category === 'accessory' && <span className="dshop-avatar__held" aria-hidden="true"><DecorationArt item={item} size="large" /></span>}
+      {item.category === 'effect' && <span className="dshop-avatar__effect" aria-hidden="true"><DecorationArt item={item} size="large" /></span>}
+      <span className="dshop-avatar__blush" aria-hidden="true">♥</span>
+    </div>
+  )
+}
+
 export default function ShopPage() {
   // UI 미리보기 전용: 구매, 소유, 장착, 포인트 변경, 서버 통신을 수행하지 않습니다.
   const [category, setCategory] = useState<Category | 'all'>('all')
   const [previewId, setPreviewId] = useState('h01')
+  const [excitementTick, setExcitementTick] = useState(0)
   const preview = DECORATIONS.find((item) => item.id === previewId) ?? DECORATIONS[0]
   const visibleItems = useMemo(
     () => (category === 'all' ? DECORATIONS : DECORATIONS.filter((item) => item.category === category)),
@@ -194,17 +244,18 @@ export default function ShopPage() {
         <section className="dshop-hero" aria-labelledby="dshop-title">
           <div className="dshop-hero__copy">
             <p className="dshop-kicker"><span className="dshop-kicker__line" /> PERSONALIZE YOUR DDORANG</p>
-            <h1 id="dshop-title">우리 또랑이에게<br /><em>조금 더 특별한 하루.</em></h1>
-            <p>모자부터 배경까지, 마음에 드는 스타일을 찾아보세요.</p>
+            <h1 id="dshop-title">오늘 또랑이,<br /><em>어떻게 꾸밀까?</em></h1>
+            <p>모자도 표정도 직접 골라 보세요. 꾸미면 또랑이가 신나해요!</p>
           </div>
           <div className="dshop-stage" style={{ '--stage-accent': preview.color, '--stage-light': preview.secondary } as CSSProperties}>
             <span className="dshop-stage__ring dshop-stage__ring--one" aria-hidden="true" />
             <span className="dshop-stage__ring dshop-stage__ring--two" aria-hidden="true" />
             <span className="dshop-stage__star dshop-stage__star--one" aria-hidden="true">✦</span>
             <span className="dshop-stage__star dshop-stage__star--two" aria-hidden="true">✧</span>
-            <div className="dshop-stage__character"><Character type="state" state="happy" size={166} /></div>
-            <div className="dshop-stage__sticker"><DecorationArt item={preview} size="large" /></div>
-            <div className="dshop-stage__caption"><span className="dshop-stage__caption-dot" /> 지금 보는 스타일 <strong>{preview.title}</strong></div>
+            <button type="button" key={`${preview.id}-${excitementTick}`} className={`dshop-stage__character${excitementTick > 0 ? ' is-excited' : ''}`} onClick={() => setExcitementTick(value => value + 1)} aria-label="또랑이와 놀기">
+              <ShopCharacter item={preview} />
+            </button>
+            <div className="dshop-stage__caption"><span className="dshop-stage__caption-dot" /> 또랑이의 새로운 모습 <strong>{preview.title}</strong></div>
           </div>
           <div className="dshop-hero__footer"><span>01 / MAKE IT YOURS</span><span>48 STYLES</span></div>
         </section>
@@ -239,7 +290,7 @@ export default function ShopPage() {
                 className={`dshop-item${previewId === item.id ? ' is-previewed' : ''}`}
                 aria-pressed={previewId === item.id}
                 aria-label={`${item.title} 미리보기`}
-                onClick={() => setPreviewId(item.id)}
+                onClick={() => { setPreviewId(item.id); setExcitementTick(value => value + 1) }}
               >
                 <span className="dshop-item__art" style={{ '--item-color': item.color, '--item-light': item.secondary } as CSSProperties}>
                   <span className="dshop-item__badge">{item.tag}</span>
