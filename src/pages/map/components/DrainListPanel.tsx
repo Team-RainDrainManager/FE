@@ -1,4 +1,7 @@
-import type { DrainMapItem } from '../../../types/map'
+
+import type {
+  DrainMapItem,
+} from '../../../types/map'
 
 interface DrainListPanelProps {
   drains: DrainMapItem[]
@@ -11,13 +14,23 @@ const STATUS_TEXT = {
   normal: '정상',
   overdue: '점검 지연',
   blocked: '막힘 제보',
+  risk: '주의',
+  unknown: '상태 미확인',
 }
 
 const STATUS_STYLE = {
-  unadopted: 'bg-[#E6F1E9] text-[#58816B]',
-  normal: 'bg-[#DAF5ED] text-[#268B76]',
-  overdue: 'bg-[#FFF1D8] text-[#B78025]',
-  blocked: 'bg-[#FFE2E2] text-[#C85858]',
+  unadopted:
+    'bg-[#E6F1E9] text-[#58816B]',
+  normal:
+    'bg-[#DAF5ED] text-[#268B76]',
+  overdue:
+    'bg-[#FFF1D8] text-[#B78025]',
+  blocked:
+    'bg-[#FFE2E2] text-[#C85858]',
+  risk:
+    'bg-[#FFF1D8] text-[#B78025]',
+  unknown:
+    'bg-[#EDF1F5] text-[#8294A5]',
 }
 
 export default function DrainListPanel({
@@ -45,6 +58,7 @@ export default function DrainListPanel({
             <h2 className="text-lg font-bold text-[#284B66]">
               빗물받이 목록
             </h2>
+
             <p className="mt-1 text-xs text-[#8294A5]">
               검색 및 필터 결과 {drains.length}개
             </p>
@@ -75,27 +89,39 @@ export default function DrainListPanel({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className={`rounded-full px-2 py-1 text-[11px] font-semibold ${STATUS_STYLE[drain.status]}`}
+                      className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                        STATUS_STYLE[drain.status]
+                      }`}
                     >
                       {STATUS_TEXT[drain.status]}
                     </span>
+
                     <span className="text-sm font-bold text-[#284B66]">
-                      {drain.nickname ?? drain.name}
+                      {drain.nickname ??
+                        drain.name}
                     </span>
                   </div>
 
                   <p className="mt-1 text-xs text-[#8393A3]">
-                    {drain.address}
+                    {drain.address ??
+                      (drain.latitude === null
+                        ? '위치 확인 필요'
+                        : '주소 정보 없음')}
                   </p>
                 </div>
 
                 <div className="shrink-0 text-right">
-                  <p className="text-sm font-bold text-[#338CF0]">
-                    Lv.{drain.level}
-                  </p>
-                  <p className="mt-1 text-[11px] text-[#93A2AF]">
-                    {drain.xp} XP
-                  </p>
+                  {drain.level !== null && (
+                    <p className="text-sm font-bold text-[#338CF0]">
+                      Lv.{drain.level}
+                    </p>
+                  )}
+
+                  {drain.score !== null && (
+                    <p className="mt-1 text-[11px] text-[#93A2AF]">
+                      점수 {drain.score}
+                    </p>
+                  )}
                 </div>
               </button>
             ))
