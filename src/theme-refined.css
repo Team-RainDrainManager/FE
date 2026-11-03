@@ -107,3 +107,146 @@ html[data-dd-theme='dark'] .dd-login-viewport { background: #080f19; }
 html[data-dd-theme='dark'] .dd-login h1 { color: #f0f5fc; }
 
 @media (prefers-reduced-motion: reduce) { .dd-settings-modal { scroll-behavior: auto; } }
+
+
+/* DDORANG_SOCIAL_DARK_V1_START */
+/*
+ * 또랑 소셜 화면의 다크 모드 표현만 보정합니다.
+ * 기존 소셜 TSX / 상태 / API / 이벤트는 변경하지 않습니다.
+ * :has()는 Chrome, Safari 등의 현대 브라우저에서 지원합니다.
+ */
+
+/* 01. 진한 네이비 배경과 섬세한 표면 대비 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) {
+  --social-dark-canvas: #0b1421;
+  --social-dark-surface: #152235;
+  --social-dark-surface-raised: #1a2a40;
+  --social-dark-outline: #304057;
+  --social-dark-title: #f3f7ff;
+  --social-dark-body: #b5c5da;
+  --social-dark-accent: #96c3ff;
+  --social-dark-mint: #82dfbb;
+  background: var(--social-dark-canvas) !important;
+  color: var(--social-dark-title);
+}
+
+/* 02. 원래의 연한 민트 배너를 밤색 청록빛 그라데이션으로 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type {
+  background: radial-gradient(circle at 86% 16%, rgb(100 203 183 / 12%), transparent 42%),
+    linear-gradient(130deg, #19374b 0%, #163040 52%, #142a34 100%) !important;
+  border: 1px solid #305467;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 8px 24px rgb(3 9 19 / 12%);
+}
+
+/* 공통 테마가 흰 반투명 장식을 불투명한 검정 원으로 바꾸는 현상 제거 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type > div:last-child {
+  background-color: rgb(165 231 209 / 8%) !important;
+  border: 1px solid rgb(165 231 209 / 8%);
+  pointer-events: none;
+}
+
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type > div:first-child > p:first-child {
+  color: #94d5dc !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type h2 {
+  color: #f4fbff !important;
+  letter-spacing: -0.025em;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type > div:first-child > p:last-child {
+  color: #b9d1d7 !important;
+}
+
+/* 03. 상단 리그/친구/피드 탭 */
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] {
+  background: #172338 !important;
+  border: 1px solid #2b3d55;
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%);
+}
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button {
+  color: #a8bad1 !important;
+  border: 1px solid transparent;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button[aria-selected='true'] {
+  color: #b7d5ff !important;
+  background: #263b56 !important;
+  border-color: #385676;
+  box-shadow: 0 2px 8px rgb(0 8 23 / 16%), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button[aria-selected='false']:hover {
+  color: #e1ecfa !important;
+  background: #1d3049 !important;
+}
+
+/* 04. 소셜 탭 카드, 순위 리스트, 친구 카드와 피드 카드의 일관된 표면 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(section, article, ol)[class*='border'] {
+  background-color: var(--social-dark-surface) !important;
+  border-color: var(--social-dark-outline) !important;
+  box-shadow: 0 5px 18px rgb(0 5 16 / 8%);
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] ol > li {
+  background-color: var(--social-dark-surface) !important;
+  border-color: #27384e !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] ol > li[class*='bg-[#EAF'] {
+  background-color: #203754 !important;
+}
+
+/* 제목/설명/버튼: 흰색을 과도하게 쓰지 않고 충분한 대비 확보 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(h2, h3, strong, p, span)[class*='text-[#203451]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(h2, h3, strong, p, span)[class*='text-[#385A73]'] {
+  color: var(--social-dark-title) !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(p, span)[class*='text-[#78899F]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(p, span)[class*='text-[#71889B]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(p, span)[class*='text-[#9AA9B6]'] {
+  color: var(--social-dark-body) !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] [class*='text-[#3981F7]'] {
+  color: var(--social-dark-accent) !important;
+}
+
+/* 05. 리그 6종: 칠흑 카드 위에 차분한 색상 구분 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] section > .grid.grid-cols-3 > div {
+  background-color: #1d2a3d !important;
+  border-color: #344459 !important;
+  color: #b9c7d9 !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] section > .grid.grid-cols-3 > div:first-child {
+  background: #19392f !important;
+  border-color: #437d66 !important;
+  color: #9ce4bd !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] section > div:first-child > div:first-child[class*='bg-[#E5F6EA]'] {
+  background-color: #214235 !important;
+}
+
+/* 06. 소셜의 연한 파란 CTA / 친구 상태 / 피드 태그 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#EAF4FF]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#EAF2FF]'] {
+  background: #213751 !important;
+  color: #a7ccff !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#EAF7EF]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#E5F6EA]'] {
+  background: #1d4035 !important;
+  color: #95e0b9 !important;
+}
+
+/* 07. 다크 화면의 흰 배경으로 남아 있던 빈 상태·대화창 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(div, section)[class*='bg-white'] {
+  background-color: var(--social-dark-surface) !important;
+  border-color: var(--social-dark-outline) !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] [role='dialog'] {
+  background: #172538 !important;
+  border: 1px solid #39516a;
+  color: var(--social-dark-title);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button {
+    transition: none;
+  }
+}
+/* DDORANG_SOCIAL_DARK_V1_END */

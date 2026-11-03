@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { Link } from 'react-router'
 
 import Character from '../../components/common/Character'
+import '../shop/shop-studio.css'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import type { MyAdoptionDto } from '../../types/myDrains'
 import { changeNickname, getErrorMessage, getMe } from '../../apis/auth'
@@ -276,16 +277,6 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <section className="rounded-[22px] border border-[#E5EEF7] bg-white px-5 py-4">
-        <h3 className="mb-3 text-[15px] font-extrabold">더 알아보기</h3>
-        <Link to="/social" className="flex min-h-12 items-center justify-between border-b border-[#EFF4F8] text-[13px] font-semibold">
-          <span>친구와 소셜 활동</span><span className="text-lg text-[#A0B1C2]" aria-hidden="true">›</span>
-        </Link>
-        <Link to="/shop" className="flex min-h-12 items-center justify-between border-b border-[#EFF4F8] text-[13px] font-semibold"><span>💧 꾸미기 상점</span><span className="text-lg text-[#A0B1C2]" aria-hidden="true">›</span></Link>
-        <Link to="/settings" className="flex min-h-12 items-center justify-between text-[13px] font-semibold">
-          <span>설정</span><span className="text-lg text-[#A0B1C2]" aria-hidden="true">›</span>
-        </Link>
-      </section>
       <p className="px-2 text-center text-[11px] leading-5 text-[#97AABE]">닉네임은 계정에 저장되며, 사진은 현재 브라우저에만 저장됩니다. 돌봄 기록은 현재 앱에 표시된 목록을 기준으로 합니다.</p>
     </div>
   )
