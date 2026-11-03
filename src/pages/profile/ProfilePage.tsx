@@ -277,6 +277,18 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      <Link
+        to="/shop"
+        aria-label="또랑이 꾸미기 스튜디오 열기"
+        className="group flex min-h-[92px] items-center gap-4 rounded-[22px] border border-[#3C6079] bg-gradient-to-r from-[#142E47] to-[#1D4559] px-5 py-4 text-[#F0F7FF] shadow-[0_10px_28px_rgba(16,48,79,0.16)] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4A98EA]"
+      >
+        <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#2C6071] text-2xl">💧</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-extrabold tracking-[-0.03em]">또랑이 꾸미기 스튜디오</span>
+          <span className="mt-1 block text-[11px] leading-relaxed text-[#BDDAE8]">다양한 꾸미기 아이템을 둘러보세요</span>
+        </span>
+        <span aria-hidden="true" className="text-xl font-semibold text-[#BDEAFF] transition-transform group-hover:translate-x-1">›</span>
+      </Link>
       <p className="px-2 text-center text-[11px] leading-5 text-[#97AABE]">닉네임은 계정에 저장되며, 사진은 현재 브라우저에만 저장됩니다. 돌봄 기록은 현재 앱에 표시된 목록을 기준으로 합니다.</p>
     </div>
   )
