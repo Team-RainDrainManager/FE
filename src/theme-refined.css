@@ -1092,3 +1092,158 @@ body:has(.dd-settings-backdrop) header button[aria-label='설정 열기'] > span
     animation: none !important;
   }
 }
+
+/* DDORANG SETTINGS / Compact mobile account actions v4 */
+.dd-settings-modal__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dd-settings-modal__report {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border: 1px solid var(--setting-line, #dbe5f0);
+  border-radius: 14px;
+  color: var(--setting-ink, #203451);
+  background: var(--setting-surface, #fff);
+  transition: transform 140ms ease, background-color 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.dd-settings-modal__report:active { transform: scale(.95); background: var(--setting-tap-strong, #e1eaf5); }
+.dd-settings-modal__report:focus-visible { outline: 2px solid var(--setting-accent, #3981f7); outline-offset: 3px; }
+.dd-settings-theme-compact {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px;
+  border-radius: 13px;
+  background: var(--setting-tap, #edf2f8);
+}
+.dd-settings-theme-compact > button {
+  min-height: 41px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--setting-muted, #647991);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.dd-settings-theme-compact > button[aria-checked='true'] {
+  color: var(--setting-ink, #213853);
+  background: var(--setting-surface, #fff);
+  border-color: var(--setting-line, #dbe5f0);
+  box-shadow: 0 1px 4px rgb(21 42 67 / 7%);
+}
+.dd-settings-theme-compact > button:active { transform: scale(.97); }
+.dd-settings-theme-compact > button:focus-visible { outline: 2px solid var(--setting-accent, #3981f7); outline-offset: 2px; }
+.dd-settings-auto-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--setting-muted, #647991);
+}
+.dd-settings-auto-detail > button {
+  flex: none;
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 9px;
+  background: var(--setting-tap, #edf2f8);
+  color: var(--setting-accent, #2674cc);
+  font-size: 11px;
+  font-weight: 700;
+}
+.dd-settings-account-actions {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.dd-settings-account-actions > button {
+  min-height: 43px;
+  border: 1px solid var(--setting-line, #dbe5f0);
+  border-radius: 12px;
+  background: var(--setting-tap, #edf2f8);
+  color: var(--setting-ink, #203451);
+  font-weight: 700;
+  font-size: 13px;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+.dd-settings-account-actions > button:last-child {
+  color: #bb5260;
+  border-color: rgb(193 86 101 / 22%);
+  background: rgb(193 86 101 / 8%);
+}
+.dd-settings-account-actions > button:active { transform: scale(.98); }
+.dd-settings-account-actions > button:last-child:active { background: rgb(193 86 101 / 20%); }
+.dd-settings-account-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(6 14 24 / 60%);
+}
+.dd-settings-account-dialog {
+  width: min(100%, 350px);
+  padding: 22px;
+  border: 1px solid var(--setting-line, #dbe5f0);
+  border-radius: 22px;
+  background: #fff;
+  color: #1b3047;
+  box-shadow: 0 22px 70px rgb(0 0 0 / 20%);
+}
+.dd-settings-account-dialog h3 { font-size: 18px; font-weight: 800; }
+.dd-settings-account-dialog p { margin-top: 10px; font-size: 13px; line-height: 1.55; color: #6c8197; }
+.dd-settings-account-dialog label { display: block; margin-top: 12px; font-size: 12px; font-weight: 700; }
+.dd-settings-account-dialog input {
+  width: 100%;
+  margin-top: 6px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #cddbe8;
+  border-radius: 10px;
+  color: #1b3047;
+  background: #fff;
+}
+.dd-settings-account-dialog [role='alert'] { color: #c04455; }
+.dd-settings-account-dialog__buttons { display: flex; gap: 8px; margin-top: 18px; }
+.dd-settings-account-dialog__buttons button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #dbe5f0;
+  border-radius: 12px;
+  background: #eef3f9;
+  color: #34506a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dd-settings-account-dialog__buttons button:last-child { border-color: #ce5e69; background: #ba4654; color: #fff; }
+.dd-settings-account-dialog__buttons button:disabled { opacity: .5; cursor: not-allowed; }
+html[data-dd-theme='dark'] .dd-settings-theme-compact > button[aria-checked='true'] { color: #f2f6fd; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog { background: #1a293a; border-color: #385169; color: #f2f6fd; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog p { color: #b4c1d3; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog input { color: #f2f6fd; background: #122033; border-color: #385169; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog__buttons button:first-child { background: #283b50; color: #e9f0f7; border-color: #385169; }
+/* Smaller cards make the important controls reachable without excessive swiping. */
+.dd-settings-modal .dd-settings-page--embedded > * + * { margin-top: 10px !important; }
+.dd-settings-modal .dd-settings-page--embedded > .dd-settings-card,
+.dd-settings-modal .dd-settings-page--embedded > .dd-settings-feature-card { padding: 14px 16px !important; }
+.dd-settings-modal .dd-settings-feature-row,
+.dd-settings-modal .dd-settings-pause-row { min-height: 52px; }
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-modal__report, .dd-settings-theme-compact > button,
+  .dd-settings-account-actions > button { transition: none !important; }
+}
