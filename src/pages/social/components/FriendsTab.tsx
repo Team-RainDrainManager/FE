@@ -1,5 +1,6 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import FriendInviteDialog from './FriendInviteDialog'
 
 import {
   CURRENT_SOCIAL_USER_ID,
@@ -12,19 +13,37 @@ export default function FriendsTab() {
     (user) => user.id !== CURRENT_SOCIAL_USER_ID,
   )
 
-  const [friendIds, setFriendIds] = useState<number[]>([2, 3])
+  const [friendIds, setFriendIds] = useState<number[]>(()=>{
+    try {const value=JSON.parse(localStorage.getItem('ddorang:demo-friends')??'[]') as unknown
+      return Array.isArray(value)?value.filter((item):item is number=>typeof item==='number'):[]
+    } catch {return []}
+  })
   const [selectedUser, setSelectedUser] = useState<SocialUser | null>(
     null,
   )
   const [invitationOpen, setInvitationOpen] = useState(false)
+  const [inviteNotice, setInviteNotice] = useState('')
+  useEffect(() => {
+    if (!inviteNotice) return
+    const timeout = window.setTimeout(() => setInviteNotice(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [inviteNotice])
   const [cheeredIds, setCheeredIds] = useState<number[]>([])
+  const [pokeIds, setPokeIds] = useState<number[]>([])
+  const [notice, setNotice] = useState('')
+
+  function pokeFriend(id:number) {
+    if(!friendIds.includes(id)||pokeIds.includes(id))return
+    setPokeIds(previous=>[...previous,id]);setNotice('찌르기를 시연했습니다. 실제 알림은 전송되지 않습니다.')
+  }
+
 
   const toggleFriend = (id: number) => {
-    setFriendIds((previous) =>
-      previous.includes(id)
-        ? previous.filter((value) => value !== id)
-        : [...previous, id],
-    )
+    setFriendIds((previous) => {
+      const next=previous.includes(id)?previous.filter((value)=>value!==id):[...previous,id]
+      try {localStorage.setItem('ddorang:demo-friends',JSON.stringify(next))} catch { /* ignore */ }
+      return next
+    })
   }
 
   const cheerForFriend = (id: number) => {
@@ -62,7 +81,7 @@ export default function FriendsTab() {
       </section>
 
       <p className="px-1 text-xs leading-5 text-[#78899F]">
-        친구 미리보기 · 초대 기능은 준비 중이에요.
+        추천 친구는 시연 데이터입니다. 카카오 친구 목록 조회는 별도의 권한·서버 연동이 필요합니다.
       </p>
 
       <div className="space-y-3">
@@ -76,7 +95,7 @@ export default function FriendsTab() {
             >
               <div className="flex items-center gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#EAF6F0] text-2xl">
-                  {user.avatar}
+                  {user.avatarUrl?<img src={user.avatarUrl} alt={`${user.nickname} 프로필 사진`} className="h-full w-full rounded-full object-cover"/>:user.avatar}
                 </span>
 
                 <div className="min-w-0 flex-1">
@@ -115,36 +134,12 @@ export default function FriendsTab() {
         })}
       </div>
 
+      {notice&&<p role="status" className="rounded-xl bg-[#EAF4FF] p-3 text-xs text-[#3976B5]">{notice}</p>}
+
       {invitationOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="invite-title"
-            className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-xl"
-          >
-            <h3
-              id="invite-title"
-              className="text-lg font-extrabold text-[#203451]"
-            >
-              카카오 친구 초대
-            </h3>
-
-            <p className="mt-3 text-sm leading-6 text-[#71889B]">
-              카카오 친구 초대 기능은 추후 연결할 예정이에요.
-              현재는 초대 메시지가 전송되지 않습니다.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setInvitationOpen(false)}
-              className="mt-5 w-full rounded-xl bg-[#3981F7] py-3 text-sm font-bold text-white"
-            >
-              확인
-            </button>
-          </section>
-        </div>
+        <FriendInviteDialog onClose={() => setInvitationOpen(false)} onNotice={setInviteNotice} />
       )}
+      {inviteNotice && <div className="rd-invite-toast" role="status" aria-live="polite">{inviteNotice}</div>}
 
       {selectedUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
@@ -172,6 +167,7 @@ export default function FriendsTab() {
               </button>
             </div>
 
+            <div className="mt-3 flex justify-center"><span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#EAF6F0] text-3xl">{selectedUser.avatarUrl?<img src={selectedUser.avatarUrl} alt="친구 프로필 사진" className="h-full w-full object-cover"/>:selectedUser.avatar}</span></div>
             <div className="mt-4 space-y-2">
               {selectedUser.drains.length === 0 ? (
                 <p className="rounded-xl bg-[#F5F9FC] p-4 text-center text-sm text-[#78899F]">
@@ -207,13 +203,12 @@ export default function FriendsTab() {
               {!friendIds.includes(selectedUser.id)
                 ? '친구 추가 후 응원 가능'
                 : cheeredIds.includes(selectedUser.id)
-                  ? '♥ 응원했어요 (시연)'
+                  ? '♥ 응원 표시됨'
                   : '♡ 돌봄 응원 보내기'}
             </button>
 
-            <p className="mt-2 text-center text-[11px] text-[#78899F]">
-              응원은 현재 화면에서만 기록되며 알림은 전송되지 않아요.
-            </p>
+            <button type="button" disabled={!friendIds.includes(selectedUser.id)||pokeIds.includes(selectedUser.id)} onClick={()=>pokeFriend(selectedUser.id)} className="mt-2 w-full rounded-xl border border-[#C9DBEA] bg-[#F5F9FC] py-3 text-sm font-bold text-[#3976B5] disabled:opacity-50">{pokeIds.includes(selectedUser.id)?'오늘 찌르기 시연 완료':'관리 잊지 말기 · 찌르기'}</button>
+            <p className="mt-2 text-center text-[11px] text-[#78899F]">응원과 찌르기는 화면 시연이며 상대방에게 실제 알림이 전송되지 않습니다.</p>
           </section>
         </div>
       )}

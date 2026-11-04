@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router'
 
 import Header from '../components/layout/Header'
 import BottomNavigation from '../components/layout/BottomNavigation'
+import FirstTimeTour from '../components/FirstTimeTour'
 
 export default function MainLayout() {
   const { pathname } = useLocation()
@@ -25,6 +26,7 @@ export default function MainLayout() {
         </main>
 
         {!isDetailPage && <BottomNavigation />}
+        <FirstTimeTour />
       </div>
     </div>
   )

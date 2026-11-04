@@ -354,3 +354,17 @@
   .dd-login-character-speech { transition: none; }
   .dd-login-kakao-button { transition: none; }
 }
+
+.dd-login-kakao-button:disabled { cursor: wait; opacity: .75; }
+.dd-login-email-links { margin-top: 11px; display: flex; justify-content: center; align-items: center; gap: 15px; font-size: 12px; }
+.dd-login-email-links a { color: #396e9e; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+.dd-login-email-links span { color: #91a9bc; }
+@media (max-height: 720px) { .dd-login-email-links { margin-top: 7px; } }
+
+/* Open-Meteo 현재 날씨 기반 로그인 배경. 실패 시에는 기존 기본 배경 유지 */
+.dd-login--sun { background:linear-gradient(165deg,#A8D7FF 0%,#D8F0FF 57%,#F5FBFF 100%); }
+.dd-login--sun::before {content:'';position:absolute;top:19%;right:-66px;width:205px;height:205px;border-radius:50%;background:radial-gradient(circle,#fff9d2 0%,#ffedaa 37%,rgba(255,242,172,.15) 70%);pointer-events:none;z-index:-1;}
+.dd-login--rain {background:linear-gradient(160deg,#B3CEDF,#D0E4F2 55%,#EDF5FC);}
+.dd-login--cloud {background:linear-gradient(165deg,#C7DBEB,#DFEBF5,#F3F8FC);}
+.dd-login-weather{display:inline-block;margin:12px auto 0;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.55);font-size:11px;font-weight:700;color:#3c759b;}
+html[data-dd-theme="dark"] .dd-login-weather{background:rgba(255,255,255,.08);color:#c5ddf2;}

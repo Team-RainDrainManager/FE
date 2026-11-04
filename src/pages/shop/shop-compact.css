@@ -1,0 +1,70 @@
+/* Shop V3: polished, small-footprint collectibles; no changes to the character's preview interaction */
+.dshop-page { padding-top:12px; }
+.dshop-heading { margin-bottom:11px; }
+.dshop-hero { display:grid; grid-template-columns:minmax(0,1fr) 135px; align-items:center; column-gap:3px; min-height:174px; padding:16px; border-radius:21px; }
+.dshop-hero__copy { align-self:center; }
+.dshop-kicker { font-size:8px; letter-spacing:.12em; }
+.dshop-hero h1 { font-size:20px; line-height:1.34; margin-top:9px; letter-spacing:-.065em; }
+.dshop-hero__copy > p:last-child { max-width:180px; font-size:10px; line-height:1.55; margin-top:8px; }
+.dshop-stage { min-height:152px; height:152px; width:135px; margin:0; }
+.dshop-stage::before { width:141px; height:141px; top:51%; }
+.dshop-stage__ring { width:145px; height:102px; top:47%; }
+.dshop-stage__ring--two { width:126px; height:120px; }
+.dshop-stage__star { font-size:13px; }
+.dshop-stage__character { width:130px; height:126px; scale:.73; transform-origin:center; }
+.dshop-stage__caption,.dshop-hero__footer { display:none; }
+.dshop-preview-note { margin:9px 0 10px; padding:10px 11px; border-radius:13px; gap:7px; }
+.dshop-preview-note p { font-size:10px; line-height:1.55; }
+.dshop-preview-note__symbol { width:17px; height:17px; flex-basis:17px; }
+.dshop-wallet { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:11px 13px; border-radius:15px; border:1px solid #d8e8e2; background:linear-gradient(105deg,#eaf7f4,#f9fcfa); margin-bottom:18px; }
+.dshop-wallet > div { display:flex; align-items:center; gap:9px; }
+.dshop-wallet-droplet { display:grid; place-items:center; width:32px; height:32px; font-size:17px; border-radius:11px; background:#d4ece5; }
+.dshop-wallet > div > span:last-child { display:grid; gap:1px; }
+.dshop-wallet small { font-size:9px; font-weight:750; color:#668c83; }
+.dshop-wallet strong { font-size:17px; line-height:1.1; font-weight:900; color:#256b61; }
+.dshop-wallet-level { font-size:10px; padding:7px 9px; border-radius:10px; border:1px solid #d5e6df; background:#fff; color:#487d71; font-weight:800; white-space:nowrap; }
+.dshop-purchase-notice { font-size:10px; line-height:1.4; color:#21786a; background:#eaf9f1; border-radius:11px; padding:9px 11px; margin:-8px 0 13px; }
+.dshop-section-heading h2 { font-size:19px; }
+.dshop-section-heading > p { max-width:120px; }
+.dshop-filters { margin-top:12px; gap:6px; padding-bottom:6px; }
+.dshop-filter { min-height:32px; padding:0 12px; font-size:10px; }
+.dshop-collection__meta { margin:8px 3px 9px; }
+.dshop-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.dshop-item { display:flex; flex-direction:column; min-width:0; padding:5px; border-radius:15px; overflow:hidden; position:relative; box-shadow:0 3px 8px #183a3111; background:#fff; }
+.dshop-item::before { position:absolute; z-index:1; content:''; width:65px; height:65px; right:-48px; top:-48px; border-radius:50%; box-shadow:0 0 0 9px #ffffff4e,0 0 0 21px #ffffff26; pointer-events:none; }
+.dshop-item__preview { display:block; padding:0; width:100%; text-align:center; border:0; background:transparent; border-radius:12px; -webkit-tap-highlight-color:transparent; cursor:pointer; }
+.dshop-item__art { height:82px; border-radius:11px; background:radial-gradient(circle at 25% 12%,#ffffffd9,transparent 55%),linear-gradient(138deg,var(--item-light),#eef6f3); }
+.dshop-art { width:60px; height:60px; filter:drop-shadow(0 5px 5px #223f3220); }
+.dshop-item__badge { top:5px; left:5px; z-index:2; padding:3px 4px; font-size:7px; border-radius:5px; letter-spacing:0; }
+.dshop-item__art::after { width:42px; bottom:7px; }
+.dshop-item__lock { position:absolute; bottom:4px; right:4px; z-index:2; padding:3px 5px; border-radius:5px; font-size:8px; font-weight:850; color:#586a75; background:#ffffffde; }
+.dshop-item__information { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; padding:8px 2px 6px; }
+.dshop-item__label { margin:0; padding:0; font-size:10px; line-height:1.3; font-weight:850; min-height:26px; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+.dshop-item__price { font-size:10px; font-weight:850; color:#468d88; display:flex; gap:3px; align-items:center; }
+.dshop-item__price span { font-size:10px; }
+.dshop-item__buy { width:100%; min-height:27px; border:1px solid #cde4d9; border-radius:8px; background:#e5f4ed; color:#2b7767; font-size:9px; font-weight:850; cursor:pointer; padding:4px 2px; }
+.dshop-item__buy:disabled { cursor:default; }
+.dshop-item__buy:disabled:not(.is-owned) { background:#f0f2f4; border-color:#e4e9ee; color:#8b9aa6; }
+.dshop-item__buy.is-owned { color:#5e8a72; background:#edf6ec; border-color:#d8e8d8; }
+.dshop-item.is-locked .dshop-item__art { filter:saturate(.58); }
+.dshop-item--tier-2 .dshop-item__art,.dshop-item--tier-3 .dshop-item__art { box-shadow:inset 0 0 0 1px #d5dfeb; }
+.dshop-item--tier-4 .dshop-item__art { background:radial-gradient(circle at 15% 9%,#ffffffc7,transparent 45%),linear-gradient(135deg,#e6edf4,#b1cad9); }
+.dshop-item--tier-5 .dshop-item__art { background:radial-gradient(circle at 22% 14%,#ffffffde,transparent 45%),linear-gradient(145deg,#fff3cc,#ecc96e); }
+.dshop-item--tier-6 .dshop-item__art { background:radial-gradient(circle at 30% 10%,#ffffffed,transparent 48%),linear-gradient(140deg,#e7f9fc,#a0ccd5); }
+.dshop-item--tier-7 .dshop-item__art { background:radial-gradient(circle at 20% 16%,#ffffffdf,transparent 40%),linear-gradient(145deg,#f0faff,#8ed5f4 73%,#b9eaff); }
+.dshop-item--tier-7 { border-color:#a7d9ee; box-shadow:0 3px 15px #70b4cf1f; }
+.dshop-item--tier-6 { border-color:#c3dfe1; }
+.dshop-item--tier-5 { border-color:#e7d8a5; }
+.dshop-footer { margin-top:15px; padding-top:13px; }
+html[data-dd-theme='dark'] .dshop-wallet { background:#1a3431; border-color:#305d50; }
+html[data-dd-theme='dark'] .dshop-wallet strong { color:#b4e8d7; }
+html[data-dd-theme='dark'] .dshop-wallet-level { color:#c4e5d5; background:#284238; border-color:#3b6454; }
+html[data-dd-theme='dark'] .dshop-item { background:#18312c; }
+html[data-dd-theme='dark'] .dshop-item__buy { background:#315448; color:#def4e5; border-color:#527864; }
+html[data-dd-theme='dark'] .dshop-item__buy:disabled:not(.is-owned) { background:#253735; color:#91a29d; border-color:#3e5551; }
+html[data-dd-theme='dark'] .dshop-item__buy.is-owned { background:#365947; color:#c6efcf; }
+html[data-dd-theme='dark'] .dshop-item__art { background:radial-gradient(circle at 25% 12%,#ffffff38,transparent 55%),linear-gradient(138deg,var(--item-light),#d5e8e0); }
+html[data-dd-theme='dark'] .dshop-item__badge { color:#40584c; background:#ffffffc7; }
+html[data-dd-theme='dark'] .dshop-item__price { color:#a7ddd4; }
+@media(max-width:360px){.dshop-grid{gap:6px}.dshop-hero{grid-template-columns:minmax(0,1fr) 120px;padding:13px}.dshop-stage{width:120px}.dshop-hero h1{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.dshop-item,.dshop-item__buy{transition:none}}

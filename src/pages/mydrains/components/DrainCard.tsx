@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 
 import Character from '../../../components/common/Character'
+import LevelUpCelebration from '../../../components/LevelUpCelebration'
+import { DECORATIONS, useDecorationStore, type DecorationId } from '../../../store/useDecorationStore'
 
 import type {
   DrainModalType,
@@ -24,6 +26,41 @@ export default function DrainCard({
   onOpen,
 }: Props) {
   const drainId = adoption.drain.drain_id
+  const nameKey = `ddorang:drain-name:${drainId}`
+  const [specialName,setSpecialName] = useState(() => {
+    try { return localStorage.getItem(nameKey) ?? '' } catch { return '' }
+  })
+  const [draftName,setDraftName] = useState(specialName)
+  const [editingName,setEditingName] = useState(false)
+  const [nameMessage,setNameMessage] = useState('')
+  const [celebrate,setCelebrate] = useState(false)
+  const [decorateOpen,setDecorateOpen] = useState(false)
+  const owned=useDecorationStore(s=>s.owned)
+  const equipped=useDecorationStore(s=>s.equipped[drainId])
+  const equip=useDecorationStore(s=>s.equip)
+  const selectedDecoration=DECORATIONS.find(d=>d.id===equipped)
+
+  useEffect(() => {
+    // 최초 조회는 축하 애니메이션을 재생하지 않습니다. 저장된 레벨보다 오른 경우에만 표시합니다.
+    const key=`ddorang:last-level:${drainId}`
+    try {
+      const previous=localStorage.getItem(key)
+      if(previous !== null && Number(previous) < adoption.level) {
+        const timer=window.setTimeout(()=>setCelebrate(true),0)
+        localStorage.setItem(key,String(adoption.level))
+        return ()=>window.clearTimeout(timer)
+      }
+      localStorage.setItem(key,String(adoption.level))
+    } catch { /* ignore */ }
+  }, [adoption.level,drainId])
+
+  function saveName() {
+    const value=draftName.trim()
+    if(adoption.level<10) return
+    if(value.length<2||value.length>16){setNameMessage('이름은 2~16자로 입력해 주세요.');return}
+    try { localStorage.setItem(nameKey,value) } catch {setNameMessage('현재 브라우저에 이름을 저장할 수 없습니다.');return}
+    setSpecialName(value);setEditingName(false);setNameMessage('이 브라우저에서만 이름이 바뀝니다.')
+  }
 
   // 현재 시각은 렌더링이 아닌 Effect의 타이머에서 갱신
   const [now, setNow] = useState<number | null>(null)
@@ -77,9 +114,9 @@ export default function DrainCard({
       </details>
 
       <div className="flex items-center gap-3 pr-6">
-        <div className="shrink-0"><Character type="level" level={adoption.level} size={80} /></div>
+        <div className="relative shrink-0"><Character type="level" level={adoption.level} size={80} />{selectedDecoration&&<span aria-label={`장착한 장식: ${selectedDecoration.name}`} className="absolute -right-1 -top-1 rounded-full bg-white p-1 text-xl shadow-sm">{selectedDecoration.symbol}</span>}</div>
         <div className="min-w-0 flex-1">
-          <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{adoption.adoption_name}</h3>
+          <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{specialName||adoption.adoption_name}</h3>
           <p className="mt-1 text-xs font-semibold text-[#3981F7]">Lv.{adoption.level} · {adoption.stage}</p>
           <p className="mt-1 text-xs text-[#78899F]">{adoption.drain.name}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -92,6 +129,17 @@ export default function DrainCard({
         <button type="button" onClick={() => onOpen({ type: 'growth', drainId })} className="rounded-lg px-1 py-1.5 text-xs font-semibold text-[#3981F7]">성장 도감 ›</button>
       </div>
       <GrowthProgress adoption={adoption} />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {adoption.level>=10 ? <button type="button" onClick={()=>{setEditingName(!editingName);setDraftName(specialName||adoption.adoption_name)}} className="rounded-xl bg-[#EAF4FF] px-3 py-2 text-xs font-bold text-[#337AC0]">이름 짓기</button>:
+        <span className="rounded-xl bg-[#F3F6FA] px-3 py-2 text-xs text-[#8299B0]">Lv.10부터 이름 짓기 가능</span>}
+        <button type="button" onClick={()=>setDecorateOpen(v=>!v)} className="rounded-xl bg-[#EAF4FF] px-3 py-2 text-xs font-bold text-[#337AC0]">장식 변경</button>
+        <button type="button" onClick={()=>setCelebrate(true)} className="ml-auto text-xs font-semibold text-[#3981F7]">레벨업 연출 보기</button>
+      </div>
+      {editingName && <form onSubmit={e=>{e.preventDefault();saveName()}} className="mt-3 flex gap-2"><input aria-label="또랑이 새 이름" required minLength={2} maxLength={16} value={draftName} onChange={e=>setDraftName(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-[#E5EEF7] px-3 text-sm"/><button className="rounded-xl bg-[#3981F7] px-4 text-xs font-bold text-white">저장</button></form>}
+      {nameMessage && <p role="status" className="mt-2 text-[11px] text-[#71889B]">{nameMessage}</p>}
+      {decorateOpen && <div className="mt-3 rounded-xl bg-[#F4F7FC] p-3"><p className="mb-2 text-xs font-bold">보유한 장식</p><div className="flex flex-wrap gap-2"><button type="button" className="rounded-lg bg-white px-3 py-2 text-xs" onClick={()=>{equip(drainId,null);setDecorateOpen(false)}}>장식 없음</button>{owned.map((id:DecorationId)=>{const item=DECORATIONS.find(d=>d.id===id);return item?<button key={id} type="button" aria-pressed={equipped===id} onClick={()=>{equip(drainId,id);setDecorateOpen(false)}} className="rounded-lg bg-white px-3 py-2 text-xs">{item.symbol} {item.name}</button>:null})}</div>{owned.length===0 && <p className="mt-2 text-[11px] text-[#8299B0]">상점에서 장식을 구매해 주세요.</p>}<Link to="/shop" className="mt-3 inline-block text-xs font-bold text-[#3981F7]">꾸미기 상점으로 ›</Link></div>}
+      {celebrate && <LevelUpCelebration level={adoption.level} onClose={()=>setCelebrate(false)}/>}
+
 
       {(adoption.lonely || (!paused && adoption.release_warning) || inspectionOverdue) && (
         <div className="mt-3 flex gap-2.5 rounded-2xl bg-[#FFF6E2] p-3">
@@ -106,11 +154,11 @@ export default function DrainCard({
 
       <dl className="mt-3 space-y-2 rounded-2xl bg-[#F4F7FC] p-3 text-xs leading-relaxed">
         <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2">
-          <dt className="text-[#78899F]">마지막 돌봄</dt><dd className="text-[#637790]">{formatCareDate(adoption.last_care_at)}</dd>
+          <dt className="text-[#78899F]">마지막 돌봄</dt><dd className="text-[#637790]">{adoption.last_care_at? formatCareDate(adoption.last_care_at): '기록 없음'}</dd>
         </div>
         <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2">
           <dt className="text-[#78899F]">{paused ? '점검 쉬기 종료' : '다음 점검'}</dt>
-          <dd className={`font-bold ${inspectionOverdue ? 'text-[#AD731D]' : 'text-[#203451]'}`}>{formatCareDate(paused ? pauseUntil : adoption.next_inspection_at)}</dd>
+          <dd className={`font-bold ${inspectionOverdue ? 'text-[#AD731D]' : 'text-[#203451]'}`}>{paused ? pauseUntil ? formatCareDate(pauseUntil) : '미정' : adoption.next_inspection_at ? formatCareDate(adoption.next_inspection_at) : '미정'}</dd>
         </div>
       </dl>
       <button type="button" onClick={() => onOpen({ type: 'inspect', drainId })} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#6099E8] px-3 text-sm font-bold text-white transition hover:bg-[#4A88DB] active:scale-[0.99]">

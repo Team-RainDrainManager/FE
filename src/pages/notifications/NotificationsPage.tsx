@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
 
-import { MOCK_ACTIVITY_NOTIFICATIONS, MOCK_INSPECTION_REQUESTS, sortInspectionRequests } from '../../mocks/notifications'
+import { sortInspectionRequests } from '../../mocks/notifications'
 
 import type { InspectionRequest, RequestAction } from '../../types/notifications'
 
@@ -26,14 +26,9 @@ export default function NotificationsPage() {
   const [requestMessage, setRequestMessage] = useState('')
   const [activeTab, setActiveTab] = useState<'requests' | 'activity'>('requests')
 
-  const [requests, setRequests] = useState<InspectionRequest[]>(
-    () =>
-      sortInspectionRequests(MOCK_INSPECTION_REQUESTS),
-  )
+  const [requests, setRequests] = useState<InspectionRequest[]>([])
 
-  const [notifications, setNotifications] = useState(() =>
-    MOCK_ACTIVITY_NOTIFICATIONS.map((notification) => ({ ...notification })),
-  )
+  const [notifications, setNotifications] = useState<{ notificationId: number; text: string; createdAt: string; read: boolean }[]>([])
 
   const markRead = (id: number) => {
     setNotifications((previous) => previous.map((item) =>

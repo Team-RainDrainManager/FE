@@ -1,0 +1,47 @@
+.dd-auth-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #d9efff, #f6fbff 70%);
+  color: #254866;
+  padding: 28px 16px;
+}
+.dd-auth-card { width: 100%; max-width: 420px; background: #fff; border: 1px solid #e4eef8; border-radius: 26px; padding: 32px 26px; box-shadow: 0 12px 34px #348bd412; }
+.dd-auth-card--wide { max-width: 480px; }
+.dd-auth-kicker { margin: 0 0 10px; color: #368ef0; letter-spacing: .08em; font-size: 11px; font-weight: 800; }
+.dd-auth-card h1 { font-size: 26px; line-height: 1.35; font-weight: 800; letter-spacing: -.045em; margin: 0; }
+.dd-auth-explainer { color: #7890aa; font-size: 13px; line-height: 1.7; margin: 11px 0 22px; word-break: keep-all; }
+.dd-auth-back { display: inline-block; margin-bottom: 24px; text-decoration: none; color: #4789c7; font-size: 12px; font-weight: 700; }
+.dd-auth-form { display: flex; flex-direction: column; gap: 9px; }
+.dd-auth-form label { font-size: 12px; font-weight: 700; margin-top: 9px; }
+.dd-auth-form input { background: #fafcff; border: 1px solid #d7e5f1; color: #254866; padding: 13px 14px; border-radius: 12px; font-size: 14px; width: 100%; outline: none; }
+.dd-auth-form input:focus { border-color: #388cf0; box-shadow: 0 0 0 3px #388cf018; }
+.dd-auth-primary { display: flex; width: 100%; align-items: center; justify-content: center; min-height: 49px; border: none; border-radius: 13px; margin-top: 19px; background: #338cf0; color: white; font-size: 14px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.dd-auth-primary:disabled { opacity: .45; cursor: not-allowed; }
+.dd-auth-secondary { display: block; margin-top: 14px; color: #568aaf; text-align: center; text-decoration: none; font-size: 12px; }
+.dd-auth-switch { margin: 22px 0 0; color: #8499ab; font-size: 12px; text-align: center; }
+.dd-auth-switch a { color: #338cf0; font-weight: 800; }
+.dd-auth-error { background: #fff3f0; border-radius: 10px; padding: 11px; white-space: pre-line; color: #b24636; font-size: 12px; line-height: 1.6; }
+.dd-auth-note { font-size: 11px; color: #8298b0; line-height: 1.7; margin: 11px 0; }
+.dd-auth-retry { margin-left: 12px; border: none; background: #fff; color: #338cf0; cursor: pointer; }
+.dd-terms-all { padding: 18px 14px; border-radius: 14px; background: #eff7ff; }
+.dd-terms-all label, .dd-terms-row label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; }
+.dd-terms-all input, .dd-terms-row input { accent-color: #348df0; width: 17px; height: 17px; flex-shrink: 0; }
+.dd-terms-list { border-top: 1px solid #e9f0f6; margin-top: 12px; }
+.dd-terms-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 15px 2px; border-bottom: 1px solid #e9f0f6; }
+.dd-terms-row span { line-height: 1.5; }
+.dd-terms-row small { font-size: 11px; font-weight: 800; }
+.dd-terms-required { color: #338cf0; }
+.dd-terms-optional { color: #8095a8; }
+.dd-terms-detail { flex-shrink: 0; border: none; padding: 6px 7px; background: transparent; color: #4186cc; text-decoration: underline; font-size: 11px; cursor: pointer; }
+.dd-terms-overlay { position: fixed; inset: 0; z-index: 100; background: #0a294c80; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.dd-terms-modal { background: white; width: 100%; max-width: 470px; max-height: 84dvh; padding: 23px; border-radius: 20px; display: flex; flex-direction: column; }
+.dd-terms-modal-heading { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.dd-terms-modal-heading h2 { font-size: 17px; font-weight: 800; }
+.dd-terms-modal-heading button { border: none; background: #f2f6fb; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; }
+.dd-terms-modal-content { white-space: pre-wrap; overflow-y: auto; overflow-wrap: anywhere; margin-top: 16px; font-size: 12px; color: #3a5068; line-height: 1.8; }
+.dd-auth-verification-symbol { display: grid; place-items: center; margin: 24px auto 8px; width: 82px; height: 82px; background: #e3f3ff; border-radius: 50%; color: #338cf0; font-size: 40px; font-weight: 800; }
+.dd-auth-loading, .dd-auth-error-page { display: grid; place-content: center; min-height: 100dvh; gap: 15px; color: #377bac; text-align: center; padding: 24px; }
+.dd-auth-error-page button { background: #338cf0; color: #fff; border: 0; border-radius: 10px; padding: 11px 20px; cursor: pointer; }
+@media (max-width: 360px) { .dd-auth-card { padding: 25px 18px; } }

@@ -1,24 +1,51 @@
 
 import { useLocation, useNavigate } from 'react-router'
-import { SettingsModalDemo } from '../settings/SettingsModal'
+import { useEffect, useRef, useState } from 'react'
+import SettingsOverlay from '../settings/SettingsOverlay'
 
 import backIcon from '../../assets/icons/back.svg'
+import gearIcon from '../../assets/icons/gear.svg'
 
 const PAGE_TITLES: Record<string, string> = {
   '/my-drains': '또랑이',
   '/map': '지도',
   '/social': '소셜',
+  '/social/leaderboard': '리더보드',
   '/notifications': '알림',
   '/profile': '프로필',
   '/settings': '설정',
+  '/shop': '꾸미기 상점',
 }
 
 export default function Header() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsOpening, setSettingsOpening] = useState(false)
+  const settingsTimerRef = useRef<number | null>(null)
+
+  // Allow the gear to visibly turn before the bottom sheet appears.
+  useEffect(() => () => {
+    if (settingsTimerRef.current !== null) window.clearTimeout(settingsTimerRef.current)
+  }, [])
+
+  function openSettings() {
+    if (settingsOpen || settingsTimerRef.current !== null) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSettingsOpen(true)
+      return
+    }
+
+    setSettingsOpening(true)
+    settingsTimerRef.current = window.setTimeout(() => {
+      settingsTimerRef.current = null
+      setSettingsOpening(false)
+      setSettingsOpen(true)
+    }, 320)
+  }
 
   // 설정 및 빗물받이 상세 페이지 확인
-  const isSettingsPage = pathname === '/settings'
+  const isSettingsPage = pathname === '/settings' || pathname === '/shop'
   const isDetailPage = /^\/drains\/[^/]+$/.test(pathname)
 
   // 페이지 제목
@@ -35,7 +62,7 @@ export default function Header() {
         {showBackButton && (
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => isSettingsPage ? navigate(pathname === '/shop' ? '/my-drains' : '/profile') : navigate(-1)}
             aria-label="뒤로 가기"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] active:bg-[#EAF2FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
           >
@@ -61,7 +88,25 @@ export default function Header() {
         </h1>
       </div>
 
-      {!showBackButton && <SettingsModalDemo />}
+      {!showBackButton && (
+        <button
+          type="button"
+          onClick={openSettings}
+          data-gear-opening={settingsOpening ? "true" : undefined}
+          aria-label="설정 열기"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
+        >
+          <span
+            aria-hidden="true"
+            className="block h-[22px] w-[22px] bg-current"
+            style={{
+              mask: `url("${gearIcon}") center / contain no-repeat`,
+              WebkitMask: `url("${gearIcon}") center / contain no-repeat`,
+            }}
+          />
+        </button>
+      )}
+      {settingsOpen && <SettingsOverlay onClose={() => setSettingsOpen(false)} />}
     </header>
   )
 }

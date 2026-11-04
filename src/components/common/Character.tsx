@@ -42,7 +42,7 @@ export default function Character({
       alt={alt ?? defaultAlt}
       width={size}
       height={size}
-      className={`object-contain ${className}`}
+      className={`object-contain dd-character-live ${className}`}
       draggable={false}
     />
   )

@@ -1,0 +1,1249 @@
+/* 또랑 공통 테마: 기능 개발과 별도로 조정할 수 있도록 덮어쓰기 스타일을 분리했습니다. */
+:root {
+  --dd-surface: #ffffff;
+  --dd-canvas: #f4f7fb;
+  --dd-subtle: #edf3f9;
+  --dd-ink: #203451;
+  --dd-muted: #647e99;
+  --dd-line: #dde6ef;
+  --dd-blue: #256dc0;
+}
+
+html[data-dd-theme='dark'] {
+  color-scheme: dark;
+  --dd-canvas: #080f19;
+  --dd-surface: #111c2b;
+  --dd-subtle: #1a293c;
+  --dd-ink: #f0f5fc;
+  --dd-muted: #b1c2d5;
+  --dd-line: #31435a;
+  --dd-blue: #88bbff;
+  background: var(--dd-canvas);
+}
+
+html[data-dd-theme='dark'] body,
+html[data-dd-theme='dark'] #root { background: var(--dd-canvas) !important; color: var(--dd-ink); }
+
+/* 앱 전반의 라이트 전용 Tailwind 표면을 다크 컬러로 재매핑합니다. */
+html[data-dd-theme='dark'] :where([class*='bg-white'], [class*='bg-[#F4F7FC]'], [class*='bg-[#F5FAFF]'], [class*='bg-[#F7FAFE]']) {
+  background-color: var(--dd-surface) !important;
+}
+html[data-dd-theme='dark'] :where([class*='bg-[#EAF'], [class*='bg-[#EFF'], [class*='bg-[#F2F'], [class*='bg-[#F0F'], [class*='bg-[#E8F'], [class*='bg-[#DDF'], [class*='bg-[#F1F']) {
+  background-color: var(--dd-subtle) !important;
+}
+html[data-dd-theme='dark'] :where([class*='text-[#203451]'], [class*='text-[#24496B]'], [class*='text-[#385A73]'], [class*='text-[#23476a]'], [class*='text-[#254866]'], [class*='text-[#3a5068]']) {
+  color: var(--dd-ink) !important;
+}
+html[data-dd-theme='dark'] :where([class*='text-[#78899F]'], [class*='text-[#8299B0]'], [class*='text-[#71889B]'], [class*='text-[#7C94AD]'], [class*='text-[#8399AD]'], [class*='text-[#94A8BB]'], [class*='text-[#6C8CA8]'], [class*='text-[#8B9BAD]']) {
+  color: var(--dd-muted) !important;
+}
+html[data-dd-theme='dark'] :where([class*='border-[#E'], [class*='border-[#D']) { border-color: var(--dd-line) !important; }
+html[data-dd-theme='dark'] :where(input, select, textarea) {
+  background-color: #101c2b;
+  color: var(--dd-ink);
+  border-color: #42556c;
+}
+html[data-dd-theme='dark'] :where(input, select, textarea)::placeholder { color: #8ea4bb; }
+html[data-dd-theme='dark'] :where(button, a):focus-visible { outline: 2px solid #7ab4ff; outline-offset: 3px; }
+
+/* 설정 화면은 라이트/다크 모두 별도 표면·텍스트 체계를 사용합니다. */
+.dd-settings-page { background: var(--dd-canvas); color: var(--dd-ink); }
+.dd-settings-page--embedded { min-height: 0; padding: 12px 18px 22px; background: transparent; }
+.dd-settings-card { background: var(--dd-surface); border: 1px solid var(--dd-line); box-shadow: 0 3px 12px rgb(15 40 65 / 3%); }
+.dd-settings-option { background: var(--dd-surface); border-color: var(--dd-line); color: var(--dd-ink); }
+.dd-settings-option[aria-checked='true'] { background: #e9f2ff; border-color: #5794e9; }
+.dd-settings-page :where(input, select, textarea) { color: var(--dd-ink); }
+html[data-dd-theme='dark'] .dd-settings-page,
+html[data-dd-theme='dark'] .dd-settings-card { background: var(--dd-surface) !important; color: var(--dd-ink) !important; }
+html[data-dd-theme='dark'] .dd-settings-page--embedded { background: transparent !important; }
+html[data-dd-theme='dark'] .dd-settings-option { background: #111c2b !important; color: #f0f5fc !important; border-color: #34475f !important; }
+html[data-dd-theme='dark'] .dd-settings-option[aria-checked='true'] { background: #1b3858 !important; border-color: #80b4fb !important; }
+html[data-dd-theme='dark'] .dd-settings-option [class*='text-[#8299B0]'] { color: #b4c7d9 !important; }
+html[data-dd-theme='dark'] .dd-settings-page [class*='text-[#338CF0]'] { color: #91c3ff !important; }
+
+/* 설정 진입 버튼을 누르면 기존 SettingsPage의 기능을 그대로 모달에서 사용합니다. */
+.dd-settings-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; justify-content: center; align-items: center;
+  padding: 18px;
+  background: rgb(6 18 32 / 65%);
+  backdrop-filter: blur(5px);
+}
+.dd-settings-modal {
+  width: min(100%, 480px); max-height: min(92dvh, 880px);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--dd-surface); color: var(--dd-ink);
+  border: 1px solid var(--dd-line); border-radius: 24px;
+  box-shadow: 0 22px 80px rgb(0 8 20 / 28%);
+}
+.dd-settings-modal__heading {
+  padding: 20px 22px 16px; display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--dd-line);
+}
+.dd-settings-modal__heading h2 { font-size: 19px; line-height: 1.3; font-weight: 800; }
+.dd-settings-modal__eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .1em; color: var(--dd-blue); margin-bottom: 3px; }
+.dd-settings-modal__close {
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px;
+  background: var(--dd-subtle); color: var(--dd-ink); font-size: 15px;
+}
+.dd-settings-modal__scroll { overflow-y: auto; overscroll-behavior: contain; flex: 1; min-height: 0; }
+html[data-dd-theme='dark'] .dd-settings-modal { background: #111c2b; color: #f0f5fc; }
+html[data-dd-theme='dark'] .dd-settings-modal__close { background: #1c2b40; color: #f0f5fc; }
+
+/* 인증/온보딩은 가독성을 우선해 카드와 텍스트를 명확하게 구분합니다. */
+html[data-dd-theme='dark'] .dd-auth-page { background: linear-gradient(160deg, #080f19 0%, #122033 80%) !important; color: #f0f5fc; }
+html[data-dd-theme='dark'] .dd-auth-card { background: #111c2b; border-color: #34465e; box-shadow: 0 15px 50px rgb(0 0 0 / 23%); }
+html[data-dd-theme='dark'] .dd-auth-card h1 { color: #f3f7ff; }
+html[data-dd-theme='dark'] .dd-auth-explainer,
+html[data-dd-theme='dark'] .dd-auth-switch,
+html[data-dd-theme='dark'] .dd-auth-note { color: #b9c9dc; }
+html[data-dd-theme='dark'] .dd-terms-all,
+html[data-dd-theme='dark'] .dd-auth-demo-banner { background: #1c2d44; border-color: #354b66; }
+html[data-dd-theme='dark'] .dd-auth-form input { background: #0d1826; color: #f0f5fc; border-color: #3a4f6a; }
+html[data-dd-theme='dark'] .dd-terms-modal { background: #111c2b; color: #f0f5fc; }
+html[data-dd-theme='dark'] .dd-terms-modal-content { color: #c7d5e5; }
+html[data-dd-theme='dark'] .dd-login { background: linear-gradient(160deg, #0d1928, #152a40, #0b1725); color: #f0f5fc; }
+html[data-dd-theme='dark'] .dd-login-viewport { background: #080f19; }
+html[data-dd-theme='dark'] .dd-login h1 { color: #f0f5fc; }
+
+@media (prefers-reduced-motion: reduce) { .dd-settings-modal { scroll-behavior: auto; } }
+
+
+/* DDORANG_SOCIAL_DARK_V1_START */
+/*
+ * 또랑 소셜 화면의 다크 모드 표현만 보정합니다.
+ * 기존 소셜 TSX / 상태 / API / 이벤트는 변경하지 않습니다.
+ * :has()는 Chrome, Safari 등의 현대 브라우저에서 지원합니다.
+ */
+
+/* 01. 진한 네이비 배경과 섬세한 표면 대비 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) {
+  --social-dark-canvas: #0b1421;
+  --social-dark-surface: #152235;
+  --social-dark-surface-raised: #1a2a40;
+  --social-dark-outline: #304057;
+  --social-dark-title: #f3f7ff;
+  --social-dark-body: #b5c5da;
+  --social-dark-accent: #96c3ff;
+  --social-dark-mint: #82dfbb;
+  background: var(--social-dark-canvas) !important;
+  color: var(--social-dark-title);
+}
+
+/* 02. 원래의 연한 민트 배너를 밤색 청록빛 그라데이션으로 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type {
+  background: radial-gradient(circle at 86% 16%, rgb(100 203 183 / 12%), transparent 42%),
+    linear-gradient(130deg, #19374b 0%, #163040 52%, #142a34 100%) !important;
+  border: 1px solid #305467;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 8px 24px rgb(3 9 19 / 12%);
+}
+
+/* 공통 테마가 흰 반투명 장식을 불투명한 검정 원으로 바꾸는 현상 제거 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type > div:last-child {
+  background-color: rgb(165 231 209 / 8%) !important;
+  border: 1px solid rgb(165 231 209 / 8%);
+  pointer-events: none;
+}
+
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type > div:first-child > p:first-child {
+  color: #94d5dc !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type h2 {
+  color: #f4fbff !important;
+  letter-spacing: -0.025em;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) > section:first-of-type > div:first-child > p:last-child {
+  color: #b9d1d7 !important;
+}
+
+/* 03. 상단 리그/친구/피드 탭 */
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] {
+  background: #172338 !important;
+  border: 1px solid #2b3d55;
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%);
+}
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button {
+  color: #a8bad1 !important;
+  border: 1px solid transparent;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button[aria-selected='true'] {
+  color: #b7d5ff !important;
+  background: #263b56 !important;
+  border-color: #385676;
+  box-shadow: 0 2px 8px rgb(0 8 23 / 16%), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button[aria-selected='false']:hover {
+  color: #e1ecfa !important;
+  background: #1d3049 !important;
+}
+
+/* 04. 소셜 탭 카드, 순위 리스트, 친구 카드와 피드 카드의 일관된 표면 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(section, article, ol)[class*='border'] {
+  background-color: var(--social-dark-surface) !important;
+  border-color: var(--social-dark-outline) !important;
+  box-shadow: 0 5px 18px rgb(0 5 16 / 8%);
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] ol > li {
+  background-color: var(--social-dark-surface) !important;
+  border-color: #27384e !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] ol > li[class*='bg-[#EAF'] {
+  background-color: #203754 !important;
+}
+
+/* 제목/설명/버튼: 흰색을 과도하게 쓰지 않고 충분한 대비 확보 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(h2, h3, strong, p, span)[class*='text-[#203451]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(h2, h3, strong, p, span)[class*='text-[#385A73]'] {
+  color: var(--social-dark-title) !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(p, span)[class*='text-[#78899F]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(p, span)[class*='text-[#71889B]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(p, span)[class*='text-[#9AA9B6]'] {
+  color: var(--social-dark-body) !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] [class*='text-[#3981F7]'] {
+  color: var(--social-dark-accent) !important;
+}
+
+/* 05. 리그 6종: 칠흑 카드 위에 차분한 색상 구분 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] section > .grid.grid-cols-3 > div {
+  background-color: #1d2a3d !important;
+  border-color: #344459 !important;
+  color: #b9c7d9 !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] section > .grid.grid-cols-3 > div:first-child {
+  background: #19392f !important;
+  border-color: #437d66 !important;
+  color: #9ce4bd !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] section > div:first-child > div:first-child[class*='bg-[#E5F6EA]'] {
+  background-color: #214235 !important;
+}
+
+/* 06. 소셜의 연한 파란 CTA / 친구 상태 / 피드 태그 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#EAF4FF]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#EAF2FF]'] {
+  background: #213751 !important;
+  color: #a7ccff !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#EAF7EF]'],
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(button, span, div)[class*='bg-[#E5F6EA]'] {
+  background: #1d4035 !important;
+  color: #95e0b9 !important;
+}
+
+/* 07. 다크 화면의 흰 배경으로 남아 있던 빈 상태·대화창 */
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] :is(div, section)[class*='bg-white'] {
+  background-color: var(--social-dark-surface) !important;
+  border-color: var(--social-dark-outline) !important;
+}
+html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴']) [role='tabpanel'] [role='dialog'] {
+  background: #172538 !important;
+  border: 1px solid #39516a;
+  color: var(--social-dark-title);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-dd-theme='dark'] [role='tablist'][aria-label='소셜 메뉴'] > button {
+    transition: none;
+  }
+}
+/* DDORANG_SOCIAL_DARK_V1_END */
+
+/* DDORANG-ISSUE-32-SETTINGS-UI-START */
+/*
+ * DDORANG / Issue #32 / Settings UI-only styling
+ * Applies only to the existing SettingsOverlay/SettingsPage surfaces.
+ * No React components, callback signatures, backend/API calls or other tabs are changed.
+ * The teammate-owned SettingsModal.tsx is intentionally untouched.
+ */
+
+.dd-settings-backdrop {
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 14px 0;
+  background: rgb(8 20 35 / 55%);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.dd-settings-modal {
+  --setting-sheet: #fff;
+  --setting-surface: #f6f9fc;
+  --setting-ink: #20364e;
+  --setting-muted: #74869a;
+  --setting-line: #e5edf4;
+  --setting-accent: #257acb;
+  --setting-selected: #edf5fd;
+  width: min(100%, 460px);
+  max-height: min(88dvh, 860px);
+  border-radius: 28px 28px 0 0;
+  border: 1px solid var(--setting-line);
+  border-bottom: none;
+  background: var(--setting-sheet);
+  color: var(--setting-ink);
+  box-shadow: 0 -20px 72px rgb(11 25 44 / 18%);
+  animation: dd-setting-sheet-rise 320ms cubic-bezier(.22,.86,.32,1) both;
+}
+
+.dd-settings-modal__heading {
+  position: relative;
+  flex-shrink: 0;
+  padding: 30px 22px 17px;
+  border-bottom: 1px solid var(--setting-line);
+  background: var(--setting-sheet);
+}
+
+.dd-settings-modal__heading::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 5px;
+  border-radius: 99px;
+  background: #c8d3df;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dd-settings-modal__heading h2 {
+  font-size: 21px;
+  letter-spacing: -0.7px;
+  line-height: 1.3;
+  color: var(--setting-ink);
+}
+
+.dd-settings-modal__eyebrow {
+  color: var(--setting-accent);
+  letter-spacing: .14em;
+}
+
+.dd-settings-modal__close {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: var(--setting-surface);
+  color: var(--setting-muted);
+}
+
+.dd-settings-modal__scroll {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  scrollbar-width: thin;
+  scrollbar-color: #cbd7e3 transparent;
+}
+
+.dd-settings-modal .dd-settings-page--embedded {
+  padding: 21px 19px 28px;
+  background: transparent !important;
+  color: var(--setting-ink) !important;
+}
+
+.dd-settings-modal .dd-settings-page--embedded > .px-1:first-child {
+  display: none; /* Parent overlay already has the Settings heading. */
+}
+
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-sheet);
+  border: 1px solid var(--setting-line);
+  border-radius: 21px;
+  padding: 19px;
+  color: var(--setting-ink);
+  box-shadow: 0 5px 19px rgb(17 40 64 / 4%);
+}
+
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card > h3 {
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 750;
+  letter-spacing: -.35px;
+  color: var(--setting-ink);
+}
+
+.dd-settings-modal .dd-settings-page--embedded :is(p, small)[class*='text-[#8299B0]'] {
+  color: var(--setting-muted);
+}
+
+.dd-settings-modal .dd-settings-option {
+  min-height: 64px;
+  border: 1px solid var(--setting-line);
+  border-radius: 16px;
+  background: var(--setting-sheet);
+  color: var(--setting-ink);
+  box-shadow: 0 1px 2px rgb(18 39 58 / 2%);
+}
+
+.dd-settings-modal .dd-settings-option[aria-checked='true'] {
+  background: var(--setting-selected);
+  border-color: #69a1e0;
+  box-shadow: 0 0 0 2px rgb(58 135 208 / 8%);
+}
+
+.dd-settings-modal .dd-settings-option > span:first-child {
+  background: var(--setting-surface);
+  color: var(--setting-accent);
+}
+
+.dd-settings-modal :is(input, textarea, select) {
+  color: var(--setting-ink);
+  background: var(--setting-surface);
+  border-color: var(--setting-line);
+}
+
+.dd-settings-modal :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid #77adeb;
+  outline-offset: 3px;
+}
+
+/* Keep the confirmation and report dialogs above the Settings overlay. */
+.dd-settings-modal .dd-account-confirm {
+  border: 1px solid var(--setting-line);
+  box-shadow: 0 20px 65px rgb(8 19 34 / 28%);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal {
+  --setting-sheet: #121d2b;
+  --setting-surface: #1c2b3c;
+  --setting-ink: #f0f5fb;
+  --setting-muted: #afc0d2;
+  --setting-line: #2d4053;
+  --setting-accent: #92c3ff;
+  --setting-selected: #1b3753;
+  border-color: var(--setting-line);
+  background: var(--setting-sheet) !important;
+  color: var(--setting-ink) !important;
+  box-shadow: 0 -24px 80px rgb(0 0 0 / 44%);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal__heading {
+  background: var(--setting-sheet);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal__heading::before {
+  background: #53677c;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal__close {
+  background: var(--setting-surface);
+  color: var(--setting-ink);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-sheet) !important;
+  color: var(--setting-ink) !important;
+  border-color: var(--setting-line) !important;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 7%);
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-option {
+  background: var(--setting-sheet) !important;
+  color: var(--setting-ink) !important;
+  border-color: var(--setting-line) !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-option[aria-checked='true'] {
+  background: var(--setting-selected) !important;
+  border-color: #7db5ec !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-option > span:first-child {
+  background: var(--setting-surface) !important;
+  color: var(--setting-accent) !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal .dd-settings-page--embedded :is(p, small)[class*='text-[#8299B0]'] {
+  color: var(--setting-muted) !important;
+}
+
+html[data-dd-theme='dark'] .dd-settings-modal :is(input, select, textarea) {
+  color: var(--setting-ink) !important;
+  background: var(--setting-surface) !important;
+  border-color: #3c5064 !important;
+}
+
+@keyframes dd-setting-sheet-rise {
+  from { transform: translateY(9px); opacity: .96; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (min-width: 720px) {
+  .dd-settings-backdrop { align-items: center; padding: 20px; }
+  .dd-settings-modal { max-height: min(86dvh, 820px); border-radius: 28px; border-bottom: 1px solid var(--setting-line); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-modal { animation: none; }
+}
+/* DDORANG-ISSUE-32-SETTINGS-UI-END */
+
+/* DDORANG-ISSUE-32-SETTINGS-MOTION-START */
+/* DDORANG / #32 / UI interaction polish. Styles only; no event handlers or API changes. */
+
+/* The existing header gear is an SVG mask inside a span, not an image to replace. */
+header button[aria-label="설정 열기"] > span[aria-hidden="true"] {
+  transform-origin: 50% 50%;
+  transition: transform 360ms cubic-bezier(.2,.8,.2,1), opacity 220ms ease;
+  will-change: transform;
+}
+header button[aria-label="설정 열기"]:focus-visible > span[aria-hidden="true"] {
+  transform: rotate(23deg);
+}
+@media (hover: hover) {
+  header button[aria-label="설정 열기"]:hover > span[aria-hidden="true"] {
+    transform: rotate(27deg);
+  }
+}
+/* The gear turns only once BEFORE the sheet opens. No portal-triggered second spin. */
+
+/* Respect the teammate's bottom-sheet language without changing SettingsModal.tsx. */
+.dd-settings-modal {
+  --setting-sheet: #f5f7fa;
+  --setting-card: #fff;
+  --setting-tap: #eef3f9;
+  --setting-tap-strong: #e1eaf5;
+  --setting-blue-base: #edf5ff;
+  --setting-blue-hover: #daeafe;
+  --setting-blue-active: #c5dfff;
+  --setting-red-base: #fff0f1;
+  --setting-red-hover: #ffe0e4;
+  --setting-red-active: #ffcbd3;
+  --setting-ink: #1b3047;
+  --setting-muted: #677b91;
+  --setting-line: #e5eaf0;
+  --setting-selected: #e8f2ff;
+  background: var(--setting-sheet) !important;
+}
+.dd-settings-modal__heading {
+  background: var(--setting-sheet) !important;
+  border-bottom-color: var(--setting-line);
+}
+.dd-settings-modal__heading h2 {
+  font-weight: 760;
+  letter-spacing: -.055em;
+}
+.dd-settings-modal__scroll { scrollbar-width: thin; }
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-card) !important;
+  border: 1px solid var(--setting-line) !important;
+  border-radius: 19px;
+  box-shadow: 0 2px 14px rgb(35 59 82 / 3%);
+}
+.dd-settings-modal .dd-settings-page--embedded :is(button, a) {
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 180ms ease, border-color 180ms ease,
+    color 180ms ease, box-shadow 180ms ease, transform 160ms ease;
+}
+.dd-settings-modal .dd-settings-page--embedded :is(button, a):not(:disabled):active {
+  transform: scale(.985);
+}
+.dd-settings-modal__close {
+  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+.dd-settings-modal__close:hover { background: var(--setting-tap-strong) !important; color: var(--setting-ink); }
+.dd-settings-modal__close:active { transform: scale(.92); }
+
+/* iOS-like selectable setting cells: soft base, stronger tint on hover/press. */
+.dd-settings-modal .dd-settings-option:not(:disabled) {
+  background: var(--setting-card) !important;
+  border-color: var(--setting-line) !important;
+  border-radius: 15px;
+}
+.dd-settings-modal .dd-settings-option[aria-checked="true"] {
+  background: var(--setting-selected) !important;
+  border-color: #8bb9ec !important;
+}
+@media (hover: hover) {
+  .dd-settings-modal .dd-settings-option:not(:disabled):hover {
+    background: var(--setting-tap) !important;
+    border-color: #bbcee2 !important;
+    box-shadow: 0 2px 9px rgb(34 76 122 / 5%);
+  }
+  .dd-settings-modal .dd-settings-option[aria-checked="true"]:not(:disabled):hover {
+    background: var(--setting-blue-hover) !important;
+    border-color: #6ca8e9 !important;
+  }
+}
+.dd-settings-modal .dd-settings-option:not(:disabled):active,
+.dd-settings-modal .dd-settings-option[aria-checked="true"]:not(:disabled):active {
+  background: var(--setting-tap-strong) !important;
+}
+
+/* The account actions are the two buttons in the second section's two-column grid. */
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child {
+  background: var(--setting-blue-base) !important;
+  color: #2766ac !important;
+  border: 1px solid transparent;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child {
+  background: var(--setting-red-base) !important;
+  color: #a33e52 !important;
+  border: 1px solid #f1d2d9 !important;
+}
+@media (hover: hover) {
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child:not(:disabled):hover {
+    background: var(--setting-blue-hover) !important;
+  }
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child:not(:disabled):hover {
+    background: var(--setting-red-hover) !important;
+    border-color: #e5aebc !important;
+  }
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(3) > button:hover,
+  .dd-settings-modal .dd-settings-page--embedded a[href="/profile"]:hover {
+    background: var(--setting-tap) !important;
+  }
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child:not(:disabled):active {
+  background: var(--setting-blue-active) !important;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child:not(:disabled):active {
+  background: var(--setting-red-active) !important;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(3) > button,
+.dd-settings-modal .dd-settings-page--embedded a[href="/profile"] {
+  border-radius: 12px;
+  padding-inline: 10px;
+}
+.dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(3) > button:active,
+.dd-settings-modal .dd-settings-page--embedded a[href="/profile"]:active {
+  background: var(--setting-tap-strong) !important;
+}
+.dd-settings-modal .dd-settings-page--embedded :is(button, a):focus-visible {
+  outline: 2px solid #5b9de5;
+  outline-offset: 3px;
+}
+
+/* Dark has a distinctly darker sheet while keeping every label legible. */
+html[data-dd-theme="dark"] .dd-settings-modal {
+  --setting-sheet: #111b28;
+  --setting-card: #1b2a3b;
+  --setting-tap: #25374a;
+  --setting-tap-strong: #30465d;
+  --setting-blue-base: #1e3852;
+  --setting-blue-hover: #294c6d;
+  --setting-blue-active: #345f84;
+  --setting-red-base: #392630;
+  --setting-red-hover: #512e3b;
+  --setting-red-active: #633747;
+  --setting-ink: #f2f6fb;
+  --setting-muted: #afc0d3;
+  --setting-line: #2c3e52;
+  --setting-selected: #24425e;
+  background: var(--setting-sheet) !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card {
+  background: var(--setting-card) !important;
+  border-color: var(--setting-line) !important;
+  box-shadow: 0 3px 15px rgb(0 0 0 / 7%);
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option:not(:disabled) {
+  background: var(--setting-card) !important;
+  border-color: var(--setting-line) !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option[aria-checked="true"] {
+  background: var(--setting-selected) !important;
+  border-color: #5d91c2 !important;
+}
+@media (hover: hover) {
+  html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option:not(:disabled):hover {
+    background: var(--setting-tap) !important;
+    border-color: #46617b !important;
+  }
+  html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option[aria-checked="true"]:not(:disabled):hover {
+    background: #2c5072 !important;
+    border-color: #76a8dc !important;
+  }
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-option:not(:disabled):active {
+  background: var(--setting-tap-strong) !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:first-child {
+  color: #bfdfff !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card:nth-of-type(2) .grid.grid-cols-2 > button:last-child {
+  color: #ffc4ce !important;
+  border-color: #734454 !important;
+}
+html[data-dd-theme="dark"] .dd-settings-modal .dd-settings-modal__close:hover {
+  color: #f2f6fb;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header button[aria-label="설정 열기"] > span[aria-hidden="true"],
+  body:has(.dd-settings-backdrop) header button[aria-label="설정 열기"] > span[aria-hidden="true"],
+  .dd-settings-modal .dd-settings-page--embedded :is(button, a),
+  .dd-settings-modal__close { animation: none !important; transition: none !important; }
+}
+/* DDORANG-ISSUE-32-SETTINGS-MOTION-END */
+
+/* DDORANG-ISSUE-32-GEAR-FIX-START */
+/* DDORANG #32: Dark-mode settings gear visibility fix.
+   Keep the existing header button, SVG mask and rotation animation intact. */
+html[data-dd-theme='dark'] header button[aria-label='설정 열기'] {
+  background: transparent !important;
+  color: #d9e8f8 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) {
+  html[data-dd-theme='dark'] header button[aria-label='설정 열기']:hover {
+    background: rgb(217 232 248 / 10%) !important;
+  }
+}
+
+html[data-dd-theme='dark'] header button[aria-label='설정 열기']:focus-visible {
+  background: rgb(217 232 248 / 10%) !important;
+}
+
+html[data-dd-theme='dark'] header button[aria-label='설정 열기']:active {
+  background: rgb(217 232 248 / 16%) !important;
+}
+
+/* Restore the exact SVG silhouette even when a global dark-theme rule
+   overrides the icon background or mask. The source path is relative to
+   src/theme-refined.css and Vite will bundle it normally. */
+html[data-dd-theme='dark'] header button[aria-label='설정 열기'] > span[aria-hidden='true'] {
+  background: currentColor !important;
+  -webkit-mask: url('./assets/icons/gear.svg') center / contain no-repeat !important;
+  mask: url('./assets/icons/gear.svg') center / contain no-repeat !important;
+  opacity: 1 !important;
+}
+/* DDORANG-ISSUE-32-GEAR-FIX-END */
+
+/* DDORANG / Mobile settings sheet — scoped to user-owned SettingsOverlay / SettingsPage. */
+/* Styling is UI-only; no changes to the teammate-owned SettingsModal or backend APIs. */
+
+.dd-settings-modal__grab {
+  display: flex;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.dd-settings-modal__grab:active { cursor: grabbing; }
+.dd-settings-modal__grab:focus-visible {
+  outline: 2px solid var(--setting-accent, #397ff5);
+  outline-offset: -3px;
+}
+.dd-settings-modal__grab-indicator {
+  display: block;
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: #c8d2df;
+}
+.dd-settings-modal__heading::before { content: none !important; }
+.dd-settings-modal__heading h2:focus { outline: none; }
+
+/* Feature cards are divs so existing nth-of-type selectors for account buttons remain stable. */
+.dd-settings-feature-card {
+  border: 1px solid var(--setting-line, #e5eaf0);
+  border-radius: 19px;
+  background: var(--setting-card, #fff);
+  color: var(--setting-ink, #1b3047);
+  box-shadow: 0 2px 14px rgb(35 59 82 / 3%);
+}
+.dd-settings-feature-card > h3 {
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -.3px;
+}
+.dd-settings-feature-row,
+.dd-settings-pause-row {
+  display: flex;
+  width: 100%;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.dd-settings-feature-text { min-width: 0; }
+.dd-settings-feature-name { margin: 0; font-size: 14px; font-weight: 700; }
+.dd-settings-feature-desc {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--setting-muted, #6c8197);
+}
+.dd-settings-feature-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--setting-muted, #6c8197);
+}
+.dd-settings-feature-switch {
+  display: flex;
+  flex: 0 0 auto;
+  width: 51px;
+  height: 31px;
+  align-items: center;
+  padding: 3px;
+  border: 0;
+  border-radius: 99px;
+  background: #cfd7e3;
+  transition: background-color 160ms ease;
+  cursor: pointer;
+}
+.dd-settings-feature-switch[aria-checked="true"] { background: #3981f7; }
+.dd-settings-feature-switch > span {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(10 20 36 / 14%);
+  transform: translateX(0);
+  transition: transform 160ms ease;
+}
+.dd-settings-feature-switch[aria-checked="true"] > span { transform: translateX(20px); }
+.dd-settings-pause-row {
+  padding: 0 2px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+.dd-settings-pause-arrow { font-size: 21px; color: var(--setting-muted, #6c8197); }
+.dd-settings-pause-row:hover { background: var(--setting-tap, #eef3f9); }
+.dd-settings-pause-row:active { background: var(--setting-tap-strong, #e1eaf5); }
+.dd-settings-pause-preview {
+  margin-top: 3px;
+  padding: 13px;
+  border-radius: 12px;
+  background: var(--setting-tap, #eef3f9);
+}
+.dd-settings-pause-preview > p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--setting-muted, #6c8197);
+}
+.dd-settings-pause-preview > button {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--setting-blue-base, #edf5ff);
+  color: var(--setting-accent, #257acb);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dd-settings-pause-preview > button:hover { background: var(--setting-blue-hover, #daeafe); }
+.dd-settings-feature-switch:focus-visible,
+.dd-settings-pause-row:focus-visible,
+.dd-settings-pause-preview > button:focus-visible {
+  outline: 2px solid var(--setting-accent, #257acb);
+  outline-offset: 3px;
+}
+
+/* Mobile-first: edge-to-edge bottom sheet and 16px horizontal content insets. */
+@media (max-width: 719px) {
+  .dd-settings-backdrop {
+    display: flex;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+  .dd-settings-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100% !important;
+    max-width: none !important;
+    height: min(93dvh, 880px);
+    max-height: 98dvh !important;
+    overflow: hidden;
+    border-radius: 27px 27px 0 0 !important;
+    border-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .dd-settings-modal__heading {
+    flex-shrink: 0;
+    padding: 5px 20px 14px !important;
+  }
+  .dd-settings-modal__heading h2 { font-size: 21px; }
+  .dd-settings-modal__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .dd-settings-modal__scroll::-webkit-scrollbar { display: none; }
+  .dd-settings-modal .dd-settings-page--embedded {
+    padding: 16px 16px 26px !important;
+  }
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card,
+  .dd-settings-modal .dd-settings-page--embedded > .dd-settings-feature-card {
+    padding: 18px !important;
+    border-radius: 19px !important;
+  }
+}
+
+html[data-dd-theme='dark'] .dd-settings-feature-card {
+  border-color: var(--setting-line, #2c3e52);
+  background: var(--setting-card, #1b2a3b) !important;
+  color: var(--setting-ink, #f2f6fb);
+}
+html[data-dd-theme='dark'] .dd-settings-modal__grab-indicator { background: #5f7086; }
+html[data-dd-theme='dark'] .dd-settings-feature-switch { background: #506277; }
+html[data-dd-theme='dark'] .dd-settings-feature-switch[aria-checked='true'] { background: #478fe6; }
+html[data-dd-theme='dark'] .dd-settings-pause-preview > button { color: #b7d8ff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-modal__grab,
+  .dd-settings-feature-switch,
+  .dd-settings-feature-switch > span,
+  .dd-settings-pause-row,
+  .dd-settings-pause-preview > button {
+    transition: none !important;
+  }
+}
+
+/* DDORANG / Mobile touch feedback v1
+   Mobile Chrome device toolbar + real touch devices. CSS only.
+   Shared visual feedback: no changes to teammate-owned components or app logic.
+   Deliberately avoids overriding existing transform/animation/selected states. */
+
+@media (hover: none), (pointer: coarse) {
+  /* Native touch highlight plus a small, immediate pressed reaction.
+     The individual `scale` property composes with existing `transform`
+     animations, so character, icon and card motions keep working. */
+  :where(
+    button:not(:disabled):not([aria-disabled='true']),
+    a[href]:not([aria-disabled='true']),
+    summary,
+    [role='button']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true'])
+  ) {
+    -webkit-tap-highlight-color: rgba(55, 128, 239, .16);
+  }
+
+  :where(
+    button:not(:disabled):not([aria-disabled='true']),
+    a[href]:not([aria-disabled='true']),
+    summary,
+    [role='button']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true'])
+  ):active {
+    scale: .975;
+    filter: brightness(.955);
+  }
+
+  /* Small controls shouldn't shrink as far as large cards. */
+  :where(
+    button[aria-label='설정 열기'],
+    button[aria-label*='뒤로'],
+    button[aria-label*='닫기'],
+    .dd-settings-feature-switch,
+    [role='switch']
+  ):not(:disabled):active {
+    scale: .93;
+  }
+
+  /* Show a visible gear nudge on touch-down. The existing
+     body:has(.dd-settings-backdrop) animation still runs on opening. */
+  header button[aria-label='설정 열기']:active > span[aria-hidden='true'] {
+    transform: rotate(43deg) scale(.94);
+  }
+
+  /* Keep the mobile bottom-sheet grabber visually responsive without
+     interfering with its pointer-capture based swipe-to-close. */
+  .dd-settings-modal__grab:active .dd-settings-modal__grab-indicator {
+    background-color: #8b9eb6;
+    width: 49px;
+  }
+  html[data-dd-theme='dark'] .dd-settings-modal__grab:active .dd-settings-modal__grab-indicator {
+    background-color: #94aac2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @media (hover: none), (pointer: coarse) {
+    :where(
+      button:not(:disabled), a[href], summary,
+      [role='button'], [role='tab'], [role='switch']
+    ):active { scale: 1; }
+    header button[aria-label='설정 열기']:active > span[aria-hidden='true'] {
+      transform: none;
+    }
+  }
+}
+
+/* DDORANG / Settings gear pre-open delay v2 */
+/* The settings overlay now mounts AFTER the pre-open 320ms icon turn.
+   Touch responses remain visual-only; links, APIs and other screens are unchanged. */
+header button[aria-label='설정 열기'][data-gear-opening='true'] > span[aria-hidden='true'] {
+  transform-origin: center;
+  /* Transition FROM the current hover/touch angle: no abrupt first frame. */
+  transform: rotate(160deg) !important;
+  transition: transform 320ms cubic-bezier(.22, .84, .32, 1) !important;
+  animation: none !important;
+}
+/* Prevent the OLD portal-dependent spin from firing again behind the sheet. */
+body:has(.dd-settings-backdrop) header button[aria-label='설정 열기'] > span[aria-hidden='true'] {
+  animation: none !important;
+}
+/* Short press + selected state: the existing v1 :active styles remain enabled.
+   Keyboard/mouse hover styles remain untouched. */
+@media (hover: none), (pointer: coarse) {
+  header button[aria-label='설정 열기'][data-gear-opening='true'] {
+    background: rgba(57, 129, 247, .11) !important;
+    border-radius: 12px;
+  }
+  html[data-dd-theme='dark'] header button[aria-label='설정 열기'][data-gear-opening='true'] {
+    background: rgba(217, 232, 248, .13) !important;
+  }
+  /* The setting options already have [aria-checked], but make their tapped
+     tint visible even on devices without hover support. */
+  .dd-settings-modal .dd-settings-option:not(:disabled):active,
+  .dd-settings-modal .dd-settings-pause-row:not(:disabled):active {
+    filter: brightness(.92);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  header button[aria-label='설정 열기'][data-gear-opening='true'] > span[aria-hidden='true'] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* DDORANG / Mobile content swipe + soft route transitions v3
+   Native touch scrolling is preferred; simulated mouse dragging is handled in
+   SettingsOverlay only. All page transitions are CSS-only, non-blocking.
+   Do not use global touch-action rules (map canvas must retain pinch/pan). */
+
+/* While the body is locked behind the dialog, give the sheet a real scroll pane.
+   Set touch-action on this scroll container only; never on the entire app/map. */
+.dd-settings-backdrop .dd-settings-modal__scroll {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+.dd-settings-backdrop .dd-settings-modal__scroll > .dd-settings-page--embedded {
+  touch-action: pan-y;
+}
+@media (max-width: 719px) {
+  .dd-settings-backdrop .dd-settings-modal {
+    /* A fixed max-height and flex layout keep the scrollable child bounded. */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .dd-settings-backdrop .dd-settings-modal__scroll {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+}
+
+/* Short fade-in on route content. Opacity does not create a containing block for
+   fixed-position descendants, unlike a permanent transform on the page root. */
+@media (max-width: 719px) and (prefers-reduced-motion: no-preference) {
+  #root main > :first-child {
+    animation: dd-mobile-route-arrive 245ms cubic-bezier(.18, .76, .3, 1) both;
+  }
+  #root main [role='tabpanel'] {
+    animation: dd-mobile-tab-arrive 180ms ease-out both;
+  }
+  /* The previous sheet used a spring overshoot. Make it more like a native app. */
+  .dd-settings-backdrop .dd-settings-modal {
+    animation: dd-mobile-sheet-arrive 320ms cubic-bezier(.22, .86, .32, 1) both;
+  }
+}
+@keyframes dd-mobile-route-arrive {
+  from { opacity: .68; }
+  to { opacity: 1; }
+}
+@keyframes dd-mobile-tab-arrive {
+  from { opacity: .8; }
+  to { opacity: 1; }
+}
+@keyframes dd-mobile-sheet-arrive {
+  from { opacity: .96; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #root main > :first-child,
+  #root main [role='tabpanel'] {
+    animation: none !important;
+  }
+  .dd-settings-backdrop .dd-settings-modal {
+    animation: none !important;
+  }
+}
+
+/* DDORANG SETTINGS / Compact mobile account actions v4 */
+.dd-settings-modal__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dd-settings-modal__report {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border: 1px solid var(--setting-line, #dbe5f0);
+  border-radius: 14px;
+  color: var(--setting-ink, #203451);
+  background: var(--setting-surface, #fff);
+  transition: transform 140ms ease, background-color 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.dd-settings-modal__report:active { transform: scale(.95); background: var(--setting-tap-strong, #e1eaf5); }
+.dd-settings-modal__report:focus-visible { outline: 2px solid var(--setting-accent, #3981f7); outline-offset: 3px; }
+.dd-settings-theme-compact {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px;
+  border-radius: 13px;
+  background: var(--setting-tap, #edf2f8);
+}
+.dd-settings-theme-compact > button {
+  min-height: 41px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--setting-muted, #647991);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.dd-settings-theme-compact > button[aria-checked='true'] {
+  color: var(--setting-ink, #213853);
+  background: var(--setting-surface, #fff);
+  border-color: var(--setting-line, #dbe5f0);
+  box-shadow: 0 1px 4px rgb(21 42 67 / 7%);
+}
+.dd-settings-theme-compact > button:active { transform: scale(.97); }
+.dd-settings-theme-compact > button:focus-visible { outline: 2px solid var(--setting-accent, #3981f7); outline-offset: 2px; }
+.dd-settings-auto-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--setting-muted, #647991);
+}
+.dd-settings-auto-detail > button {
+  flex: none;
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 9px;
+  background: var(--setting-tap, #edf2f8);
+  color: var(--setting-accent, #2674cc);
+  font-size: 11px;
+  font-weight: 700;
+}
+.dd-settings-account-actions {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.dd-settings-account-actions > button {
+  min-height: 43px;
+  border: 1px solid var(--setting-line, #dbe5f0);
+  border-radius: 12px;
+  background: var(--setting-tap, #edf2f8);
+  color: var(--setting-ink, #203451);
+  font-weight: 700;
+  font-size: 13px;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+.dd-settings-account-actions > button:last-child {
+  color: #bb5260;
+  border-color: rgb(193 86 101 / 22%);
+  background: rgb(193 86 101 / 8%);
+}
+.dd-settings-account-actions > button:active { transform: scale(.98); }
+.dd-settings-account-actions > button:last-child:active { background: rgb(193 86 101 / 20%); }
+.dd-settings-account-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(6 14 24 / 60%);
+}
+.dd-settings-account-dialog {
+  width: min(100%, 350px);
+  padding: 22px;
+  border: 1px solid var(--setting-line, #dbe5f0);
+  border-radius: 22px;
+  background: #fff;
+  color: #1b3047;
+  box-shadow: 0 22px 70px rgb(0 0 0 / 20%);
+}
+.dd-settings-account-dialog h3 { font-size: 18px; font-weight: 800; }
+.dd-settings-account-dialog p { margin-top: 10px; font-size: 13px; line-height: 1.55; color: #6c8197; }
+.dd-settings-account-dialog label { display: block; margin-top: 12px; font-size: 12px; font-weight: 700; }
+.dd-settings-account-dialog input {
+  width: 100%;
+  margin-top: 6px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #cddbe8;
+  border-radius: 10px;
+  color: #1b3047;
+  background: #fff;
+}
+.dd-settings-account-dialog [role='alert'] { color: #c04455; }
+.dd-settings-account-dialog__buttons { display: flex; gap: 8px; margin-top: 18px; }
+.dd-settings-account-dialog__buttons button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #dbe5f0;
+  border-radius: 12px;
+  background: #eef3f9;
+  color: #34506a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dd-settings-account-dialog__buttons button:last-child { border-color: #ce5e69; background: #ba4654; color: #fff; }
+.dd-settings-account-dialog__buttons button:disabled { opacity: .5; cursor: not-allowed; }
+html[data-dd-theme='dark'] .dd-settings-theme-compact > button[aria-checked='true'] { color: #f2f6fd; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog { background: #1a293a; border-color: #385169; color: #f2f6fd; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog p { color: #b4c1d3; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog input { color: #f2f6fd; background: #122033; border-color: #385169; }
+html[data-dd-theme='dark'] .dd-settings-account-dialog__buttons button:first-child { background: #283b50; color: #e9f0f7; border-color: #385169; }
+/* Smaller cards make the important controls reachable without excessive swiping. */
+.dd-settings-modal .dd-settings-page--embedded > * + * { margin-top: 10px !important; }
+.dd-settings-modal .dd-settings-page--embedded > .dd-settings-card,
+.dd-settings-modal .dd-settings-page--embedded > .dd-settings-feature-card { padding: 14px 16px !important; }
+.dd-settings-modal .dd-settings-feature-row,
+.dd-settings-modal .dd-settings-pause-row { min-height: 52px; }
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-modal__report, .dd-settings-theme-compact > button,
+  .dd-settings-account-actions > button { transition: none !important; }
+}
