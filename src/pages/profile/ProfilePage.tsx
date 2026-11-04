@@ -178,7 +178,7 @@ export default function ProfilePage() {
     <div className="min-h-[calc(100dvh-128px)] space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]">
       <section className="rounded-[24px] bg-[#EAF5FF] px-5 pb-5 pt-6">
         <div className="dd-profile-titlebar">
-          <p className="text-[24px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
+          <p className="text-[20px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
           <Link to="/shop" className="dd-profile-shop-mini">꾸미기 상점 <span aria-hidden="true">›</span></Link>
         </div>
         <h2 className="mt-1 text-[14px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? `${nickname}님의 첫 또랑이가 깨끗해지고 있어요!` : '오늘도 우리 동네를 돌보는 중'}</h2>
