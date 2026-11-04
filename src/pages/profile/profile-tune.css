@@ -1,0 +1,16 @@
+/* DDORANG-10: compact shop entry in profile header. No layout changes outside profile. */
+.dd-profile-titlebar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.dd-profile-titlebar > p { min-width:0; }
+.dd-profile-shop-mini {
+  flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
+  gap:5px; min-height:30px; padding:5px 10px; border-radius:10px;
+  border:1px solid #cde2f7; background:#f4f9ff; color:#2a78bf;
+  font-size:11px; line-height:1.1; font-weight:800; text-decoration:none;
+  transition:background-color .12s ease, transform .12s ease;
+}
+.dd-profile-shop-mini:hover { background:#e6f2ff; }
+.dd-profile-shop-mini:active { transform:scale(.97); }
+.dd-profile-shop-mini:focus-visible { outline:2px solid #348af1; outline-offset:3px; }
+.dd-profile-shop-mini span { font-size:15px; line-height:1; }
+html[data-dd-theme='dark'] .dd-profile-shop-mini { background:#203c58; border-color:#345b80; color:#badaff; }
+@media (max-width:350px) { .dd-profile-shop-mini { font-size:10px; padding:5px 8px; } }

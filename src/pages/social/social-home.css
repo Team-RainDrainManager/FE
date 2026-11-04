@@ -290,3 +290,32 @@ html[data-dd-theme='dark'] .rd-social-league-link { color: #d2e1f9; background: 
 html[data-dd-theme='dark'] .rd-social-league-link.is-sparkling { color: #ffd36f; background: #514226; }
 @media (prefers-reduced-motion: reduce) { .rd-social-league-link.is-sparkling { animation: none; } }
 
+/* DDORANG-9: fast league interaction. Button opens instantly; glow is decorative. */
+.rd-social-league-link.is-sparkling {
+  animation-duration: 120ms !important;
+}
+.rd-social-overlay {
+  animation-duration: 110ms !important;
+}
+.rd-social-league {
+  animation-duration: 155ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-social-overlay, .rd-social-league { animation: none !important; }
+}
+
+
+/* DDORANG-10: warm WOOD card with readable dark text even when theme is dark. */
+html[data-dd-theme='dark'] .rd-social-league-summary.rd-social-league-summary-wood {
+  background:#f1dfc5 !important; border-color:#cba775 !important; color:#442b17 !important;
+}
+html[data-dd-theme='dark'] .rd-social-league-summary-wood .rd-social-summary-info,
+html[data-dd-theme='dark'] .rd-social-league-summary-wood .rd-social-summary-info h3,
+html[data-dd-theme='dark'] .rd-social-league-summary-wood .rd-social-summary-kicker,
+html[data-dd-theme='dark'] .rd-social-league-summary-wood .rd-social-summary-score {
+  color:#442b17 !important; opacity:1 !important;
+}
+html[data-dd-theme='dark'] .rd-social-league-summary-wood .rd-social-rank-pill {
+  color:#442b17 !important; background:#fff7eced !important;
+}
+

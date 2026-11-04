@@ -2,10 +2,17 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { Link } from 'react-router'
 
 import Character from '../../components/common/Character'
-import '../shop/shop-studio.css'
+import './profile-tune.css'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import type { MyAdoptionDto } from '../../types/myDrains'
 import { changeNickname, getErrorMessage, getMe } from '../../apis/auth'
+
+// DDORANG-10: default display nickname; server nickname is saved only on explicit edit.
+const STARTER_NAMES = ['햇살집사', '초록발걸음', '빗방울지킴이', '맑은하루', '물길지킴이', '새싹집사', '구름산책'] as const
+const EDITED_KEY_PREFIX = 'ddorang:profile-nickname-edited:'
+function starterNameFor(userId: number): string {
+  return STARTER_NAMES[Math.abs(Math.floor(userId)) % STARTER_NAMES.length]
+}
 
 const NAME_STORAGE_KEY = 'ddorang:demo-profile-name'
 const PHOTO_STORAGE_KEY = 'ddorang:demo-profile-photo'
@@ -52,7 +59,8 @@ function getCareStatus(adoption: MyAdoptionDto, now: number) {
 
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [nickname, setNickname] = useState(() => loadFromStorage(NAME_STORAGE_KEY, '또랑이 집사'))
+  const [nickname, setNickname] = useState(() => loadFromStorage(NAME_STORAGE_KEY, '햇살집사'))
+  const [profileUserId, setProfileUserId] = useState<number | null>(null)
   const [photo, setPhoto] = useState(() => loadFromStorage(PHOTO_STORAGE_KEY))
   const [editing, setEditing] = useState(false)
   const [draftNickname, setDraftNickname] = useState(nickname)
@@ -63,8 +71,12 @@ export default function ProfilePage() {
     let active = true
     getMe().then((me) => {
       if (!active) return
-      setNickname(me.nickname)
-      setDraftNickname(me.nickname)
+      setProfileUserId(me.id)
+      const saved = loadFromStorage(NAME_STORAGE_KEY)
+      const edited = loadFromStorage(`${EDITED_KEY_PREFIX}${me.id}`) === '1' || (saved !== '' && saved === me.nickname)
+      const visibleName = edited ? me.nickname : starterNameFor(me.id)
+      setNickname(visibleName)
+      setDraftNickname(visibleName)
     }).catch((err: unknown) => { if (active) setMessage(getErrorMessage(err)) })
     return () => { active = false }
   }, [])
@@ -86,8 +98,8 @@ export default function ProfilePage() {
   const saveNickname = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmed = draftNickname.trim()
-    if (trimmed.length < 2 || trimmed.length > 20) {
-      setMessage('닉네임은 2~20자로 입력해 주세요.')
+    if (trimmed.length < 2 || trimmed.length > 6) {
+      setMessage('닉네임은 2~6글자로 입력해 주세요.')
       return
     }
     setSavingNickname(true)
@@ -96,6 +108,7 @@ export default function ProfilePage() {
       setNickname(trimmed)
       setEditing(false)
       saveToStorage(NAME_STORAGE_KEY, trimmed)
+      if (profileUserId !== null) saveToStorage(`${EDITED_KEY_PREFIX}${profileUserId}`, '1')
       setMessage('서버에 닉네임을 저장했어요.')
     } catch (error: unknown) { setMessage(getErrorMessage(error)) }
     finally { setSavingNickname(false) }
@@ -164,12 +177,15 @@ export default function ProfilePage() {
   return (
     <div className="min-h-[calc(100dvh-128px)] space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]">
       <section className="rounded-[24px] bg-[#EAF5FF] px-5 pb-5 pt-6">
-        <p className="text-[11px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
-        <h2 className="mt-1 text-[21px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? '내 첫 또랑이를 만나볼까요?' : '오늘도 우리 동네를 돌보는 중'}</h2>
-        <p className="mt-1 text-[12px] text-[#7C94AD]">나의 작은 활동이 동네를 더 안전하게 만들어요.</p>
+        <div className="dd-profile-titlebar">
+          <p className="text-[24px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
+          <Link to="/shop" className="dd-profile-shop-mini">꾸미기 상점 <span aria-hidden="true">›</span></Link>
+        </div>
+        <h2 className="mt-1 text-[14px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? `${nickname}님의 첫 또랑이가 깨끗해지고 있어요!` : '오늘도 우리 동네를 돌보는 중'}</h2>
+        <p className="mt-1 text-[10px] text-[#7C94AD]">나의 작은 활동이 동네를 더 안전하게 만들어요.</p>
 
         <div className="mt-5 flex items-center gap-4 rounded-[20px] bg-white p-4">
-          <div className="relative shrink-0">
+          <div className="relative shrin k-0">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -203,6 +219,7 @@ export default function ProfilePage() {
                   className="w-full rounded-lg border border-[#C8DEEE] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#338CF0]"
                 />
                 <div className="flex gap-2">
+                  <button type="button" disabled={savingNickname} onClick={() => setMessage('닉네임 중복 확인 API 준비 중입니다. 실제 사용 가능 여부는 아직 확인할 수 없습니다.')} className="rounded-lg border border-[#C8DEEE] bg-white px-3 py-1.5 text-[11px] font-bold text-[#2779D4]">중복 확인</button>
                   <button type="submit" disabled={savingNickname} className="rounded-lg bg-[#338CF0] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-60">{savingNickname ? '저장 중…' : '저장'}</button>
                   <button type="button" onClick={() => { setEditing(false); setMessage('') }} className="rounded-lg bg-[#F1F6FA] px-3 py-1.5 text-[11px] font-bold">취소</button>
                 </div>
@@ -277,18 +294,6 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <Link
-        to="/shop"
-        aria-label="또랑이 꾸미기 스튜디오 열기"
-        className="group flex min-h-[92px] items-center gap-4 rounded-[22px] border border-[#3C6079] bg-gradient-to-r from-[#142E47] to-[#1D4559] px-5 py-4 text-[#F0F7FF] shadow-[0_10px_28px_rgba(16,48,79,0.16)] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4A98EA]"
-      >
-        <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#2C6071] text-2xl">💧</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-extrabold tracking-[-0.03em]">또랑이 꾸미기 스튜디오</span>
-          <span className="mt-1 block text-[11px] leading-relaxed text-[#BDDAE8]">다양한 꾸미기 아이템을 둘러보세요</span>
-        </span>
-        <span aria-hidden="true" className="text-xl font-semibold text-[#BDEAFF] transition-transform group-hover:translate-x-1">›</span>
-      </Link>
       <p className="px-2 text-center text-[11px] leading-5 text-[#97AABE]">닉네임은 계정에 저장되며, 사진은 현재 브라우저에만 저장됩니다. 돌봄 기록은 현재 앱에 표시된 목록을 기준으로 합니다.</p>
     </div>
   )
