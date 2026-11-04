@@ -7,7 +7,11 @@ import type { DrainDetailDto } from '../../../types/drainDetail'
 import { AdoptForm, ReleaseForm } from './AdoptionForms'
 import { InspectForm } from '../../mydrains/components/ActionForms'
 
-type Action = 'adopt' | 'release' | 'inspect' | 'report'
+type Action =
+  | 'adopt'
+  | 'release'
+  | 'inspect'
+  | 'report'
 
 type Props = {
   drain: DrainDetailDto
@@ -25,14 +29,16 @@ export default function DrainActions({
   drain,
   isMine,
 }: Props) {
-  const [action, setAction] = useState<Action | null>(null)
+  const [action, setAction] =
+    useState<Action | null>(null)
 
   const canAdopt =
     drain.status === 'ACTIVE' &&
     drain.adoptionStatus === 'AVAILABLE'
 
   const isMyAdoption =
-    drain.adoptionStatus === 'ADOPTED' && isMine
+    drain.adoptionStatus === 'ADOPTED' &&
+    isMine
 
   const closeModal = () => setAction(null)
 
@@ -103,14 +109,18 @@ export default function DrainActions({
               사진으로 점검 기록
             </button>
 
-            <details className="relative mt-3 text-right" onKeyDown={(event) => {
-              if (event.key === 'Escape') event.currentTarget.open = false
-            }}>
-              <summary className="inline-flex cursor-pointer list-none items-center rounded-lg px-3 py-2 text-xs font-semibold text-[#78899F] [&::-webkit-details-marker]:hidden">입양 관리 ···</summary>
-              <button type="button" onClick={(event) => {
-                event.currentTarget.closest('details')?.removeAttribute('open')
-                setAction('release')
-              }} className="absolute right-0 top-full z-10 whitespace-nowrap rounded-xl border border-[#E8EDF5] bg-white px-4 py-3 text-xs font-semibold text-[#C85D5D] shadow-lg">입양 그만두기</button>
+            <details className="relative mt-3 text-right">
+              <summary className="inline-flex cursor-pointer list-none items-center rounded-lg px-3 py-2 text-xs font-semibold text-[#78899F] [&::-webkit-details-marker]:hidden">
+                입양 관리 ···
+              </summary>
+
+              <button
+                type="button"
+                onClick={() => setAction('release')}
+                className="absolute right-0 top-full z-10 whitespace-nowrap rounded-xl border border-[#E8EDF5] bg-white px-4 py-3 text-xs font-semibold text-[#C85D5D] shadow-lg"
+              >
+                입양 그만두기
+              </button>
             </details>
           </>
         )}
@@ -129,26 +139,34 @@ export default function DrainActions({
           title={TITLES[action]}
           onClose={closeModal}
         >
-          {action === 'adopt' && <AdoptForm />}
+          {action === 'adopt' && (
+            <AdoptForm
+              drainId={drain.id}
+              onClose={closeModal}
+            />
+          )}
 
-          {action === 'release' && <ReleaseForm />}
+          {action === 'release' && (
+            <ReleaseForm />
+          )}
 
-          {/* 기존 안내 문구 대신 실제 점검 폼 연결 */}
           {action === 'inspect' &&
             drain.adoption &&
             isMyAdoption && (
               <InspectForm
                 drainId={drain.id}
-      adoptionName={drain.adoption.nickname}
-      onCancel={closeModal}
+                adoptionName={
+                  drain.adoption.nickname
+                }
+                onCancel={closeModal}
               />
             )}
 
           {action === 'report' && (
             <p className="text-xs leading-relaxed text-[#607C99]">
-              막힘, 신규 등록, 위치 수정, 삭제 요청,
-              악취 등의 제보 기능은 별도 화면에서
-              연결할 예정이에요.
+              막힘, 신규 등록, 위치 수정,
+              삭제 요청, 악취 등의 제보 기능은
+              별도 화면에서 연결할 예정이에요.
             </p>
           )}
         </ModalShell>
