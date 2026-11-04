@@ -42,7 +42,6 @@ export interface MyPauseStatus {
 // B-5: 입양 해제 요청
 export interface ReleaseAdoptionRequest {
   reason: ReleaseReason
-  note?: string
 }
 
 export type DrainModalType =

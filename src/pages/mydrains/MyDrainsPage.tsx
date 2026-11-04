@@ -1,9 +1,10 @@
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
 import { getErrorMessage } from '../../apis/auth'
+import { releaseAdoption, type AdoptionReleaseReason } from '../../apis/adoptions'
 import {
   getMyAdoptions,
   toMyAdoptionsView,
@@ -15,12 +16,20 @@ import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import type {
   DrainModalType,
   PageModal,
+  ReleaseAdoptionRequest,
 } from '../../types/myDrains'
 
 import DrainCard from './components/DrainCard'
 import DrainModal from './components/DrainModal'
 
+type ReleaseVariables = {
+  adoptionId: number
+  drainId: number
+  reason: AdoptionReleaseReason
+}
+
 export default function MyDrainsPage() {
+  const queryClient = useQueryClient()
   // 점검 쉬기는 기존 상태 유지 (별도 API 연동 예정)
   const pauseStatus = useMyDrainsStore(
     (state) => state.pauseStatus,
@@ -43,18 +52,53 @@ export default function MyDrainsPage() {
     staleTime: 30_000,
   })
 
+
+  const releaseMutation = useMutation({
+    mutationFn: ({ adoptionId, reason }: ReleaseVariables) =>
+      releaseAdoption(adoptionId, reason),
+    onSuccess: async (_response, { drainId }) => {
+      setModal(null)
+      setFeedback('입양 해제가 완료됐어요. 기록과 성장 정보는 보관됩니다.')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['my-adoptions'] }),
+        queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
+        queryClient.invalidateQueries({ queryKey: ['drain-detail', drainId] }),
+      ])
+    },
+  })
+
   const openModal = (nextModal: DrainModalType) => {
+    if (nextModal.type === 'release') releaseMutation.reset()
+    setFeedback('')
     setModal(nextModal)
   }
 
-  const closeModal = () => setModal(null)
+  const closeModal = () => {
+    if (releaseMutation.isPending) return
+    setModal(null)
+  }
 
-  // 입양 해제 API는 이번 작업 범위에 포함되지 않음
-  const handleRelease = () => {
-    setFeedback(
-      '입양 해제 API는 아직 연결되지 않았어요. 실제 입양 상태는 유지됩니다.',
+  const handleRelease = (
+    adoptionId: number,
+    payload: ReleaseAdoptionRequest,
+  ) => {
+    if (releaseMutation.isPending) return
+
+    const adoption = data?.adoptions.find(
+      (item) => item.adoption_id === adoptionId,
     )
-    closeModal()
+
+    if (!adoption) {
+      setFeedback('입양 정보를 찾지 못했어요. 목록을 다시 불러와 주세요.')
+      setModal(null)
+      return
+    }
+
+    releaseMutation.mutate({
+      adoptionId,
+      drainId: adoption.drain.drain_id,
+      reason: payload.reason,
+    })
   }
 
   if (isPending) {
@@ -203,6 +247,12 @@ export default function MyDrainsPage() {
           onOpen={openModal}
           onClose={closeModal}
           onRelease={handleRelease}
+          isReleasing={releaseMutation.isPending}
+          releaseError={
+            releaseMutation.isError
+              ? getErrorMessage(releaseMutation.error)
+              : null
+          }
         />
       )}
     </div>

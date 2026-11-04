@@ -229,3 +229,59 @@ export async function registerAdoption(
 
   return unwrap(body)
 }
+
+// 본인의 입양 해제 - Swagger 요청 본문은 reason만 받음
+export type AdoptionReleaseReason = 'MOVED' | 'NO_TIME' | 'OTHER'
+
+export type AdoptionReleaseResponse = {
+  adoptionId: number
+  releasedAt: string
+}
+
+export async function releaseAdoption(
+  adoptionId: number,
+  reason: AdoptionReleaseReason,
+): Promise<AdoptionReleaseResponse> {
+  const { data: body } = await apiClient.post<
+    ApiResponse<AdoptionReleaseResponse>
+  >(`/api/v1/adoptions/${adoptionId}/release`, { reason })
+
+  return unwrap(body)
+}
+
+// 정기 점검 기록. 비 예보 점검에는 requestId와 별도 type이 필요함.
+export type RegularManagementLogRequest = {
+  type: 'REGULAR'
+  actionType: 'INSPECTION' | 'CLEANING'
+  beforePhotoKey: string
+  afterPhotoKey?: string
+  memo?: string
+  latitude: number
+  longitude: number
+  safetyAgreed: boolean
+}
+
+export type ManagementLogResponse = {
+  managementLogId: number
+  adoptionId: number
+  type: string
+  actionType: string
+  status: string
+  reviewStatus: string
+  locationMismatch: boolean
+  beforeDirtLevel: number | null
+  afterDirtLevel: number | null
+  managedAt: string | null
+  nextManagementAt: string | null
+}
+
+export async function createRegularManagementLog(
+  adoptionId: number,
+  request: RegularManagementLogRequest,
+): Promise<ManagementLogResponse> {
+  const { data: body } = await apiClient.post<
+    ApiResponse<ManagementLogResponse>
+  >(`/api/v1/adoptions/${adoptionId}/management-logs`, request)
+
+  return unwrap(body)
+}
