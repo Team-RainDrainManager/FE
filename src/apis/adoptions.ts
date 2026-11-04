@@ -1,6 +1,11 @@
 
 import { apiClient } from './axios-instance'
 import type { DrainDetailDto } from '../types/drainDetail'
+import { getMyAdoptions } from './my-drains'
+
+export function getMyAdoptionList() {
+  return getMyAdoptions()
+}
 
 type ApiResponse<T> = {
   success: boolean
@@ -36,19 +41,6 @@ export async function getAdoptionDrainDetail(
     ...detail,
     photoUrl: detail.photoUrl ?? '',
   }
-}
-
-// 본인의 입양 여부 확인
-export async function getMyAdoptionList(): Promise<{
-  adoptions: { adoptionId: number }[]
-}> {
-  const { data: body } = await apiClient.get<
-    ApiResponse<{
-      adoptions: { adoptionId: number }[]
-    }>
-  >('/api/v1/adoptions/me')
-
-  return unwrap(body)
 }
 
 // 사진 업로드 purpose
