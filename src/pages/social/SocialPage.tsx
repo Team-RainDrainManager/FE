@@ -357,14 +357,10 @@ export default function SocialPage() {
         )}
         <button type="button" className="rd-social-count rd-social-league-link" aria-label="리그 열기" onClick={event => {
           const button = event.currentTarget
-          if (button.dataset.opening === 'true') return
-          button.dataset.opening = 'true'
+          button.classList.remove('is-sparkling')
           button.classList.add('is-sparkling')
-          window.setTimeout(() => {
-            button.classList.remove('is-sparkling')
-            button.dataset.opening = 'false'
-            setLeagueOpen(true)
-          }, 300)
+          setLeagueOpen(true)
+          window.setTimeout(() => button.classList.remove('is-sparkling'), 120)
         }}><TrophyIcon /><span>리그</span></button>
       </div>
 

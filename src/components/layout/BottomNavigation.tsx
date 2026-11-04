@@ -5,6 +5,7 @@ import drainIcon from '../../assets/icons/drain.svg'
 import mapIcon from '../../assets/icons/map.svg'
 import activityIcon from '../../assets/icons/activity.svg'
 import bellIcon from '../../assets/icons/bell.svg'
+import NotificationBellIcon from './NotificationBellIcon'
 import userIcon from '../../assets/icons/user.svg'
 
 const NAV_ITEMS = [
@@ -36,7 +37,8 @@ export default function BottomNavigation() {
           >
             {({ isActive }) => (
               <>
-                <span
+                {label === '알림' ? <NotificationBellIcon isActive={isActive} /> : (
+                  <span
                   aria-hidden="true"
                   className="block h-6 w-6"
                   style={{
@@ -47,6 +49,7 @@ export default function BottomNavigation() {
                     WebkitMask: `url("${icon}") center / contain no-repeat`,
                   }}
                 />
+                )}
                 <span className={`truncate text-[10px] leading-tight ${isActive ? 'font-bold' : 'font-medium'}`}>
                   {label}
                 </span>
