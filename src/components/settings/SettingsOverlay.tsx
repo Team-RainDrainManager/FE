@@ -5,6 +5,7 @@ import SettingsPage from '../../pages/settings/SettingsPage'
 /** 사용자가 담당하는 설정 화면 전용 모바일 바텀 시트. 기존 SettingsModal 원본은 유지합니다. */
 export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
   const titleRef = useRef<HTMLHeadingElement>(null)
+  const reportTriggerRef = useRef<HTMLButtonElement>(null)
   const pointerStartRef = useRef<number | null>(null)
   // Real touch uses native inertial scrolling. Mouse drag is only a fallback
   // for mobile-size Chrome DevTools previews on a desktop.
@@ -138,6 +139,13 @@ export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
             <p className="dd-settings-modal__eyebrow">MY DDORANG</p>
             <h2 ref={titleRef} tabIndex={-1} id="dd-settings-modal-title">설정</h2>
           </div>
+          <button type="button" className="dd-settings-modal__report" aria-label="버그 신고하기" title="버그 신고"
+            onClick={() => reportTriggerRef.current?.click()}>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 17v-7a6 6 0 0 1 12 0v7M4 20h16M8 17h8M12 1v2M4.5 5l1.5 1.5M19.5 5L18 6.5" />
+            </svg>
+          </button>
         </div>
         <div
           className="dd-settings-modal__scroll"
@@ -149,7 +157,7 @@ export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
             if (event.target instanceof Element && event.target.closest('a[href]')) onClose()
           }}
         >
-          <SettingsPage embedded />
+          <SettingsPage embedded reportButtonRef={reportTriggerRef} />
         </div>
       </section>
     </div>,
