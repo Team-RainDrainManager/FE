@@ -1,16 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { changeNickname, getErrorMessage, getMe, logout } from '../../apis/auth'
-import { useAuthStore } from '../../store/useAuthStore'
-import { clearOnboardingProgress } from '../login/auth-flow'
-import { useOnboardingStore } from '../../store/useOnboardingStore'
-import { useMyDrainsStore } from '../../store/useMyDrainsStore'
-import { queryClient } from '../../apis/query-client'
+import { useState, type FormEvent } from 'react'
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
 import { DEFAULT_REGION } from '../../utils/sky'
-import Character from '../../components/common/Character'
-import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstRun'
-import { useDecorationStore } from '../../store/useDecorationStore'
 
 const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] = [
   {id:'light',title:'라이트',description:'항상 밝은 화면',symbol:'☀'},
@@ -20,49 +10,20 @@ const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] =
 const card = 'dd-settings-card rounded-[22px] border border-[#E5EEF7] bg-white p-5'
 
 export default function SettingsPage({ embedded = false }: { embedded?: boolean }) {
-  const navigate = useNavigate()
-  const clearAuth = useAuthStore(s => s.clear)
-  const clearOnboarding = useOnboardingStore(s => s.clear)
-  const clearMyDrains = useMyDrainsStore(s => s.reset)
   const mode = useThemeStore(s => s.mode)
   const setMode = useThemeStore(s => s.setMode)
   const sun = useThemeStore(s => s.sun)
   const region = useThemeStore(s => s.location)
   const setRegion = useThemeStore(s => s.setLocation)
   const [regionMessage,setRegionMessage] = useState('')
-  const [loggingOut,setLoggingOut] = useState(false)
-  const [confirmAction,setConfirmAction] = useState<'logout'|'delete'|null>(null)
-  const [nickname,setNickname] = useState('')
-  const [nicknameDraft,setNicknameDraft] = useState('')
-  const [nicknameOpen,setNicknameOpen] = useState(false)
-  const [nicknameSaving,setNicknameSaving] = useState(false)
-  const [accountMessage,setAccountMessage] = useState('')
   const [reportOpen,setReportOpen] = useState(false)
   const [reportCategory,setReportCategory] = useState('화면·디자인 오류')
   const [reportText,setReportText] = useState('')
   const [reportDone,setReportDone] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    getMe().then(me => {
-      if (active) { setNickname(me.nickname);setNicknameDraft(me.nickname) }
-    }).catch(() => { if (active) setAccountMessage('닉네임은 로그인 후 확인할 수 있습니다.') })
-    return () => {active=false}
-  }, [])
-
-  async function saveNickname(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const value = nicknameDraft.trim()
-    if (value.length < 2 || value.length > 20) { setAccountMessage('닉네임은 2~20자로 입력해 주세요.');return }
-    setNicknameSaving(true);setAccountMessage('')
-    try {
-      await changeNickname(value)
-      setNickname(value);setNicknameOpen(false)
-      try {localStorage.setItem('ddorang:demo-profile-name',value)} catch { /* ignore */ }
-      setAccountMessage('닉네임을 저장했습니다.')
-    } catch(error:unknown) {setAccountMessage(getErrorMessage(error))}
-    finally {setNicknameSaving(false)}
-  }
+  // UI-only preview. Server notification and inspection-pause APIs are not connected.
+  const [notificationsPreview, setNotificationsPreview] = useState(false)
+  const [pausePreviewOpen, setPausePreviewOpen] = useState(false)
+  const [pausePreviewActive, setPausePreviewActive] = useState(false)
 
   function selectRegion() {
     if (!navigator.geolocation) {setRegionMessage('이 브라우저에서는 위치 확인을 지원하지 않습니다.');return}
@@ -79,30 +40,6 @@ export default function SettingsPage({ embedded = false }: { embedded?: boolean 
     if (reportText.trim().length < 5) return
     // 서버 신고 엔드포인트가 없는 UI 시연: 실제 제출을 암시하지 않습니다.
     setReportDone(true)
-  }
-
-  async function handleLogout() {
-    setLoggingOut(true)
-    let logoutNotice = ''
-    try { await logout() }
-    catch(error:unknown) {logoutNotice = `${getErrorMessage(error)} 이 기기의 로그인 정보만 삭제했습니다.`}
-    finally {
-      clearAuth();clearOnboardingProgress();clearOnboarding();clearMyDrains();queryClient.clear()
-      clearDemoAccountData()
-      useDecorationStore.getState().reset()
-      setLoggingOut(false)
-      navigate('/login', {replace:true,state:logoutNotice?{logoutNotice}:null})
-    }
-  }
-
-  function deleteLocalDemoData() {
-    // 실제 회원 탈퇴 API가 확인되지 않아 서버 계정 삭제를 호출하지 않습니다.
-    // 아래 동작은 브라우저에 남은 시연 기록만 삭제합니다.
-    clearLocalDdorangiData()
-    clearAuth(); clearOnboarding(); clearMyDrains(); queryClient.clear()
-    useDecorationStore.getState().reset()
-    setConfirmAction(null)
-    navigate('/login', {replace: true, state: {logoutNotice:'이 기기의 시연 데이터만 삭제했습니다. 서버 계정은 탈퇴되지 않았습니다.'}})
   }
 
   return <div className={`${embedded ? "dd-settings-page--embedded" : "min-h-[calc(100dvh-128px)]"} dd-settings-page space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]`}>
@@ -128,34 +65,52 @@ export default function SettingsPage({ embedded = false }: { embedded?: boolean 
         {regionMessage && <p role="status" className="mt-2 text-[11px]">{regionMessage}</p>}
       </div>}
     </section>
-    <section className={card}>
-      <h3 className="text-[15px] font-extrabold">계정 및 프로필</h3>
-      <div className="mt-3 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">닉네임 변경</p><p className="mt-1 text-xs text-[#8299B0]">{nickname||'계정 정보 불러오는 중'}</p></div><button type="button" className="rounded-xl bg-[#EFF6FF] px-3 py-2 text-xs font-bold text-[#367AC0]" onClick={()=>{setNicknameOpen(!nicknameOpen);setNicknameDraft(nickname)}}>수정</button></div>
-      {nicknameOpen && <form onSubmit={e=>{void saveNickname(e)}} className="mt-3 space-y-2"><label htmlFor="settings-nickname" className="text-xs">새 닉네임 (2~20자)</label><input id="settings-nickname" className="min-h-11 w-full rounded-xl border border-[#CEDDEB] px-3 text-sm" maxLength={20} value={nicknameDraft} onChange={e=>setNicknameDraft(e.target.value)}/><button type="submit" disabled={nicknameSaving} className="min-h-10 w-full rounded-xl bg-[#3981F7] text-sm font-bold text-white disabled:opacity-60">{nicknameSaving?'저장 중…':'닉네임 저장'}</button></form>}
-      <Link to="/profile" className="mt-4 flex min-h-11 items-center justify-between border-t border-[#E5EEF7] text-sm font-semibold"><span>프로필 사진 변경</span><span className="text-[#338CF0]">이동 ›</span></Link>
-      {accountMessage && <p role="status" className="mt-2 text-xs text-[#6387A8]">{accountMessage}</p>}
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" disabled={loggingOut} onClick={()=>setConfirmAction('logout')} className="min-h-11 rounded-xl bg-[#EFF6FF] text-[13px] font-bold text-[#367AC0] disabled:opacity-60">로그아웃</button>
-        <button type="button" onClick={()=>setConfirmAction('delete')} className="min-h-11 rounded-xl border border-[#F4D6DA] bg-[#FFF6F6] text-[13px] font-bold text-[#A83D4C]">회원 탈퇴</button>
+    <div className={`${card} dd-settings-feature-card`}>
+      <h3>알림</h3>
+      <div className="dd-settings-feature-row">
+        <div className="dd-settings-feature-text">
+          <p className="dd-settings-feature-name">알림 받기</p>
+          <small className="dd-settings-feature-desc">점검 일정과 또랑이 돌봄 소식을 받아요.</small>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-label="알림 받기 (시연)"
+          aria-checked={notificationsPreview}
+          className="dd-settings-feature-switch"
+          onClick={() => setNotificationsPreview(value => !value)}
+        ><span aria-hidden="true" /></button>
       </div>
-    </section>
+      <p className="dd-settings-feature-note">현재 UI 시연용이며 실제 알림 설정에는 반영되지 않습니다.</p>
+    </div>
+    <div className={`${card} dd-settings-feature-card`}>
+      <h3>돌봄 관리</h3>
+      <button
+        type="button"
+        className="dd-settings-pause-row"
+        aria-expanded={pausePreviewOpen}
+        onClick={() => setPausePreviewOpen(value => !value)}
+      >
+        <span className="dd-settings-feature-text">
+          <span className="dd-settings-feature-name">점검 쉬기</span>
+          <small className="dd-settings-feature-desc">14일간 정기 점검을 쉬는 기능이에요.</small>
+        </span>
+        <span className="dd-settings-pause-arrow" aria-hidden="true">{pausePreviewOpen ? '⌄' : '›'}</span>
+      </button>
+      {pausePreviewOpen && <div className="dd-settings-pause-preview">
+        <p>시연용 설정입니다. 실제 점검 일정이나 서버 상태는 바뀌지 않습니다.</p>
+        <button type="button" onClick={() => setPausePreviewActive(value => !value)}>
+          {pausePreviewActive ? '시연 상태 해제' : '14일 쉬기 미리보기'}
+        </button>
+        {pausePreviewActive && <p role="status" className="mt-2">점검 쉬기 화면 시연 중입니다.</p>}
+      </div>}
+    </div>
     <section className={card}>
       <h3 className="text-[15px] font-extrabold">도움말</h3>
       <button type="button" onClick={()=>{setReportOpen(true);setReportDone(false)}} className="mt-4 flex min-h-12 w-full items-center justify-between text-left text-sm font-bold"><span>버그 신고하기</span><span className="text-[#338CF0]">›</span></button>
       <p className="mt-1 text-[11px] leading-5 text-[#8299B0]">현재는 신고 화면 시연용이며 서버로 전송되지는 않습니다.</p>
     </section>
     <p className="text-center text-[11px] text-[#8299B0]">또랑 · 우리 동네 빗물받이 돌봄 서비스</p>
-    {confirmAction && <div className="dd-account-confirm-backdrop" onMouseDown={event=>{ if(event.target === event.currentTarget && !loggingOut) setConfirmAction(null)}}>
-      <section className="dd-account-confirm" role="alertdialog" aria-modal="true" aria-labelledby="dd-account-confirm-title" aria-describedby="dd-account-confirm-description">
-        <div className="dd-account-cry"><Character type="state" state="crying" size={144}/></div>
-        <h3 id="dd-account-confirm-title">{confirmAction === 'logout' ? '정말로 로그아웃 하실 건가요?' : '정말로 회원 탈퇴 하실 건가요?'}</h3>
-        <p id="dd-account-confirm-description">{confirmAction === 'logout' ? '또랑이가 아쉬워하고 있어요. 언제든 다시 만날 수 있어요.' : '현재 삭제 API가 연결되지 않았어요. 지금은 이 기기의 시연 데이터만 삭제할 수 있고 서버 회원정보는 삭제되지 않습니다.'}</p>
-        <div className="dd-account-confirm-actions">
-          <button type="button" disabled={loggingOut} onClick={()=>setConfirmAction(null)}>취소</button>
-          <button type="button" disabled={loggingOut} onClick={()=>{if(confirmAction === 'logout'){void handleLogout()}else deleteLocalDemoData()}} className="danger">{loggingOut ? '처리 중…' : confirmAction === 'logout' ? '로그아웃 확인' : '시연 데이터만 삭제'}</button>
-        </div>
-      </section>
-    </div>}
     {reportOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={e=>{if(e.target===e.currentTarget)setReportOpen(false)}}>
       <section role="dialog" aria-modal="true" aria-labelledby="bug-report-title" className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl">
         {reportDone ? <div className="py-5 text-center"><p className="text-3xl">✓</p><h3 id="bug-report-title" className="mt-3 text-lg font-bold">신고 내용을 작성했습니다</h3><p className="mt-2 text-sm leading-6 text-[#8299B0]">신고 화면 시연이 완료되었습니다. 실제 서버로 전송되지는 않았습니다.</p><button onClick={()=>{setReportOpen(false);setReportText('')}} className="mt-5 min-h-11 w-full rounded-xl bg-[#3981F7] text-sm font-bold text-white">닫기</button></div>:

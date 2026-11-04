@@ -1,6 +1,6 @@
 
 import { useLocation, useNavigate } from 'react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import SettingsOverlay from '../settings/SettingsOverlay'
 
 import backIcon from '../../assets/icons/back.svg'
@@ -21,6 +21,28 @@ export default function Header() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsOpening, setSettingsOpening] = useState(false)
+  const settingsTimerRef = useRef<number | null>(null)
+
+  // Allow the gear to visibly turn before the bottom sheet appears.
+  useEffect(() => () => {
+    if (settingsTimerRef.current !== null) window.clearTimeout(settingsTimerRef.current)
+  }, [])
+
+  function openSettings() {
+    if (settingsOpen || settingsTimerRef.current !== null) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSettingsOpen(true)
+      return
+    }
+
+    setSettingsOpening(true)
+    settingsTimerRef.current = window.setTimeout(() => {
+      settingsTimerRef.current = null
+      setSettingsOpening(false)
+      setSettingsOpen(true)
+    }, 320)
+  }
 
   // 설정 및 빗물받이 상세 페이지 확인
   const isSettingsPage = pathname === '/settings' || pathname === '/shop'
@@ -69,7 +91,8 @@ export default function Header() {
       {!showBackButton && (
         <button
           type="button"
-          onClick={() => setSettingsOpen(true)}
+          onClick={openSettings}
+          data-gear-opening={settingsOpening ? "true" : undefined}
           aria-label="설정 열기"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
         >
