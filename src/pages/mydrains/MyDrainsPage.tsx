@@ -1,32 +1,47 @@
 
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
+
+import { getErrorMessage } from '../../apis/auth'
+import {
+  getMyAdoptions,
+  toMyAdoptionsView,
+} from '../../apis/my-drains'
+
 import Character from '../../components/common/Character'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
+
 import type {
   DrainModalType,
   PageModal,
-  ReleaseAdoptionRequest,
 } from '../../types/myDrains'
+
 import DrainCard from './components/DrainCard'
 import DrainModal from './components/DrainModal'
 
-const REASON_LABELS: Record<
-  ReleaseAdoptionRequest['reason'],
-  string
-> = {
-  MOVED: '이사',
-  NO_TIME: '시간 부족',
-  OTHER: '기타',
-}
-
 export default function MyDrainsPage() {
-  const data = useMyDrainsStore((state) => state.data)
-  const setData = useMyDrainsStore((state) => state.setData)
-  const pauseStatus = useMyDrainsStore((state) => state.pauseStatus)
+  // 점검 쉬기는 기존 상태 유지 (별도 API 연동 예정)
+  const pauseStatus = useMyDrainsStore(
+    (state) => state.pauseStatus,
+  )
 
   const [modal, setModal] = useState<PageModal>(null)
   const [feedback, setFeedback] = useState('')
+
+  // 실제 서버 데이터 조회
+  const {
+    data,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['my-adoptions'],
+    queryFn: ({ signal }) => getMyAdoptions(signal),
+    select: toMyAdoptionsView,
+    staleTime: 30_000,
+  })
 
   const openModal = (nextModal: DrainModalType) => {
     setModal(nextModal)
@@ -34,30 +49,56 @@ export default function MyDrainsPage() {
 
   const closeModal = () => setModal(null)
 
-  // B-5 입양 해제 UI 시연
-  const handleRelease = (
-    adoptionId: number,
-    payload: ReleaseAdoptionRequest,
-  ) => {
-    setData((previous) => {
-      const adoptions = previous.adoptions.filter(
-        (item) => item.adoption_id !== adoptionId,
-      )
-
-      return {
-        ...previous,
-        count: adoptions.length,
-        adoptions,
-      }
-    })
-
+  // 입양 해제 API는 이번 작업 범위에 포함되지 않음
+  const handleRelease = () => {
     setFeedback(
-      `시연 목록에서 입양을 해제했어요. 사유: ${
-        REASON_LABELS[payload.reason]
-      }`,
+      '입양 해제 API는 아직 연결되지 않았어요. 실제 입양 상태는 유지됩니다.',
     )
-
     closeModal()
+  }
+
+  if (isPending) {
+    return (
+      <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] bg-[#F4F7FC] px-4 py-16 text-center">
+        <Character
+          type="state"
+          state="happy"
+          size={75}
+        />
+
+        <p
+          role="status"
+          className="mt-4 text-sm font-semibold text-[#78899F]"
+        >
+          내 또랑이를 불러오는 중이에요.
+        </p>
+      </div>
+    )
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] bg-[#F4F7FC] px-4 py-16 text-center">
+        <h2 className="text-base font-bold text-[#203451]">
+          내 또랑이 목록을 불러오지 못했어요.
+        </h2>
+
+        <p
+          role="alert"
+          className="mt-3 text-xs text-[#78899F]"
+        >
+          {getErrorMessage(error)}
+        </p>
+
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="mt-5 rounded-full bg-[#6099E8] px-5 py-3 text-xs font-bold text-white"
+        >
+          다시 시도
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -105,7 +146,9 @@ export default function MyDrainsPage() {
             <DrainCard
               key={adoption.adoption_id}
               adoption={adoption}
-              accountPauseUntil={pauseStatus.active_until}
+              accountPauseUntil={
+                pauseStatus.active_until
+              }
               onOpen={openModal}
             />
           ))}
@@ -132,7 +175,7 @@ export default function MyDrainsPage() {
 
       <Link
         to="/map"
-        className="mt-4 flex min-h-12 items-center justify-center rounded-full bg-white text-[13px] font-bold text-[#3981F7] border border-[#E0E8F3] shadow-sm"
+        className="mt-4 flex min-h-12 items-center justify-center rounded-full border border-[#E0E8F3] bg-white text-[13px] font-bold text-[#3981F7] shadow-sm"
       >
         지도에서 찾아보기
       </Link>

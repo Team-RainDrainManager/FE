@@ -154,11 +154,11 @@ export default function DrainCard({
 
       <dl className="mt-3 space-y-2 rounded-2xl bg-[#F4F7FC] p-3 text-xs leading-relaxed">
         <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2">
-          <dt className="text-[#78899F]">마지막 돌봄</dt><dd className="text-[#637790]">{formatCareDate(adoption.last_care_at)}</dd>
+          <dt className="text-[#78899F]">마지막 돌봄</dt><dd className="text-[#637790]">{adoption.last_care_at? formatCareDate(adoption.last_care_at): '기록 없음'}</dd>
         </div>
         <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2">
           <dt className="text-[#78899F]">{paused ? '점검 쉬기 종료' : '다음 점검'}</dt>
-          <dd className={`font-bold ${inspectionOverdue ? 'text-[#AD731D]' : 'text-[#203451]'}`}>{formatCareDate(paused ? pauseUntil : adoption.next_inspection_at)}</dd>
+          <dd className={`font-bold ${inspectionOverdue ? 'text-[#AD731D]' : 'text-[#203451]'}`}>{paused ? pauseUntil ? formatCareDate(pauseUntil) : '미정' : adoption.next_inspection_at ? formatCareDate(adoption.next_inspection_at) : '미정'}</dd>
         </div>
       </dl>
       <button type="button" onClick={() => onOpen({ type: 'inspect', drainId })} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#6099E8] px-3 text-sm font-bold text-white transition hover:bg-[#4A88DB] active:scale-[0.99]">
