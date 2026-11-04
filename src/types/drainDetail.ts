@@ -25,7 +25,7 @@ export interface DrainDetailDto {
   adoptionStatus: DrainAdoptionStatus
   latitude: number
   longitude: number
-  photoUrl: string
+  photoUrl: string | null
   dirtLevel: number
   adoption: DrainAdoption | null
 }

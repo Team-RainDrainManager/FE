@@ -154,12 +154,11 @@ export default function DrainActions({
             drain.adoption &&
             isMyAdoption && (
               <InspectForm
-                drainId={drain.id}
-                adoptionName={
-                  drain.adoption.nickname
-                }
-                onCancel={closeModal}
-              />
+  adoptionId={drain.adoption.adoptionId}
+  drainId={drain.id}
+  adoptionName={drain.adoption.nickname}
+  onCancel={closeModal}
+/>
             )}
 
           {action === 'report' && (

@@ -26,6 +26,8 @@ type Props = {
     adoptionId: number,
     payload: ReleaseAdoptionRequest,
   ) => void
+  isReleasing: boolean
+  releaseError: string | null
 }
 
 const TITLES: Record<DrainModalType['type'], string> = {
@@ -41,6 +43,8 @@ export default function DrainModal({
   onOpen,
   onClose,
   onRelease,
+  isReleasing,
+  releaseError,
 }: Props) {
   const selected =
     'drainId' in modal
@@ -90,14 +94,17 @@ export default function DrainModal({
       {modal.type === 'inspect' && selected && (
         <InspectForm
           key={selected.adoption_id}
-    drainId={selected.drain.drain_id}
-    adoptionName={selected.adoption_name}
-    onCancel={onClose}
+          adoptionId={selected.adoption_id}
+          drainId={selected.drain.drain_id}
+          adoptionName={selected.adoption_name}
+          onCancel={onClose}
         />
       )}
 
       {modal.type === 'release' && selected && (
         <ReleaseForm
+          isSubmitting={isReleasing}
+          errorMessage={releaseError}
           onConfirm={(payload) =>
             onRelease(
               selected.adoption_id,
