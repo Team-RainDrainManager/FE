@@ -284,7 +284,7 @@ html[data-dd-theme='dark'] div:has(> [role='tablist'][aria-label='소셜 메뉴'
   background: var(--setting-sheet);
   color: var(--setting-ink);
   box-shadow: 0 -20px 72px rgb(11 25 44 / 18%);
-  animation: dd-setting-sheet-rise .35s cubic-bezier(.18,.89,.32,1.12) both;
+  animation: dd-setting-sheet-rise 320ms cubic-bezier(.22,.86,.32,1) both;
 }
 
 .dd-settings-modal__heading {
@@ -462,7 +462,7 @@ html[data-dd-theme='dark'] .dd-settings-modal :is(input, select, textarea) {
 }
 
 @keyframes dd-setting-sheet-rise {
-  from { transform: translateY(26px); opacity: .6; }
+  from { transform: translateY(9px); opacity: .96; }
   to { transform: translateY(0); opacity: 1; }
 }
 
@@ -493,16 +493,7 @@ header button[aria-label="설정 열기"]:focus-visible > span[aria-hidden="true
     transform: rotate(27deg);
   }
 }
-/* The React portal opens after a click. Run one full playful turn when it appears. */
-body:has(.dd-settings-backdrop) header button[aria-label="설정 열기"] > span[aria-hidden="true"] {
-  animation: dd-settings-gear-open 740ms cubic-bezier(.2,.76,.28,1.05) both;
-}
-@keyframes dd-settings-gear-open {
-  0% { transform: rotate(0deg) scale(1); }
-  38% { transform: rotate(136deg) scale(.89); }
-  72% { transform: rotate(332deg) scale(1.12); }
-  100% { transform: rotate(360deg) scale(1); }
-}
+/* The gear turns only once BEFORE the sheet opens. No portal-triggered second spin. */
 
 /* Respect the teammate's bottom-sheet language without changing SettingsModal.tsx. */
 .dd-settings-modal {
@@ -718,3 +709,386 @@ html[data-dd-theme='dark'] header button[aria-label='설정 열기'] > span[aria
   opacity: 1 !important;
 }
 /* DDORANG-ISSUE-32-GEAR-FIX-END */
+
+/* DDORANG / Mobile settings sheet — scoped to user-owned SettingsOverlay / SettingsPage. */
+/* Styling is UI-only; no changes to the teammate-owned SettingsModal or backend APIs. */
+
+.dd-settings-modal__grab {
+  display: flex;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.dd-settings-modal__grab:active { cursor: grabbing; }
+.dd-settings-modal__grab:focus-visible {
+  outline: 2px solid var(--setting-accent, #397ff5);
+  outline-offset: -3px;
+}
+.dd-settings-modal__grab-indicator {
+  display: block;
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: #c8d2df;
+}
+.dd-settings-modal__heading::before { content: none !important; }
+.dd-settings-modal__heading h2:focus { outline: none; }
+
+/* Feature cards are divs so existing nth-of-type selectors for account buttons remain stable. */
+.dd-settings-feature-card {
+  border: 1px solid var(--setting-line, #e5eaf0);
+  border-radius: 19px;
+  background: var(--setting-card, #fff);
+  color: var(--setting-ink, #1b3047);
+  box-shadow: 0 2px 14px rgb(35 59 82 / 3%);
+}
+.dd-settings-feature-card > h3 {
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -.3px;
+}
+.dd-settings-feature-row,
+.dd-settings-pause-row {
+  display: flex;
+  width: 100%;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.dd-settings-feature-text { min-width: 0; }
+.dd-settings-feature-name { margin: 0; font-size: 14px; font-weight: 700; }
+.dd-settings-feature-desc {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--setting-muted, #6c8197);
+}
+.dd-settings-feature-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--setting-muted, #6c8197);
+}
+.dd-settings-feature-switch {
+  display: flex;
+  flex: 0 0 auto;
+  width: 51px;
+  height: 31px;
+  align-items: center;
+  padding: 3px;
+  border: 0;
+  border-radius: 99px;
+  background: #cfd7e3;
+  transition: background-color 160ms ease;
+  cursor: pointer;
+}
+.dd-settings-feature-switch[aria-checked="true"] { background: #3981f7; }
+.dd-settings-feature-switch > span {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(10 20 36 / 14%);
+  transform: translateX(0);
+  transition: transform 160ms ease;
+}
+.dd-settings-feature-switch[aria-checked="true"] > span { transform: translateX(20px); }
+.dd-settings-pause-row {
+  padding: 0 2px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+.dd-settings-pause-arrow { font-size: 21px; color: var(--setting-muted, #6c8197); }
+.dd-settings-pause-row:hover { background: var(--setting-tap, #eef3f9); }
+.dd-settings-pause-row:active { background: var(--setting-tap-strong, #e1eaf5); }
+.dd-settings-pause-preview {
+  margin-top: 3px;
+  padding: 13px;
+  border-radius: 12px;
+  background: var(--setting-tap, #eef3f9);
+}
+.dd-settings-pause-preview > p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--setting-muted, #6c8197);
+}
+.dd-settings-pause-preview > button {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--setting-blue-base, #edf5ff);
+  color: var(--setting-accent, #257acb);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dd-settings-pause-preview > button:hover { background: var(--setting-blue-hover, #daeafe); }
+.dd-settings-feature-switch:focus-visible,
+.dd-settings-pause-row:focus-visible,
+.dd-settings-pause-preview > button:focus-visible {
+  outline: 2px solid var(--setting-accent, #257acb);
+  outline-offset: 3px;
+}
+
+/* Mobile-first: edge-to-edge bottom sheet and 16px horizontal content insets. */
+@media (max-width: 719px) {
+  .dd-settings-backdrop {
+    display: flex;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+  .dd-settings-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100% !important;
+    max-width: none !important;
+    height: min(93dvh, 880px);
+    max-height: 98dvh !important;
+    overflow: hidden;
+    border-radius: 27px 27px 0 0 !important;
+    border-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .dd-settings-modal__heading {
+    flex-shrink: 0;
+    padding: 5px 20px 14px !important;
+  }
+  .dd-settings-modal__heading h2 { font-size: 21px; }
+  .dd-settings-modal__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .dd-settings-modal__scroll::-webkit-scrollbar { display: none; }
+  .dd-settings-modal .dd-settings-page--embedded {
+    padding: 16px 16px 26px !important;
+  }
+  .dd-settings-modal .dd-settings-page--embedded > section.dd-settings-card,
+  .dd-settings-modal .dd-settings-page--embedded > .dd-settings-feature-card {
+    padding: 18px !important;
+    border-radius: 19px !important;
+  }
+}
+
+html[data-dd-theme='dark'] .dd-settings-feature-card {
+  border-color: var(--setting-line, #2c3e52);
+  background: var(--setting-card, #1b2a3b) !important;
+  color: var(--setting-ink, #f2f6fb);
+}
+html[data-dd-theme='dark'] .dd-settings-modal__grab-indicator { background: #5f7086; }
+html[data-dd-theme='dark'] .dd-settings-feature-switch { background: #506277; }
+html[data-dd-theme='dark'] .dd-settings-feature-switch[aria-checked='true'] { background: #478fe6; }
+html[data-dd-theme='dark'] .dd-settings-pause-preview > button { color: #b7d8ff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-modal__grab,
+  .dd-settings-feature-switch,
+  .dd-settings-feature-switch > span,
+  .dd-settings-pause-row,
+  .dd-settings-pause-preview > button {
+    transition: none !important;
+  }
+}
+
+/* DDORANG / Mobile touch feedback v1
+   Mobile Chrome device toolbar + real touch devices. CSS only.
+   Shared visual feedback: no changes to teammate-owned components or app logic.
+   Deliberately avoids overriding existing transform/animation/selected states. */
+
+@media (hover: none), (pointer: coarse) {
+  /* Native touch highlight plus a small, immediate pressed reaction.
+     The individual `scale` property composes with existing `transform`
+     animations, so character, icon and card motions keep working. */
+  :where(
+    button:not(:disabled):not([aria-disabled='true']),
+    a[href]:not([aria-disabled='true']),
+    summary,
+    [role='button']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true'])
+  ) {
+    -webkit-tap-highlight-color: rgba(55, 128, 239, .16);
+  }
+
+  :where(
+    button:not(:disabled):not([aria-disabled='true']),
+    a[href]:not([aria-disabled='true']),
+    summary,
+    [role='button']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true'])
+  ):active {
+    scale: .975;
+    filter: brightness(.955);
+  }
+
+  /* Small controls shouldn't shrink as far as large cards. */
+  :where(
+    button[aria-label='설정 열기'],
+    button[aria-label*='뒤로'],
+    button[aria-label*='닫기'],
+    .dd-settings-feature-switch,
+    [role='switch']
+  ):not(:disabled):active {
+    scale: .93;
+  }
+
+  /* Show a visible gear nudge on touch-down. The existing
+     body:has(.dd-settings-backdrop) animation still runs on opening. */
+  header button[aria-label='설정 열기']:active > span[aria-hidden='true'] {
+    transform: rotate(43deg) scale(.94);
+  }
+
+  /* Keep the mobile bottom-sheet grabber visually responsive without
+     interfering with its pointer-capture based swipe-to-close. */
+  .dd-settings-modal__grab:active .dd-settings-modal__grab-indicator {
+    background-color: #8b9eb6;
+    width: 49px;
+  }
+  html[data-dd-theme='dark'] .dd-settings-modal__grab:active .dd-settings-modal__grab-indicator {
+    background-color: #94aac2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @media (hover: none), (pointer: coarse) {
+    :where(
+      button:not(:disabled), a[href], summary,
+      [role='button'], [role='tab'], [role='switch']
+    ):active { scale: 1; }
+    header button[aria-label='설정 열기']:active > span[aria-hidden='true'] {
+      transform: none;
+    }
+  }
+}
+
+/* DDORANG / Settings gear pre-open delay v2 */
+/* The settings overlay now mounts AFTER the pre-open 320ms icon turn.
+   Touch responses remain visual-only; links, APIs and other screens are unchanged. */
+header button[aria-label='설정 열기'][data-gear-opening='true'] > span[aria-hidden='true'] {
+  transform-origin: center;
+  /* Transition FROM the current hover/touch angle: no abrupt first frame. */
+  transform: rotate(160deg) !important;
+  transition: transform 320ms cubic-bezier(.22, .84, .32, 1) !important;
+  animation: none !important;
+}
+/* Prevent the OLD portal-dependent spin from firing again behind the sheet. */
+body:has(.dd-settings-backdrop) header button[aria-label='설정 열기'] > span[aria-hidden='true'] {
+  animation: none !important;
+}
+/* Short press + selected state: the existing v1 :active styles remain enabled.
+   Keyboard/mouse hover styles remain untouched. */
+@media (hover: none), (pointer: coarse) {
+  header button[aria-label='설정 열기'][data-gear-opening='true'] {
+    background: rgba(57, 129, 247, .11) !important;
+    border-radius: 12px;
+  }
+  html[data-dd-theme='dark'] header button[aria-label='설정 열기'][data-gear-opening='true'] {
+    background: rgba(217, 232, 248, .13) !important;
+  }
+  /* The setting options already have [aria-checked], but make their tapped
+     tint visible even on devices without hover support. */
+  .dd-settings-modal .dd-settings-option:not(:disabled):active,
+  .dd-settings-modal .dd-settings-pause-row:not(:disabled):active {
+    filter: brightness(.92);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  header button[aria-label='설정 열기'][data-gear-opening='true'] > span[aria-hidden='true'] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* DDORANG / Mobile content swipe + soft route transitions v3
+   Native touch scrolling is preferred; simulated mouse dragging is handled in
+   SettingsOverlay only. All page transitions are CSS-only, non-blocking.
+   Do not use global touch-action rules (map canvas must retain pinch/pan). */
+
+/* While the body is locked behind the dialog, give the sheet a real scroll pane.
+   Set touch-action on this scroll container only; never on the entire app/map. */
+.dd-settings-backdrop .dd-settings-modal__scroll {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+.dd-settings-backdrop .dd-settings-modal__scroll > .dd-settings-page--embedded {
+  touch-action: pan-y;
+}
+@media (max-width: 719px) {
+  .dd-settings-backdrop .dd-settings-modal {
+    /* A fixed max-height and flex layout keep the scrollable child bounded. */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .dd-settings-backdrop .dd-settings-modal__scroll {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+}
+
+/* Short fade-in on route content. Opacity does not create a containing block for
+   fixed-position descendants, unlike a permanent transform on the page root. */
+@media (max-width: 719px) and (prefers-reduced-motion: no-preference) {
+  #root main > :first-child {
+    animation: dd-mobile-route-arrive 245ms cubic-bezier(.18, .76, .3, 1) both;
+  }
+  #root main [role='tabpanel'] {
+    animation: dd-mobile-tab-arrive 180ms ease-out both;
+  }
+  /* The previous sheet used a spring overshoot. Make it more like a native app. */
+  .dd-settings-backdrop .dd-settings-modal {
+    animation: dd-mobile-sheet-arrive 320ms cubic-bezier(.22, .86, .32, 1) both;
+  }
+}
+@keyframes dd-mobile-route-arrive {
+  from { opacity: .68; }
+  to { opacity: 1; }
+}
+@keyframes dd-mobile-tab-arrive {
+  from { opacity: .8; }
+  to { opacity: 1; }
+}
+@keyframes dd-mobile-sheet-arrive {
+  from { opacity: .96; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #root main > :first-child,
+  #root main [role='tabpanel'] {
+    animation: none !important;
+  }
+  .dd-settings-backdrop .dd-settings-modal {
+    animation: none !important;
+  }
+}

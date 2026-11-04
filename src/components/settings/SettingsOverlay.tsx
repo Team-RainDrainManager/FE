@@ -1,10 +1,22 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import SettingsPage from '../../pages/settings/SettingsPage'
 
-/** 기존 팀원 SettingsModal을 변경하지 않고 설정 페이지를 띄우는 별도 모달 */
+/** 사용자가 담당하는 설정 화면 전용 모바일 바텀 시트. 기존 SettingsModal 원본은 유지합니다. */
 export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const pointerStartRef = useRef<number | null>(null)
+  // Real touch uses native inertial scrolling. Mouse drag is only a fallback
+  // for mobile-size Chrome DevTools previews on a desktop.
+  const mouseScrollRef = useRef<{
+    pointerId: number
+    startY: number
+    startScrollTop: number
+  } | null>(null)
+  const movedRef = useRef(0)
+  const ignoreClickRef = useRef(false)
+  const [dragY, setDragY] = useState(0)
+  const [dragging, setDragging] = useState(false)
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -12,13 +24,79 @@ export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
     }
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    closeButtonRef.current?.focus()
+    titleRef.current?.focus()
     window.addEventListener('keydown', handleEscape)
     return () => {
       window.removeEventListener('keydown', handleEscape)
       document.body.style.overflow = previousOverflow
     }
   }, [onClose])
+
+  function startDrag(event: PointerEvent<HTMLButtonElement>) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    pointerStartRef.current = event.clientY
+    movedRef.current = 0
+    ignoreClickRef.current = false
+    setDragging(true)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function moveDrag(event: PointerEvent<HTMLButtonElement>) {
+    if (pointerStartRef.current === null) return
+    const distance = Math.max(0, event.clientY - pointerStartRef.current)
+    movedRef.current = distance
+    setDragY(distance)
+  }
+
+  function finishDrag() {
+    if (pointerStartRef.current === null) return
+    const distance = movedRef.current
+    ignoreClickRef.current = distance > 8
+    pointerStartRef.current = null
+    movedRef.current = 0
+    setDragging(false)
+    if (distance > 90) onClose()
+    else setDragY(0)
+  }
+
+  function cancelDrag() {
+    pointerStartRef.current = null
+    movedRef.current = 0
+    ignoreClickRef.current = false
+    setDragging(false)
+    setDragY(0)
+  }
+
+  function startContentDrag(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return
+    if (!window.matchMedia('(max-width: 719px)').matches) return
+    if (event.target instanceof Element && event.target.closest(
+      'button, a, input, textarea, select, summary, [role="button"], [role="radio"], [role="switch"], [role="tab"], [contenteditable="true"]',
+    )) return
+    mouseScrollRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startScrollTop: event.currentTarget.scrollTop,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function moveContentDrag(event: PointerEvent<HTMLDivElement>) {
+    const gesture = mouseScrollRef.current
+    if (!gesture || gesture.pointerId !== event.pointerId) return
+    const delta = event.clientY - gesture.startY
+    if (Math.abs(delta) < 3) return
+    event.currentTarget.scrollTop = gesture.startScrollTop - delta
+  }
+
+  function endContentDrag(event: PointerEvent<HTMLDivElement>) {
+    const gesture = mouseScrollRef.current
+    if (!gesture || gesture.pointerId !== event.pointerId) return
+    mouseScrollRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
 
   return createPortal(
     <div
@@ -32,22 +110,41 @@ export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="dd-settings-modal-title"
+        style={{
+          translate: `0 ${dragY}px`,
+          transition: dragging ? 'none' : 'translate 220ms cubic-bezier(.2,.75,.25,1)',
+        }}
       >
+        <button
+          type="button"
+          className="dd-settings-modal__grab"
+          aria-label="설정 닫기: 아래로 밀거나 누르세요"
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={finishDrag}
+          onPointerCancel={cancelDrag}
+          onClick={() => {
+            if (ignoreClickRef.current) {
+              ignoreClickRef.current = false
+              return
+            }
+            onClose()
+          }}
+        >
+          <span className="dd-settings-modal__grab-indicator" aria-hidden="true" />
+        </button>
         <div className="dd-settings-modal__heading">
           <div>
             <p className="dd-settings-modal__eyebrow">MY DDORANG</p>
-            <h2 id="dd-settings-modal-title">설정</h2>
+            <h2 ref={titleRef} tabIndex={-1} id="dd-settings-modal-title">설정</h2>
           </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label="설정 닫기"
-            className="dd-settings-modal__close"
-          >✕</button>
         </div>
         <div
           className="dd-settings-modal__scroll"
+          onPointerDown={startContentDrag}
+          onPointerMove={moveContentDrag}
+          onPointerUp={endContentDrag}
+          onPointerCancel={endContentDrag}
           onClickCapture={(event) => {
             if (event.target instanceof Element && event.target.closest('a[href]')) onClose()
           }}
