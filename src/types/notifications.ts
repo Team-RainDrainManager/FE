@@ -9,7 +9,7 @@ export interface InspectionRequest {
     name: string | null
     latitude: number
     longitude: number
-    level: number | null // 입양 중 1~50, 미입양이면 null
+    level?: number | null // 현재 목록 API에는 제공되지 않음; 다른 UI 데이터에서는 사용 가능
   }
   state: InspectionRequestStatus
   role: InspectionRequestRole

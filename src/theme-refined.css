@@ -1247,3 +1247,29 @@ html[data-dd-theme='dark'] .dd-settings-account-dialog__buttons button:first-chi
   .dd-settings-modal__report, .dd-settings-theme-compact > button,
   .dd-settings-account-actions > button { transition: none !important; }
 }
+
+/* DDORANG-9: responsive sheet + instant opening */
+/* Gear never delays opening or rotates; preserve its icon and focus treatment. */
+header button[aria-label="설정 열기"] > span[aria-hidden="true"],
+header button[aria-label="설정 열기"]:hover > span[aria-hidden="true"],
+header button[aria-label="설정 열기"]:focus-visible > span[aria-hidden="true"],
+body:has(.dd-settings-backdrop) header button[aria-label="설정 열기"] > span[aria-hidden="true"] {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+/* Short sheet arrival; existing grab-to-dismiss and scroll behavior are unchanged. */
+.dd-settings-modal {
+  animation-duration: 145ms !important;
+  animation-timing-function: cubic-bezier(.2,.75,.25,1) !important;
+}
+@media (max-width: 719px) {
+  .dd-settings-modal {
+    height: 75dvh !important;
+    max-height: 75dvh !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-modal { animation: none !important; }
+}
+

@@ -1,8 +1,7 @@
-
-import { Outlet, useLocation } from 'react-router'
-
+import { useLocation } from 'react-router'
 import Header from '../components/layout/Header'
 import BottomNavigation from '../components/layout/BottomNavigation'
+import SwipeTabOutlet from '../components/layout/SwipeTabOutlet'
 import FirstTimeTour from '../components/FirstTimeTour'
 
 export default function MainLayout() {
@@ -22,7 +21,7 @@ export default function MainLayout() {
               : 'min-h-0 pb-[calc(68px+env(safe-area-inset-bottom))]'
           }
         >
-          <Outlet />
+          <SwipeTabOutlet />
         </main>
 
         {!isDetailPage && <BottomNavigation />}
