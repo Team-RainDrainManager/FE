@@ -4,6 +4,8 @@ import { completeOnboarding, getErrorMessage } from '../../apis/auth'
 import { useOnboardingStore } from '../../store/useOnboardingStore'
 import { clearOnboardingProgress } from '../login/auth-flow'
 import { markNicknamePending } from '../login/auth-flow'
+import { markOnboardingCompleted } from '../login/onboarding-status-cache'
+import { useAuthStore } from '../../store/useAuthStore'
 import '../login/auth-pages.css'
 
 export default function VerifyPage() {
@@ -21,6 +23,8 @@ export default function VerifyPage() {
     try {
       const result = await completeOnboarding(agreements)
       if (!result.completed) throw new Error('온보딩 완료 상태를 확인하지 못했습니다.')
+      const token = useAuthStore.getState().accessToken
+      if (token) markOnboardingCompleted(token, result)
       clearOnboardingProgress()
       clear()
       markNicknamePending()

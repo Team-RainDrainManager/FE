@@ -1,22 +1,35 @@
 
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import {
   getAdoptionDrainDetail,
   getMyAdoptionList,
 } from '../../apis/adoptions'
+import { getMyRainRequests } from '../../apis/requests'
 import { useAuthStore } from '../../store/useAuthStore'
 
 import DrainInfo from './components/DrainInfo'
 import DrainPhoto from './components/DrainPhoto'
 import DrainGrowth from './components/DrainGrowth'
 import DrainActions from './components/DrainActions'
+import { getDrainGrowth } from '../../apis/growth'
+import InspectionHistory from './components/InspectionHistory'
 
 export default function DrainDetailPage() {
   const { drainId } = useParams()
   const id = Number(drainId)
   const validId = Number.isInteger(id) && id > 0
+
+  const [searchParams] = useSearchParams()
+  const requestedId = searchParams.get('requestId')
+  const requestId =
+    requestedId === null ? null : Number(requestedId)
+
+  const validRequestId =
+    requestId !== null &&
+    Number.isSafeInteger(requestId) &&
+    requestId > 0
 
   const accessToken = useAuthStore(
     (state) => state.accessToken,
@@ -45,12 +58,59 @@ export default function DrainDetailPage() {
     retry: 1,
   })
 
+  // 현재 점검 요청의 컨텍스트를 별도 캐시에 보관
+  // 점검 제출 후 목록이 갱신되어도 인증 폼은 유지됨
+  const {
+    data: rainRequests,
+    isError: rainRequestError,
+    isPending: rainRequestPending,
+  } = useQuery({
+    queryKey: ['rain-inspection-context', requestId],
+    queryFn: ({ signal }) =>
+      getMyRainRequests(undefined, signal),
+    enabled:
+      validId &&
+      validRequestId &&
+      Boolean(accessToken),
+    staleTime: 60_000,
+    retry: 1,
+  })
+
+  // 실제 서버에 존재하며 점검 가능한 요청인지 확인
+  const rainRequest = rainRequests?.find(
+    (request) =>
+      request.requestId === requestId &&
+      request.drain.drainId === id &&
+      request.availableActions.includes('INSPECT') &&
+      (
+        request.role === 'OWNER' ||
+        request.role === 'CLAIMANT'
+      ),
+  )
+
   const isMine =
     drain?.adoption != null &&
     (myAdoptions?.adoptions.some(
       (item) =>
         item.adoptionId === drain.adoption?.adoptionId,
     ) ?? false)
+
+
+// 빗물받이 성장 정보 조회
+const {
+  data: growth,
+  isError: growthError,
+} = useQuery({
+  queryKey: ['drain-growth', id],
+  queryFn: ({ signal }) => getDrainGrowth(id, signal),
+  enabled:
+    validId &&
+    Boolean(accessToken) &&
+    Boolean(drain?.adoption),
+  staleTime: 30_000,
+  retry: 1,
+})
+
 
   if (!validId) {
     return (
@@ -110,17 +170,52 @@ export default function DrainDetailPage() {
       <div className="overflow-hidden rounded-[24px] border border-[#E8EDF5] bg-white shadow-[0_4px_18px_rgba(23,43,77,0.04)]">
         <DrainInfo drain={drain} />
 
-        <DrainGrowth
-          adoption={drain.adoption}
-        />
+        
+<DrainGrowth
+  adoption={drain.adoption}
+  growth={growth}
+/>
+
+{growthError && drain.adoption && (
+  <p
+    role="alert"
+    className="bg-white px-4 py-3 text-xs text-[#B84D4D]"
+  >
+    최신 성장 정보를 불러오지 못했어요.
+    기본 입양 정보로 표시하고 있어요.
+  </p>
+)}
+
       </div>
 
       <DrainPhoto drain={drain} />
 
-      <DrainActions
-        drain={drain}
-        isMine={isMine}
-      />
+      {validRequestId &&
+        !rainRequestPending &&
+        !rainRequest && (
+          <p
+            role="alert"
+            className="rounded-xl bg-[#FFF4DC] p-3 text-xs text-[#A97822]"
+          >
+            {rainRequestError
+              ? '비 예보 요청 정보를 불러오지 못했어요. 알림함에서 다시 시도해 주세요.'
+              : '현재 이 빗물받이에서 진행 가능한 비 예보 점검 요청이 없어요.'}
+          </p>
+        )}
+
+      
+<DrainActions
+  drain={drain}
+  isMine={isMine}
+  rainRequest={rainRequest}
+/>
+
+{isMine && drain.adoption && (
+  <InspectionHistory
+    adoptionId={drain.adoption.adoptionId}
+  />
+)}
+
     </div>
   )
 }

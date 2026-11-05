@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router'
 import { logout, getErrorMessage } from '../../apis/auth'
+import { getNotificationSettings, updateNotificationSettings, getPauseStatus, requestPause, type NotificationSettings, type PauseStatus } from '../../apis/profile-settings'
 import { withdrawMyAccount } from '../../apis/account'
 import { useAuthStore } from '../../store/useAuthStore'
 import { clearOnboardingProgress } from '../login/auth-flow'
@@ -11,13 +12,13 @@ import { queryClient } from '../../apis/query-client'
 import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstRun'
 import { useDecorationStore } from '../../store/useDecorationStore'
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
+import { requestPushPermission, syncPushTokenIfAllowed, unregisterPushDevice } from '../../services/push-messaging'
 
 const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] = [
   {id:'light',title:'라이트',description:'항상 밝은 화면',symbol:'☀'},
   {id:'dark',title:'다크',description:'항상 어두운 화면',symbol:'☾'},
   {id:'sun',title:'일출·일몰',description:'해 뜨면 라이트 · 해 지면 다크',symbol:'◐'},
 ]
-const NOTIFICATIONS_ENABLED_KEY = 'ddorang.notification.enabled.v1'
 const card = 'dd-settings-card rounded-[22px] border border-[#E5EEF7] bg-white p-5'
 
 export default function SettingsPage({ embedded = false, reportButtonRef }: { embedded?: boolean; reportButtonRef?: RefObject<HTMLButtonElement | null> }) {
@@ -38,17 +39,29 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
   const [reportCategory,setReportCategory] = useState('화면·디자인 오류')
   const [reportText,setReportText] = useState('')
   const [reportDone,setReportDone] = useState(false)
-  // Saves the preference on this device only. Push-delivery integration is not wired here.
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    try {
-      return window.localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) !== 'false'
-    } catch {
-      return true
-    }
-  })
+  // Server-backed settings. We never show a guessed default as a saved preference.
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null)
+  const [notificationLoading, setNotificationLoading] = useState(true)
+  const [notificationBusy, setNotificationBusy] = useState(false)
+  const [notificationError, setNotificationError] = useState('')
   const [notificationMessage, setNotificationMessage] = useState('')
-  const [pausePreviewOpen, setPausePreviewOpen] = useState(false)
-  const [pausePreviewActive, setPausePreviewActive] = useState(false)
+  const [notificationReload, setNotificationReload] = useState(0)
+  const [pauseOpen, setPauseOpen] = useState(false)
+  const [pauseStatus, setPauseStatus] = useState<PauseStatus | null>(null)
+  const [pauseLoading, setPauseLoading] = useState(false)
+  const [pauseBusy, setPauseBusy] = useState(false)
+  const [pauseError, setPauseError] = useState('')
+  const [pauseConfirm, setPauseConfirm] = useState(false)
+  const [pauseMessage, setPauseMessage] = useState('')
+
+  useEffect(() => {
+    let active = true
+    void getNotificationSettings()
+      .then(value => { if (active) { setNotificationSettings(value); setNotificationError('') } })
+      .catch((error: unknown) => { if (active) setNotificationError(getErrorMessage(error)) })
+      .finally(() => { if (active) setNotificationLoading(false) })
+    return () => { active = false }
+  }, [notificationReload])
 
   useEffect(() => {
     if (!notificationMessage) return
@@ -56,16 +69,76 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     return () => window.clearTimeout(timeoutId)
   }, [notificationMessage])
 
-  function handleNotificationsToggle() {
-    const enabled = !notificationsEnabled
+  async function changeNotificationSetting(key: keyof NotificationSettings) {
+    if (!notificationSettings || notificationBusy) return
+    setNotificationBusy(true)
+    setNotificationError('')
+    const enablingPush = key === 'notifications' && !notificationSettings.notifications
     try {
-      window.localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, enabled ? 'true' : 'false')
-    } catch {
-      setNotificationMessage('알림 설정을 저장하지 못했습니다.')
-      return
+      // 사용자가 기존 스위치를 직접 켤 때만 브라우저 알림 권한을 요청합니다.
+      // 새 버튼·카드·추가 문구는 만들지 않습니다.
+      let permissionError: unknown = null
+      if (enablingPush) {
+        try { await requestPushPermission() }
+        catch (error: unknown) { permissionError = error }
+      }
+      // 기기 권한 오류와 서버의 사용자 알림 선호 설정은 서로 독립적으로 처리합니다.
+      const next = await updateNotificationSettings({ [key]: !notificationSettings[key] })
+      setNotificationSettings(next)
+      setNotificationMessage(key === 'notifications'
+        ? (next.notifications ? '활동 알림을 켰습니다.' : '활동 알림을 껐습니다.')
+        : (next.nightConsent ? '야간 푸시를 켰습니다.' : '야간 푸시를 껐습니다.'))
+      // 알림 설정의 서버 저장이 끝난 뒤 기기 토큰을 동기화합니다.
+      if (key === 'notifications') {
+        try {
+          if (next.notifications) {
+            if (permissionError) throw permissionError
+            await syncPushTokenIfAllowed()
+          } else await unregisterPushDevice()
+        } catch (error: unknown) {
+          setNotificationError(`설정은 저장됐지만 기기 푸시 연결에 실패했습니다: ${getErrorMessage(error)}`)
+        }
+      }
+    } catch (error: unknown) {
+      setNotificationError(getErrorMessage(error))
+    } finally {
+      setNotificationBusy(false)
     }
-    setNotificationsEnabled(enabled)
-    setNotificationMessage(enabled ? '알림이 켜졌습니다.' : '알림이 꺼졌습니다.')
+  }
+
+  async function openPause() {
+    if (pauseOpen) { setPauseOpen(false); setPauseConfirm(false); return }
+    setPauseOpen(true)
+    setPauseLoading(true)
+    setPauseStatus(null)
+    setPauseError('')
+    try { setPauseStatus(await getPauseStatus()) }
+    catch (error: unknown) { setPauseError(getErrorMessage(error)) }
+    finally { setPauseLoading(false) }
+  }
+
+  async function applyPause() {
+    if (!pauseStatus?.canApply || pauseStatus.activeUntil || pauseBusy) return
+    setPauseBusy(true)
+    setPauseError('')
+    setPauseConfirm(false)
+    try {
+      await requestPause()
+      setPauseMessage('점검 쉬기 신청이 완료됐습니다.')
+      try { setPauseStatus(await getPauseStatus()) }
+      catch { setPauseStatus(null); setPauseError('신청은 완료됐지만 최신 상태를 불러오지 못했습니다. 다시 열어 확인해 주세요.') }
+    } catch (error: unknown) {
+      setPauseError(getErrorMessage(error))
+    } finally {
+      setPauseBusy(false)
+    }
+  }
+
+  function prettyDate(iso: string) {
+    const date = new Date(iso)
+    return Number.isNaN(date.getTime()) ? iso : new Intl.DateTimeFormat('ko-KR', {
+      year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Seoul',
+    }).format(date)
   }
 
   function clearLocalAccountState() {
@@ -83,6 +156,12 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     setAccountBusy(true)
     let message = '로그아웃되었습니다.'
     try {
+      // 서버 명세: 로그아웃 전에 이 브라우저의 FCM 토큰을 해제합니다.
+      try {
+        await unregisterPushDevice()
+      } catch {
+        // 푸시 해제 실패가 로그아웃 자체를 막아서는 안 됩니다.
+      }
       await logout()
     } catch (error: unknown) {
       message = `서버 로그아웃 요청 실패: ${getErrorMessage(error)}. 이 기기에서만 로그아웃했습니다.`
@@ -160,42 +239,60 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     </section>
     <div className={`${card} dd-settings-feature-card`}>
       <h3>알림</h3>
-      <div className="dd-settings-feature-row">
-        <div className="dd-settings-feature-text">
-          <p className="dd-settings-feature-name">알림 받기</p>
-          <small className="dd-settings-feature-desc">점검 일정과 또랑이 돌봄 소식을 받아요.</small>
+      {notificationLoading ? <p role="status" className="dd-settings-feature-desc">설정을 불러오는 중입니다…</p> : notificationSettings ? <>
+        <div className="dd-settings-feature-row">
+          <div className="dd-settings-feature-text">
+            <p className="dd-settings-feature-name">활동 알림</p>
+            <small className="dd-settings-feature-desc">점검 일정과 또랑이 돌봄 소식을 받아요.</small>
+          </div>
+          <button type="button" role="switch" aria-label="활동 알림" aria-checked={notificationSettings.notifications}
+            disabled={notificationBusy} className="dd-settings-feature-switch"
+            onClick={() => { void changeNotificationSetting('notifications') }}><span aria-hidden="true" /></button>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-label="알림 받기"
-          aria-checked={notificationsEnabled}
-          className="dd-settings-feature-switch"
-          onClick={handleNotificationsToggle}
-        ><span aria-hidden="true" /></button>
-      </div>
-      <p className="dd-settings-feature-note">설정은 이 기기에 저장돼요. 실제 푸시 서버 연동 전입니다.</p>
+        <div className="dd-settings-feature-row">
+          <div className="dd-settings-feature-text">
+            <p className="dd-settings-feature-name">야간 푸시 알림</p>
+            <small className="dd-settings-feature-desc">밤 10시부터 오전 8시까지 푸시를 받을지 선택해요.</small>
+          </div>
+          <button type="button" role="switch" aria-label="야간 푸시 알림" aria-checked={notificationSettings.nightConsent}
+            disabled={notificationBusy} className="dd-settings-feature-switch"
+            onClick={() => { void changeNotificationSetting('nightConsent') }}><span aria-hidden="true" /></button>
+        </div>
+      </> : null}
+      {notificationError && <div role="alert" className="mt-3 text-xs text-[#C65A62]">
+        {notificationError}
+        {!notificationSettings && <button type="button" className="ml-2 underline" onClick={() => { setNotificationLoading(true); setNotificationReload(value => value + 1) }}>다시 시도</button>}
+      </div>}
     </div>
     <div className={`${card} dd-settings-feature-card`}>
       <h3>돌봄 관리</h3>
-      <button
-        type="button"
-        className="dd-settings-pause-row"
-        aria-expanded={pausePreviewOpen}
-        onClick={() => setPausePreviewOpen(value => !value)}
-      >
+      <button type="button" className="dd-settings-pause-row" aria-expanded={pauseOpen} onClick={() => { void openPause() }}>
         <span className="dd-settings-feature-text">
           <span className="dd-settings-feature-name">점검 쉬기</span>
           <small className="dd-settings-feature-desc">14일간 정기 점검을 쉬는 기능이에요.</small>
         </span>
-        <span className="dd-settings-pause-arrow" aria-hidden="true">{pausePreviewOpen ? '⌄' : '›'}</span>
+        <span className="dd-settings-pause-arrow" aria-hidden="true">{pauseOpen ? '⌄' : '›'}</span>
       </button>
-      {pausePreviewOpen && <div className="dd-settings-pause-preview">
-        <p>시연용 설정입니다. 실제 점검 일정이나 서버 상태는 바뀌지 않습니다.</p>
-        <button type="button" onClick={() => setPausePreviewActive(value => !value)}>
-          {pausePreviewActive ? '시연 상태 해제' : '14일 쉬기 미리보기'}
-        </button>
-        {pausePreviewActive && <p role="status" className="mt-2">점검 쉬기 화면 시연 중입니다.</p>}
+      {pauseOpen && <div className="dd-settings-pause-preview">
+        {pauseLoading ? <p role="status">쉬기 상태를 확인하는 중입니다…</p> : <>
+          {pauseError && <p role="alert" className="text-[#C65A62]">{pauseError}</p>}
+          {pauseMessage && <p role="status">{pauseMessage}</p>}
+          {pauseStatus && <>
+            {pauseStatus.activeUntil ? <p>{prettyDate(pauseStatus.activeUntil)}까지 정기 점검을 쉬고 있습니다.</p>
+              : pauseStatus.canApply ? <p>신청하면 14일 동안 정기 점검과 자동 입양 해제가 보류됩니다. 취소·연장은 할 수 없고, 90일에 한 번 신청할 수 있습니다. 비 예보 점검 요청은 계속 받습니다.</p>
+              : <p>{pauseStatus.reason === 'NO_ADOPTION' ? '입양한 빗물받이가 있어야 신청할 수 있습니다.' : '현재 점검 쉬기를 신청할 수 없습니다.'}</p>}
+            {!pauseStatus.canApply && pauseStatus.nextAvailableAt && <p>다음 신청 가능일: {prettyDate(pauseStatus.nextAvailableAt)}</p>}
+            {pauseStatus.canApply && !pauseStatus.activeUntil && !pauseConfirm &&
+              <button type="button" disabled={pauseBusy} onClick={() => setPauseConfirm(true)}>점검 쉬기 신청</button>}
+            {pauseConfirm && <div className="mt-3 space-y-2" role="group" aria-label="점검 쉬기 신청 확인">
+              <p>14일 쉬기를 신청하시겠습니까? 신청 후 취소할 수 없습니다.</p>
+              <div className="flex gap-2">
+                <button type="button" disabled={pauseBusy} onClick={() => setPauseConfirm(false)}>취소</button>
+                <button type="button" disabled={pauseBusy} onClick={() => { void applyPause() }}>{pauseBusy ? '신청 중…' : '신청 확정'}</button>
+              </div>
+            </div>}
+          </>}
+        </>}
       </div>}
     </div>
     <div className="dd-settings-account-actions">

@@ -172,14 +172,49 @@
 .dd-login-character-button:has(.dd-login-character-action--dance) .dd-login-character-sparkles {
   animation: dd-login-sparkles 1.2s ease-out both;
 }
-.dd-login-character-hint {
-  margin: -6px 0 0;
-  color: #6e94b5;
+.dd-login-character-tip {
+  position: absolute;
+  z-index: 3;
+  top: 18%;
+  right: -18px;
+  padding: 6px 10px;
+  border: 1px solid #c6d9ec;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #3d6f97;
   font-size: 10px;
-  font-weight: 600;
-  text-align: center;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(38, 75, 111, 0.12);
+  pointer-events: none;
 }
 
+.dd-login-character-tip::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  border-right: 1px solid #c6d9ec;
+  border-bottom: 1px solid #c6d9ec;
+  transform: rotate(45deg);
+}
+
+html[data-dd-theme="dark"] .dd-login-character-tip {
+  background: rgba(18, 34, 52, 0.96);
+  border-color: #35506b;
+  color: #d9e9f7;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+html[data-dd-theme="dark"] .dd-login-character-tip::after {
+  background: rgba(18, 34, 52, 0.96);
+  border-right-color: #35506b;
+  border-bottom-color: #35506b;
+}
 .dd-login-features {
   flex: none;
   padding: clamp(13px, 2dvh, 18px) 12px 15px;
@@ -368,3 +403,95 @@
 .dd-login--cloud {background:linear-gradient(165deg,#C7DBEB,#DFEBF5,#F3F8FC);}
 .dd-login-weather{display:inline-block;margin:12px auto 0;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.55);font-size:11px;font-weight:700;color:#3c759b;}
 html[data-dd-theme="dark"] .dd-login-weather{background:rgba(255,255,255,.08);color:#c5ddf2;}
+
+/* ddorang-13-bubbles: begin */
+/* Minimal, balanced speech bubbles. The rounded corners serve as tails;
+   the old rotated-square tail (which resembled ">") is removed. */
+.dd-login-character-button .dd-login-character-tip,
+.dd-login-character-button .dd-login-character-speech {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  width: 108px;
+  min-height: 44px;
+  max-width: none;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.42;
+  letter-spacing: -0.035em;
+  text-align: center;
+  white-space: normal;
+  word-break: keep-all;
+  text-wrap: balance;
+  pointer-events: none;
+  filter: none;
+}
+
+/* 안내 말풍선 — 캐릭터 왼쪽. 두 줄로 읽기 쉬운 파스텔 톤. */
+.dd-login-character-button .dd-login-character-tip {
+  position: absolute;
+  top: 18%;
+  right: calc(100% - 40px);
+  left: auto;
+  border-color: #bfdcf0;
+  border-radius: 16px 16px 6px 16px;
+  background: #f5faff;
+  color: #315e81;
+  box-shadow: 0 5px 14px rgba(25, 70, 112, 0.13);
+}
+
+/* 반응 말풍선 — 캐릭터 오른쪽. 진한 파란색으로 구분. */
+.dd-login-character-button .dd-login-character-speech {
+  top: 11%;
+  right: auto;
+  left: calc(100% - 40px);
+  border-color: #2478bf;
+  border-radius: 16px 16px 16px 6px;
+  background: #287ecb;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(23, 76, 133, 0.21);
+}
+
+/* 기존의 회전된 네모 꼬리가 > 문자처럼 보이던 현상 제거. */
+.dd-login-character-button .dd-login-character-tip::before,
+.dd-login-character-button .dd-login-character-tip::after,
+.dd-login-character-button .dd-login-character-speech::before,
+.dd-login-character-button .dd-login-character-speech::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* 테마와 관계없이 좌우 위치/크기는 동일하게 유지합니다. */
+html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-tip {
+  border-color: #496f90;
+  background: #213950;
+  color: #e0f0ff;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.24);
+}
+html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-speech {
+  border-color: #5287b9;
+  background: #2c70aa;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.27);
+}
+
+/* 좁은 휴대폰에서도 좌우 끝이 잘리지 않도록 위치 조절. */
+@media (max-width: 360px) {
+  .dd-login-character-button .dd-login-character-tip,
+  .dd-login-character-button .dd-login-character-speech {
+    width: 96px;
+    padding: 7px 8px;
+    font-size: 9.5px;
+  }
+  .dd-login-character-button .dd-login-character-tip {
+    right: calc(100% - 54px);
+  }
+  .dd-login-character-button .dd-login-character-speech {
+    left: calc(100% - 54px);
+  }
+}
+/* ddorang-13-bubbles: end */

@@ -1,5 +1,6 @@
 
 import { apiClient } from './axios-instance'
+
 import type {
   AdoptionStatus,
   DrainMapItem,
@@ -16,31 +17,54 @@ interface ApiResponse<T> {
   } | null
 }
 
-// 실제 지도 목록 API 응답
+// GET /api/v1/drain 응답
 interface DrainListDto {
   id: number
-  latitude: number
-  longitude: number
-  adoptionStatus: AdoptionStatus
-  risk: boolean
-
-  // 백엔드 추가 예정 필드
   name?: string | null
+  address?: string | null
+
+  latitude: number | null
+  longitude: number | null
+
+  adoptionStatus: AdoptionStatus | null
+  risk?: boolean | null
+
+  status?: string | null
+  displayStatus?: string | null
+  displayStatusLabel?: string | null
+
+  dirtLevel?: number | null
   level?: number | null
+  levelTitle?: string | null
+
+  xp?: number | null
   score?: number | null
   nickname?: string | null
-  address?: string | null
 }
 
-// 빗물받이 상세 API 응답
+// GET /api/v1/drain/{drainId} 응답
 export interface DrainDetailDto {
   id: number
+  name?: string | null
+  address?: string | null
+
   status: 'ACTIVE' | 'PENDING' | 'REMOVED'
   adoptionStatus: AdoptionStatus
+
+  displayStatus?: string | null
+  displayStatusLabel?: string | null
+  risk?: boolean | null
+
   latitude: number
   longitude: number
   photoUrl: string | null
   dirtLevel: number
+
+  level?: number | null
+  levelTitle?: string | null
+  xp?: number | null
+  nextLevelScore?: number | null
+  progressPercent?: number | null
 
   adoption: {
     adoptionId: number
@@ -53,7 +77,6 @@ export interface DrainDetailDto {
   } | null
 }
 
-// 위도/경도 유효성 검사
 function validCoordinate(
   value: number | null | undefined,
   limit: number,
@@ -69,30 +92,68 @@ function validCoordinate(
   return value
 }
 
-// 서버 데이터를 지도 상태로 변환
-function getStatus(
-  adoptionStatus: AdoptionStatus | null,
-  isRisk: boolean | null,
-): DrainMapStatus {
+const MAP_STATUSES: readonly DrainMapStatus[] = [
+  'unadopted',
+  'normal',
+  'overdue',
+  'blocked',
+  'risk',
+  'unknown',
+]
+
+// 백엔드의 지도용 status를 우선 사용
+function resolveMapStatus({
+  status,
+  displayStatus,
+  adoptionStatus,
+  risk,
+}: {
+  status?: string | null
+  displayStatus?: string | null
+  adoptionStatus: AdoptionStatus | null
+  risk: boolean | null
+}): DrainMapStatus {
+  if (
+    status &&
+    MAP_STATUSES.some((item) => item === status)
+  ) {
+    return status as DrainMapStatus
+  }
+
+  // 상세 API는 status가 ACTIVE 등의 등록 상태이므로
+  // displayStatus를 지도용 상태로 변환
+  switch (displayStatus) {
+    case 'BLOCKAGE_REPORTED':
+      return 'blocked'
+
+    case 'OVERDUE':
+    case 'INSPECTION_OVERDUE':
+      return 'overdue'
+
+    case 'AVAILABLE':
+      return 'unadopted'
+
+    case 'NORMAL':
+      return 'normal'
+  }
+
+  // 구형 응답 호환용
   if (adoptionStatus === 'AVAILABLE') {
     return 'unadopted'
   }
 
-  if (isRisk === true) {
-    return 'risk'
+  if (adoptionStatus === 'ADOPTED') {
+    return 'normal'
   }
 
-  if (
-    adoptionStatus === 'ADOPTED' &&
-    isRisk === false
-  ) {
-    return 'normal'
+  if (risk === true) {
+    return 'risk'
   }
 
   return 'unknown'
 }
 
-// 목록 API 응답을 프론트 타입으로 변환
+// 목록 데이터를 화면 표시용으로 변환
 function toMapItem(dto: DrainListDto): DrainMapItem {
   const adoptionStatus = dto.adoptionStatus ?? null
   const isRisk = dto.risk ?? null
@@ -110,15 +171,24 @@ function toMapItem(dto: DrainListDto): DrainMapItem {
     adoptionStatus,
     isRisk,
 
-    status: getStatus(adoptionStatus, isRisk),
+    status: resolveMapStatus({
+      status: dto.status,
+      displayStatus: dto.displayStatus,
+      adoptionStatus,
+      risk: isRisk,
+    }),
+
+    displayStatus: dto.displayStatus ?? null,
+    displayStatusLabel: dto.displayStatusLabel ?? null,
+    dirtLevel: dto.dirtLevel ?? null,
+    levelTitle: dto.levelTitle ?? null,
 
     level: dto.level ?? null,
-    score: dto.score ?? null,
+    score: dto.xp ?? dto.score ?? null,
   }
 }
 
-// GET /api/v1/drain
-// 지도 영역 내 빗물받이 목록 조회
+// 지도 위 빗물받이 목록 조회
 export async function getMapDrains(
   bounds: MapBoundsParams,
   signal?: AbortSignal,
@@ -146,7 +216,6 @@ export async function getMapDrains(
   return response.data.data.map(toMapItem)
 }
 
-// GET /api/v1/drain/{drainId}
 // 특정 빗물받이 상세 조회
 export async function getDrainDetail(
   drainId: number,
@@ -168,30 +237,62 @@ export async function getDrainDetail(
   return response.data.data
 }
 
-// 목록 데이터를 상세 조회 결과로 보강
+// 목록 + 상세 정보 병합
 export function mergeDrainDetail(
   drain: DrainMapItem,
   detail: DrainDetailDto,
 ): DrainMapItem {
   const adoptionStatus = detail.adoptionStatus
+  const isRisk = detail.risk ?? drain.isRisk
 
   return {
     ...drain,
+
+    name: detail.name?.trim() || drain.name,
+    address: detail.address ?? drain.address,
 
     latitude: validCoordinate(detail.latitude, 90),
     longitude: validCoordinate(detail.longitude, 180),
 
     adoptionStatus,
+    isRisk,
 
     nickname:
       detail.adoption?.nickname ?? drain.nickname,
 
     level:
-      detail.adoption?.level ?? drain.level,
+      detail.level ??
+      detail.adoption?.level ??
+      drain.level,
 
     score:
-      detail.adoption?.score ?? drain.score,
+      detail.xp ??
+      detail.adoption?.score ??
+      drain.score,
 
-    status: getStatus(adoptionStatus, drain.isRisk),
+    levelTitle:
+      detail.levelTitle ?? drain.levelTitle,
+
+    dirtLevel:
+      detail.dirtLevel ?? drain.dirtLevel,
+
+    displayStatus:
+      detail.displayStatus ?? drain.displayStatus,
+
+    displayStatusLabel:
+      detail.displayStatusLabel ??
+      drain.displayStatusLabel,
+
+    status: resolveMapStatus({
+      // 상세 응답에 별도 표시 상태가 있으면
+      // 그것을 우선하고, 없으면 기존 목록 상태 유지
+      status: detail.displayStatus
+        ? undefined
+        : drain.status,
+      displayStatus:
+        detail.displayStatus ?? drain.displayStatus,
+      adoptionStatus,
+      risk: isRisk,
+    }),
   }
 }

@@ -93,7 +93,8 @@ export default function DrainListPanel({
                         STATUS_STYLE[drain.status]
                       }`}
                     >
-                      {STATUS_TEXT[drain.status]}
+                      {drain.displayStatusLabel ??
+                        STATUS_TEXT[drain.status]}
                     </span>
 
                     <span className="text-sm font-bold text-[#284B66]">
@@ -110,19 +111,23 @@ export default function DrainListPanel({
                   </p>
                 </div>
 
-                <div className="shrink-0 text-right">
-                  {drain.level !== null && (
-                    <p className="text-sm font-bold text-[#338CF0]">
-                      Lv.{drain.level}
-                    </p>
-                  )}
+                
+<div className="shrink-0 text-right">
+  {drain.level !== null && (
+    <p className="text-sm font-bold text-[#338CF0]">
+      Lv.{drain.level}
+      {drain.levelTitle &&
+        ` · ${drain.levelTitle}`}
+    </p>
+  )}
 
-                  {drain.score !== null && (
-                    <p className="mt-1 text-[11px] text-[#93A2AF]">
-                      점수 {drain.score}
-                    </p>
-                  )}
-                </div>
+  {drain.score !== null && (
+    <p className="mt-1 text-[11px] text-[#93A2AF]">
+      {drain.score} XP
+    </p>
+  )}
+</div>
+
               </button>
             ))
           )}

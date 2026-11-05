@@ -3,6 +3,7 @@ import { useThemeStore } from '../store/useThemeStore'
 import { fetchSky } from '../utils/sky'
 import '../theme.css'
 import '../theme-refined.css'
+import '../theme-parity.css'
 
 export default function ThemeController() {
   const mode = useThemeStore(s => s.mode)
