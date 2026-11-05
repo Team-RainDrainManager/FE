@@ -8,6 +8,7 @@ import type { InspectionRequest } from '../../../types/notifications'
 import { AdoptForm, ReleaseForm } from './AdoptionForms'
 import { InspectForm } from '../../mydrains/components/ActionForms'
 import RainInspectForm from './RainInspectForm'
+import ReportDraftModal from '../../map/components/ReportDraftModal'
 
 type Action =
   | 'adopt'
@@ -40,6 +41,8 @@ export default function DrainActions({
 
   const [dismissedRequestId, setDismissedRequestId] =
     useState<number | null>(null)
+  
+  const [reportNotice, setReportNotice] = useState('')
 
   const canAdopt =
     drain.status === 'ACTIVE' &&
@@ -182,8 +185,17 @@ export default function DrainActions({
       >
         이곳을 제보하기
       </button>
+        
+{reportNotice && (
+  <p
+    role="status"
+    className="rounded-xl bg-[#E8F7EF] p-3 text-center text-xs font-semibold text-[#259B68]"
+  >
+    {reportNotice}
+  </p>
+)}
 
-      {activeAction && (
+      {activeAction && activeAction !== 'report' && (
         <ModalShell
           title={
             activeAction === 'rain-inspect' &&
@@ -235,15 +247,29 @@ export default function DrainActions({
               />
             )}
 
-          {activeAction === 'report' && (
-            <p className="text-xs leading-relaxed text-[#607C99]">
-              막힘, 신규 등록, 위치 수정,
-              삭제 요청, 악취 등의 제보 기능은
-              별도 화면에서 연결할 예정이에요.
-            </p>
-          )}
         </ModalShell>
       )}
+      
+{activeAction === 'report' && (
+  <ReportDraftModal
+    drains={[
+      {
+        id: drain.id,
+        name: `빗물받이 #${drain.id}`,
+        nickname: drain.adoption?.nickname ?? null,
+      },
+    ]}
+    initialDrainId={drain.id}
+    onClose={closeModal}
+    onComplete={(reportId) => {
+      closeModal()
+      setReportNotice(
+        `제보 #${reportId}가 접수됐어요. 관리자 검토를 기다리고 있어요.`,
+      )
+    }}
+  />
+)}
+
     </>
   )
 }

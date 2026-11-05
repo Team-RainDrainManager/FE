@@ -84,13 +84,18 @@ export default function DrainMarker({
       <button
         type="button"
         onClick={() => onSelect(drain)}
-        aria-label={`${
-          drain.nickname ?? drain.name
-        }, ${
-          drain.level !== null
-            ? `레벨 ${drain.level}, `
-            : ''
-        }${STATUS_NAMES[drain.status]}`}
+        
+aria-label={`${
+  drain.nickname ?? drain.name
+}, ${
+  drain.level !== null
+    ? `레벨 ${drain.level}, `
+    : ''
+}${
+  drain.displayStatusLabel ??
+  STATUS_NAMES[drain.status]
+}`}
+
         aria-pressed={selected}
         className="flex cursor-pointer flex-col items-center"
       >
