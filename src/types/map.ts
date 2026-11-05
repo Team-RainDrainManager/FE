@@ -15,6 +15,7 @@ export type DrainMapFilter =
 
 export type AdoptionStatus = 'AVAILABLE' | 'ADOPTED'
 
+
 export interface DrainMapItem {
   id: number
   name: string
@@ -28,9 +29,19 @@ export interface DrainMapItem {
   isRisk: boolean | null
 
   status: DrainMapStatus
+
+  // 새 백엔드 응답
+  displayStatus?: string | null
+  displayStatusLabel?: string | null
+  dirtLevel?: number | null
+  levelTitle?: string | null
+
   level: number | null
+
+  // 기존 컴포넌트 호환용 (서버의 xp 매핑)
   score: number | null
 }
+
 
 export interface PositionedDrainMapItem extends DrainMapItem {
   latitude: number

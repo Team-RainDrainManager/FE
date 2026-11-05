@@ -393,33 +393,31 @@ function KakaoMapContent({
     handleSelectDrain(filteredDrains[0])
   }
 
-  // 제보는 현재 UI 시연 상태 유지
-  const handleReportComplete = () => {
-    setReportOpen(false)
-    setNotice(
-      '제보 입력을 확인했어요. 아직 서버에 제출되지는 않습니다.',
-    )
-  }
+  
+const handleReportComplete = (reportId: number) => {
+  setReportOpen(false)
+  setNotice(
+    `제보 #${reportId}가 접수됐어요. 관리자 검토 후 처리됩니다.`,
+  )
+}
+
 
   const missingCoordinates = drains.some(
     (drain) => !hasCoordinates(drain),
   )
 
-  const unavailableFilter =
-    filter === 'overdue' || filter === 'blocked'
 
-  const fetchingDrains =
-    requestBounds !== null && drainsPending
+const fetchingDrains =
+  requestBounds !== null && drainsPending
 
-  const statusNotice = drainsError
-    ? getErrorText(drainsQueryError)
-    : fetchingDrains
-      ? '빗물받이 목록을 불러오는 중이에요.'
-      : unavailableFilter
-        ? '현재 API로는 점검 지연과 막힘 제보를 구분할 수 없어요.'
-        : missingCoordinates
-          ? '일부 빗물받이는 좌표가 없어 마커를 표시할 수 없어요. 목록에서 선택해 주세요.'
-          : ''
+const statusNotice = drainsError
+  ? getErrorText(drainsQueryError)
+  : fetchingDrains
+    ? '빗물받이 목록을 불러오는 중이에요.'
+    : missingCoordinates
+      ? '일부 빗물받이는 좌표가 없어 마커를 표시할 수 없어요. 목록에서 선택해 주세요.'
+      : ''
+
 
   return (
     <main
@@ -618,9 +616,8 @@ function KakaoMapContent({
                     )}
 
                     <span className="text-xs text-[#7A8F9F]">
-                      {STATUS_LABELS[
-                        selectedDrain.status
-                      ]}
+                      {selectedDrain.displayStatusLabel ??
+                        STATUS_LABELS[selectedDrain.status]}
                     </span>
                   </div>
 
@@ -636,7 +633,7 @@ function KakaoMapContent({
 
                   <p className="mt-2 text-xs text-[#607B90]">
                     {selectedDrain.score !== null &&
-                      `점수 ${selectedDrain.score} · `}
+                      `XP ${selectedDrain.score} · `}
                     빗물받이 #{selectedDrain.id}
                   </p>
                 </div>
