@@ -13,6 +13,8 @@ import DrainInfo from './components/DrainInfo'
 import DrainPhoto from './components/DrainPhoto'
 import DrainGrowth from './components/DrainGrowth'
 import DrainActions from './components/DrainActions'
+import { getDrainGrowth } from '../../apis/growth'
+import InspectionHistory from './components/InspectionHistory'
 
 export default function DrainDetailPage() {
   const { drainId } = useParams()
@@ -93,6 +95,23 @@ export default function DrainDetailPage() {
         item.adoptionId === drain.adoption?.adoptionId,
     ) ?? false)
 
+
+// 빗물받이 성장 정보 조회
+const {
+  data: growth,
+  isError: growthError,
+} = useQuery({
+  queryKey: ['drain-growth', id],
+  queryFn: ({ signal }) => getDrainGrowth(id, signal),
+  enabled:
+    validId &&
+    Boolean(accessToken) &&
+    Boolean(drain?.adoption),
+  staleTime: 30_000,
+  retry: 1,
+})
+
+
   if (!validId) {
     return (
       <div className="px-5 py-16 text-center">
@@ -151,9 +170,22 @@ export default function DrainDetailPage() {
       <div className="overflow-hidden rounded-[24px] border border-[#E8EDF5] bg-white shadow-[0_4px_18px_rgba(23,43,77,0.04)]">
         <DrainInfo drain={drain} />
 
-        <DrainGrowth
-          adoption={drain.adoption}
-        />
+        
+<DrainGrowth
+  adoption={drain.adoption}
+  growth={growth}
+/>
+
+{growthError && drain.adoption && (
+  <p
+    role="alert"
+    className="bg-white px-4 py-3 text-xs text-[#B84D4D]"
+  >
+    최신 성장 정보를 불러오지 못했어요.
+    기본 입양 정보로 표시하고 있어요.
+  </p>
+)}
+
       </div>
 
       <DrainPhoto drain={drain} />
@@ -171,11 +203,19 @@ export default function DrainDetailPage() {
           </p>
         )}
 
-      <DrainActions
-        drain={drain}
-        isMine={isMine}
-        rainRequest={rainRequest}
-      />
+      
+<DrainActions
+  drain={drain}
+  isMine={isMine}
+  rainRequest={rainRequest}
+/>
+
+{isMine && drain.adoption && (
+  <InspectionHistory
+    adoptionId={drain.adoption.adoptionId}
+  />
+)}
+
     </div>
   )
 }
