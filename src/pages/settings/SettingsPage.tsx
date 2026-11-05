@@ -12,6 +12,7 @@ import { queryClient } from '../../apis/query-client'
 import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstRun'
 import { useDecorationStore } from '../../store/useDecorationStore'
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
+import { requestPushPermission, syncPushTokenIfAllowed, unregisterPushDevice } from '../../services/push-messaging'
 
 const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] = [
   {id:'light',title:'라이트',description:'항상 밝은 화면',symbol:'☀'},
@@ -72,12 +73,32 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     if (!notificationSettings || notificationBusy) return
     setNotificationBusy(true)
     setNotificationError('')
+    const enablingPush = key === 'notifications' && !notificationSettings.notifications
     try {
+      // 사용자가 기존 스위치를 직접 켤 때만 브라우저 알림 권한을 요청합니다.
+      // 새 버튼·카드·추가 문구는 만들지 않습니다.
+      let permissionError: unknown = null
+      if (enablingPush) {
+        try { await requestPushPermission() }
+        catch (error: unknown) { permissionError = error }
+      }
+      // 기기 권한 오류와 서버의 사용자 알림 선호 설정은 서로 독립적으로 처리합니다.
       const next = await updateNotificationSettings({ [key]: !notificationSettings[key] })
       setNotificationSettings(next)
       setNotificationMessage(key === 'notifications'
         ? (next.notifications ? '활동 알림을 켰습니다.' : '활동 알림을 껐습니다.')
         : (next.nightConsent ? '야간 푸시를 켰습니다.' : '야간 푸시를 껐습니다.'))
+      // 알림 설정의 서버 저장이 끝난 뒤 기기 토큰을 동기화합니다.
+      if (key === 'notifications') {
+        try {
+          if (next.notifications) {
+            if (permissionError) throw permissionError
+            await syncPushTokenIfAllowed()
+          } else await unregisterPushDevice()
+        } catch (error: unknown) {
+          setNotificationError(`설정은 저장됐지만 기기 푸시 연결에 실패했습니다: ${getErrorMessage(error)}`)
+        }
+      }
     } catch (error: unknown) {
       setNotificationError(getErrorMessage(error))
     } finally {
@@ -135,6 +156,12 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     setAccountBusy(true)
     let message = '로그아웃되었습니다.'
     try {
+      // 서버 명세: 로그아웃 전에 이 브라우저의 FCM 토큰을 해제합니다.
+      try {
+        await unregisterPushDevice()
+      } catch {
+        // 푸시 해제 실패가 로그아웃 자체를 막아서는 안 됩니다.
+      }
       await logout()
     } catch (error: unknown) {
       message = `서버 로그아웃 요청 실패: ${getErrorMessage(error)}. 이 기기에서만 로그아웃했습니다.`
