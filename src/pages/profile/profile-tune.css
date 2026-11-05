@@ -14,3 +14,41 @@
 .dd-profile-shop-mini span { font-size:15px; line-height:1; }
 html[data-dd-theme='dark'] .dd-profile-shop-mini { background:#203c58; border-color:#345b80; color:#badaff; }
 @media (max-width:350px) { .dd-profile-shop-mini { font-size:10px; padding:5px 8px; } }
+
+
+/* DDORANG-15: profile nickname edit, same layout in light/dark. */
+.dd-profile-nickname-editor { display:grid; gap:7px; min-width:0; }
+.dd-profile-nickname-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.dd-profile-nickname-heading label { color:#456987; font-size:11px; font-weight:750; }
+.dd-profile-nickname-heading span { color:#7896af; font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+.dd-profile-nickname-input {
+  display:block; box-sizing:border-box; width:100%; min-width:0; min-height:38px;
+  padding:9px 11px; border:1px solid #bfd7ec; border-radius:11px;
+  background:#f8fcff; color:#1d4367; font:inherit; font-size:13px; font-weight:650;
+  outline:none; transition:border-color .15s ease, box-shadow .15s ease;
+}
+.dd-profile-nickname-input:focus { border-color:#3186e6; box-shadow:0 0 0 3px rgba(49,134,230,.12); }
+.dd-profile-nickname-input[aria-invalid='true'] { border-color:#d47e71; }
+.dd-profile-nickname-input:disabled { opacity:.65; }
+.dd-profile-nickname-help { margin:0; color:#718da5; font-size:10px; line-height:1.4; }
+.dd-profile-nickname-actions { display:flex; gap:7px; min-width:0; }
+.dd-profile-nickname-actions button {
+  box-sizing:border-box; min-height:35px; padding:8px 11px; border-radius:10px;
+  font:inherit; font-size:11px; line-height:1.2; font-weight:800;
+  white-space:nowrap; cursor:pointer;
+  transition:background-color .15s ease, transform .15s ease;
+}
+.dd-profile-nickname-actions button:active:not(:disabled) { transform:scale(.98); }
+.dd-profile-nickname-actions button:focus-visible { outline:2px solid #338cf0; outline-offset:2px; }
+.dd-profile-nickname-cancel { border:1px solid #d3e3f0; background:#f2f7fc; color:#557694; }
+.dd-profile-nickname-save { flex:1; min-width:0; border:1px solid #3186e6; background:#338cf0; color:white; }
+.dd-profile-nickname-save:not(:disabled):hover { background:#277bdc; }
+.dd-profile-nickname-actions button:disabled { cursor:not-allowed; opacity:.52; }
+html[data-dd-theme='dark'] .dd-profile-nickname-heading label { color:#d3e2f1; }
+html[data-dd-theme='dark'] .dd-profile-nickname-heading span,
+html[data-dd-theme='dark'] .dd-profile-nickname-help { color:#aebfd0; }
+html[data-dd-theme='dark'] .dd-profile-nickname-input { background:#14273b; border-color:#4b6480; color:#eef5fe; }
+html[data-dd-theme='dark'] .dd-profile-nickname-input:focus { border-color:#6aaefa; box-shadow:0 0 0 3px rgba(106,174,250,.2); }
+html[data-dd-theme='dark'] .dd-profile-nickname-cancel { background:#273b52; border-color:#516780; color:#e2edf9; }
+html[data-dd-theme='dark'] .dd-profile-nickname-save { background:#327bcc; border-color:#5694dc; color:#fff; }
+html[data-dd-theme='dark'] .dd-profile-nickname-save:not(:disabled):hover { background:#3f8fe3; }
