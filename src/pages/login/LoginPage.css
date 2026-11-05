@@ -405,120 +405,93 @@ html[data-dd-theme="dark"] .dd-login-character-tip::after {
 html[data-dd-theme="dark"] .dd-login-weather{background:rgba(255,255,255,.08);color:#c5ddf2;}
 
 /* ddorang-13-bubbles: begin */
-/* Characters stay centered; hints appear to the left, and reactions to the right. */
+/* Minimal, balanced speech bubbles. The rounded corners serve as tails;
+   the old rotated-square tail (which resembled ">") is removed. */
 .dd-login-character-button .dd-login-character-tip,
 .dd-login-character-button .dd-login-character-speech {
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 4;
-  display: block;
-  width: max-content;
-  padding: 8px 10px;
+  width: 108px;
+  min-height: 44px;
+  max-width: none;
+  padding: 8px 9px;
+  border: 1px solid transparent;
   font-size: 10px;
   font-weight: 750;
-  line-height: 1.4;
+  line-height: 1.42;
   letter-spacing: -0.035em;
   text-align: center;
   white-space: normal;
   word-break: keep-all;
+  text-wrap: balance;
   pointer-events: none;
-  border-style: solid;
-  border-width: 1px;
   filter: none;
 }
 
-/* Static instructional bubble: left side, calm and unobtrusive. */
+/* 안내 말풍선 — 캐릭터 왼쪽. 두 줄로 읽기 쉬운 파스텔 톤. */
 .dd-login-character-button .dd-login-character-tip {
   position: absolute;
-  top: 15%;
+  top: 18%;
+  right: calc(100% - 40px);
   left: auto;
-  right: calc(100% - 38px);
-  max-width: 106px;
-  border-color: #a9d0ec;
-  border-radius: 15px 15px 5px 15px;
-  background: #f6fbff;
-  color: #295f88;
-  box-shadow: 0 5px 16px rgba(39, 92, 142, 0.14);
-}
-.dd-login-character-button .dd-login-character-tip::after {
-  content: '';
-  position: absolute;
-  right: -5px;
-  bottom: 10px;
-  width: 9px;
-  height: 9px;
-  background: #f6fbff;
-  border: 0;
-  border-top: 1px solid #a9d0ec;
-  border-right: 1px solid #a9d0ec;
-  transform: rotate(45deg);
+  border-color: #bfdcf0;
+  border-radius: 16px 16px 6px 16px;
+  background: #f5faff;
+  color: #315e81;
+  box-shadow: 0 5px 14px rgba(25, 70, 112, 0.13);
 }
 
-/* Character's reactions: opposite side, with a slightly stronger accent. */
+/* 반응 말풍선 — 캐릭터 오른쪽. 진한 파란색으로 구분. */
 .dd-login-character-button .dd-login-character-speech {
-  top: 3%;
-  left: calc(100% - 38px);
+  top: 11%;
   right: auto;
-  max-width: 112px;
-  padding: 8px 11px;
-  border-color: #236fba;
-  border-radius: 15px 15px 15px 5px;
-  background: #2b79bf;
+  left: calc(100% - 40px);
+  border-color: #2478bf;
+  border-radius: 16px 16px 16px 6px;
+  background: #287ecb;
   color: #fff;
-  box-shadow: 0 6px 18px rgba(24, 81, 139, 0.22);
-}
-.dd-login-character-button .dd-login-character-speech::after {
-  content: '';
-  position: absolute;
-  left: -5px;
-  bottom: 10px;
-  width: 9px;
-  height: 9px;
-  background: #2b79bf;
-  border: 0;
-  border-left: 1px solid #236fba;
-  border-bottom: 1px solid #236fba;
-  transform: rotate(45deg);
+  box-shadow: 0 6px 16px rgba(23, 76, 133, 0.21);
 }
 
-/* Dark mode changes palette only, keeping layout identical. */
-html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-tip {
-  background: #1d3650;
-  color: #d9eeff;
-  border-color: #4d7498;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+/* 기존의 회전된 네모 꼬리가 > 문자처럼 보이던 현상 제거. */
+.dd-login-character-button .dd-login-character-tip::before,
+.dd-login-character-button .dd-login-character-tip::after,
+.dd-login-character-button .dd-login-character-speech::before,
+.dd-login-character-button .dd-login-character-speech::after {
+  content: none !important;
+  display: none !important;
 }
-html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-tip::after {
-  background: #1d3650;
-  border-top-color: #4d7498;
-  border-right-color: #4d7498;
+
+/* 테마와 관계없이 좌우 위치/크기는 동일하게 유지합니다. */
+html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-tip {
+  border-color: #496f90;
+  background: #213950;
+  color: #e0f0ff;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.24);
 }
 html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-speech {
-  background: #315e87;
-  color: #f0f8ff;
-  border-color: #5b88b1;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
-}
-html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-speech::after {
-  background: #315e87;
-  border-left-color: #5b88b1;
-  border-bottom-color: #5b88b1;
+  border-color: #5287b9;
+  background: #2c70aa;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.27);
 }
 
-/* Keep both speech bubbles inside narrow mobile viewports. */
-@media (max-width: 420px) {
-  .dd-login-character-button .dd-login-character-speech {
-    max-width: 102px;
-    left: calc(100% - 40px);
-  }
-}
+/* 좁은 휴대폰에서도 좌우 끝이 잘리지 않도록 위치 조절. */
 @media (max-width: 360px) {
+  .dd-login-character-button .dd-login-character-tip,
+  .dd-login-character-button .dd-login-character-speech {
+    width: 96px;
+    padding: 7px 8px;
+    font-size: 9.5px;
+  }
   .dd-login-character-button .dd-login-character-tip {
-    max-width: 94px;
-    right: calc(100% - 49px);
+    right: calc(100% - 54px);
   }
   .dd-login-character-button .dd-login-character-speech {
-    max-width: 94px;
-    left: calc(100% - 52px);
+    left: calc(100% - 54px);
   }
 }
 /* ddorang-13-bubbles: end */
