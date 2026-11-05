@@ -1,0 +1,107 @@
+/* DDORANG-13: Keep the same components/layout in both themes. Only colors change. */
+html[data-dd-theme='dark'] {
+  --dd-contrast-surface: #152438;
+  --dd-contrast-raised: #20334c;
+  --dd-contrast-text: #f1f6fc;
+  --dd-contrast-muted: #b7c9dc;
+  --dd-contrast-border: #344d67;
+}
+
+/* Login: the previous version inherited white text from the page, but left the
+   three-step feature card white. This is the low-contrast bug in the screenshot. */
+html[data-dd-theme='dark'] .dd-login-features {
+  background: var(--dd-contrast-surface) !important;
+  color: var(--dd-contrast-text) !important;
+  border-color: var(--dd-contrast-border);
+}
+html[data-dd-theme='dark'] .dd-login-features h2,
+html[data-dd-theme='dark'] .dd-login-feature strong { color: var(--dd-contrast-text) !important; }
+html[data-dd-theme='dark'] .dd-login-feature small { color: var(--dd-contrast-muted) !important; }
+html[data-dd-theme='dark'] .dd-login-feature + .dd-login-feature { border-color: var(--dd-contrast-border); }
+html[data-dd-theme='dark'] .dd-login-feature-illustration,
+html[data-dd-theme='dark'] .dd-login-feature-number {
+  background: #254364 !important;
+  color: #a6d0ff !important;
+}
+html[data-dd-theme='dark'] .dd-login-character-speech,
+html[data-dd-theme='dark'] .dd-login-message {
+  background: #1e334b;
+  color: #d8ecff;
+  border-color: #3a5978;
+}
+html[data-dd-theme='dark'] .dd-login-character-hint,
+html[data-dd-theme='dark'] .dd-login-footer > p { color: var(--dd-contrast-muted); }
+html[data-dd-theme='dark'] .dd-login-email-links a { color: #a6cfff; }
+html[data-dd-theme='dark'] .dd-login-email-links span { color: #b4c9dd; }
+html[data-dd-theme='dark'] .dd-login-kakao-button { background: #fee500; color: #191919; }
+html[data-dd-theme='dark'] .dd-login-kakao-button:hover { background: #f7da00; }
+
+/* Authentication / signup / Kakao callback / onboarding have one shared card
+   structure. No special dark-only positioning or font-size adjustments. */
+html[data-dd-theme='dark'] .dd-auth-card {
+  background: #152438 !important;
+  color: #f1f6fc !important;
+  border-color: #344d67;
+}
+html[data-dd-theme='dark'] .dd-auth-card :is(h1, h2, label, strong) { color: #f1f6fc; }
+html[data-dd-theme='dark'] .dd-auth-card :is(.dd-auth-switch, .dd-auth-explainer, .dd-auth-note) {
+  color: #bacbe0;
+}
+html[data-dd-theme='dark'] .dd-auth-form input {
+  background: #101c2b !important;
+  color: #f0f5fc !important;
+  border-color: #455f79 !important;
+}
+html[data-dd-theme='dark'] .dd-auth-form input::placeholder { color: #92a8be; }
+html[data-dd-theme='dark'] .dd-auth-card .dd-terms-all { background: #253c56; }
+html[data-dd-theme='dark'] .dd-auth-card .dd-terms-list,
+html[data-dd-theme='dark'] .dd-auth-card .dd-terms-row { border-color: #3b526c; }
+html[data-dd-theme='dark'] .dd-auth-card .dd-auth-error {
+  background: #4a2834;
+  color: #ffc9d2;
+}
+html[data-dd-theme='dark'] .dd-auth-card .dd-auth-retry,
+html[data-dd-theme='dark'] .dd-terms-modal-heading button {
+  background: #28415d;
+  color: #c5dfff;
+}
+html[data-dd-theme='dark'] .dd-auth-primary { background: #3179d5; color: white; }
+html[data-dd-theme='dark'] .dd-terms-modal {
+  background: #152438;
+  color: #f1f6fc;
+  border: 1px solid #344d67;
+}
+html[data-dd-theme='dark'] .dd-terms-modal-content { color: #c6d7e8; }
+html[data-dd-theme='dark'] .dd-auth-error-page { color: #b9d7f5; }
+
+/* Shared neutral text tones across tab content. Status colors (red, green,
+   gold), icon colors and existing specialty/league gradients stay untouched. */
+html[data-dd-theme='dark'] :is(
+  [class*='text-[#637790]'], [class*='text-[#8C9AB0]'],
+  [class*='text-[#8294A5]'], [class*='text-[#607C99]'],
+  [class*='text-[#53647E]'], [class*='text-[#8297AC]'],
+  [class*='text-[#8795AB]'], [class*='text-[#98A6BB]'],
+  [class*='text-[#93A2AF]'], [class*='text-[#758B9F]'],
+  [class*='text-[#7896AD]'], [class*='text-[#9AAFC1]'],
+  [class*='text-[#7F96A8]'], [class*='text-[#66849B]']
+) { color: #b9cbe0 !important; }
+
+/* Any profile card that was converted from bg-white to dark must not inherit
+   the bright-mode's navy text from a more specific inline utility. */
+html[data-dd-theme='dark'] .dd-profile-shop-mini { color: #c1ddff; }
+html[data-dd-theme='dark'] .rd-social {
+  --rd-surface: #19293f;
+  --rd-ink: #eef5ff;
+  --rd-sub: #b0c4d9;
+  --rd-line: #36506b;
+  --rd-tint: #1d3149;
+  --rd-blue: #9ac5ff;
+  background: #101b2c;
+}
+html[data-dd-theme='dark'] .rd-social .rd-social-action-primary {
+  background: #223c5b;
+  color: #b8d8ff;
+  border-color: #3c6188;
+}
+html[data-dd-theme='dark'] .rd-social .rd-social-post-type { background: #283e57; color: #b6d9ff; }
+html[data-dd-theme='dark'] .rd-social .rd-social-invite-icon { background: #253e5d; color: #b9daff; }

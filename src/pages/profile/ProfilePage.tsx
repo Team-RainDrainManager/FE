@@ -7,13 +7,7 @@ import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import type { MyAdoptionDto } from '../../types/myDrains'
 import { changeNickname, getErrorMessage, getMe } from '../../apis/auth'
 
-// DDORANG-10: default display nickname; server nickname is saved only on explicit edit.
-const STARTER_NAMES = ['햇살집사', '초록발걸음', '빗방울지킴이', '맑은하루', '물길지킴이', '새싹집사', '구름산책'] as const
-const EDITED_KEY_PREFIX = 'ddorang:profile-nickname-edited:'
-function starterNameFor(userId: number): string {
-  return STARTER_NAMES[Math.abs(Math.floor(userId)) % STARTER_NAMES.length]
-}
-
+// The server nickname is authoritative; preview names must not override signup.
 const NAME_STORAGE_KEY = 'ddorang:demo-profile-name'
 const PHOTO_STORAGE_KEY = 'ddorang:demo-profile-photo'
 
@@ -59,24 +53,25 @@ function getCareStatus(adoption: MyAdoptionDto, now: number) {
 
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [nickname, setNickname] = useState(() => loadFromStorage(NAME_STORAGE_KEY, '햇살집사'))
-  const [profileUserId, setProfileUserId] = useState<number | null>(null)
+  const [nickname, setNickname] = useState('')
   const [photo, setPhoto] = useState(() => loadFromStorage(PHOTO_STORAGE_KEY))
   const [editing, setEditing] = useState(false)
   const [draftNickname, setDraftNickname] = useState(nickname)
   const [message, setMessage] = useState('')
   const [savingNickname, setSavingNickname] = useState(false)
+  const trimmedDraftNickname = draftNickname.trim()
+  const nicknameDraftValid = trimmedDraftNickname.length >= 2 && trimmedDraftNickname.length <= 20
+  const nicknameUnchanged = trimmedDraftNickname === nickname
 
   useEffect(() => {
     let active = true
     getMe().then((me) => {
       if (!active) return
-      setProfileUserId(me.id)
-      const saved = loadFromStorage(NAME_STORAGE_KEY)
-      const edited = loadFromStorage(`${EDITED_KEY_PREFIX}${me.id}`) === '1' || (saved !== '' && saved === me.nickname)
-      const visibleName = edited ? me.nickname : starterNameFor(me.id)
-      setNickname(visibleName)
-      setDraftNickname(visibleName)
+      const serverName = me.nickname?.trim() || '또랑이집사'
+      setNickname(serverName)
+      setDraftNickname(serverName)
+      // Existing social mock UI also reads this value; do not invent another name.
+      saveToStorage(NAME_STORAGE_KEY, serverName)
     }).catch((err: unknown) => { if (active) setMessage(getErrorMessage(err)) })
     return () => { active = false }
   }, [])
@@ -98,18 +93,23 @@ export default function ProfilePage() {
   const saveNickname = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmed = draftNickname.trim()
-    if (trimmed.length < 2 || trimmed.length > 6) {
-      setMessage('닉네임은 2~6글자로 입력해 주세요.')
+    if (trimmed.length < 2 || trimmed.length > 20) {
+      setMessage('닉네임은 2~20자로 입력해 주세요.')
       return
     }
+    if (trimmed === nickname) {
+      setEditing(false)
+      setMessage('')
+      return
+    }
+    setMessage('')
     setSavingNickname(true)
     try {
       await changeNickname(trimmed)
       setNickname(trimmed)
       setEditing(false)
       saveToStorage(NAME_STORAGE_KEY, trimmed)
-      if (profileUserId !== null) saveToStorage(`${EDITED_KEY_PREFIX}${profileUserId}`, '1')
-      setMessage('서버에 닉네임을 저장했어요.')
+      setMessage('닉네임을 변경했습니다.')
     } catch (error: unknown) { setMessage(getErrorMessage(error)) }
     finally { setSavingNickname(false) }
   }
@@ -181,11 +181,11 @@ export default function ProfilePage() {
           <p className="text-[20px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
           <Link to="/shop" className="dd-profile-shop-mini">꾸미기 상점 <span aria-hidden="true">›</span></Link>
         </div>
-        <h2 className="mt-1 text-[14px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? `${nickname}님의 첫 또랑이가 깨끗해지고 있어요!` : '오늘도 우리 동네를 돌보는 중'}</h2>
+        <h2 className="mt-1 text-[14px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? `${nickname || '회원'}님의 첫 또랑이가 깨끗해지고 있어요!` : '오늘도 우리 동네를 돌보는 중'}</h2>
         <p className="mt-1 text-[10px] text-[#7C94AD]">나의 작은 활동이 동네를 더 안전하게 만들어요.</p>
 
         <div className="mt-5 flex items-center gap-4 rounded-[20px] bg-white p-4">
-          <div className="relative shrin k-0">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -208,25 +208,34 @@ export default function ProfilePage() {
 
           <div className="min-w-0 flex-1">
             {editing ? (
-              <form onSubmit={saveNickname} className="space-y-2">
-                <label htmlFor="nickname" className="text-[11px] font-semibold text-[#6387A8]">닉네임 변경</label>
+              <form onSubmit={saveNickname} className="dd-profile-nickname-editor">
+                <div className="dd-profile-nickname-heading">
+                  <label htmlFor="nickname">닉네임 변경</label>
+                  <span aria-live="polite">{draftNickname.length}/20</span>
+                </div>
                 <input
                   id="nickname"
                   autoFocus
+                  required
+                  minLength={2}
                   maxLength={20}
+                  autoComplete="nickname"
+                  aria-describedby="dd-profile-nickname-help"
+                  aria-invalid={trimmedDraftNickname.length > 0 && !nicknameDraftValid}
+                  disabled={savingNickname}
                   value={draftNickname}
-                  onChange={(event) => setDraftNickname(event.target.value)}
-                  className="w-full rounded-lg border border-[#C8DEEE] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#338CF0]"
+                  onChange={(event) => { setDraftNickname(event.target.value); setMessage('') }}
+                  className="dd-profile-nickname-input"
                 />
-                <div className="flex gap-2">
-                  <button type="button" disabled={savingNickname} onClick={() => setMessage('닉네임 중복 확인 API 준비 중입니다. 실제 사용 가능 여부는 아직 확인할 수 없습니다.')} className="rounded-lg border border-[#C8DEEE] bg-white px-3 py-1.5 text-[11px] font-bold text-[#2779D4]">중복 확인</button>
-                  <button type="submit" disabled={savingNickname} className="rounded-lg bg-[#338CF0] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-60">{savingNickname ? '저장 중…' : '저장'}</button>
-                  <button type="button" onClick={() => { setEditing(false); setMessage('') }} className="rounded-lg bg-[#F1F6FA] px-3 py-1.5 text-[11px] font-bold">취소</button>
+                <p id="dd-profile-nickname-help" className="dd-profile-nickname-help">2~20자로 입력해 주세요.</p>
+                <div className="dd-profile-nickname-actions">
+                  <button type="button" disabled={savingNickname} onClick={() => { setEditing(false); setMessage('') }} className="dd-profile-nickname-cancel">취소</button>
+                  <button type="submit" disabled={savingNickname || !nicknameDraftValid || nicknameUnchanged} className="dd-profile-nickname-save">{savingNickname ? '저장 중…' : '저장하기'}</button>
                 </div>
               </form>
             ) : (
               <>
-                <p className="truncate text-[18px] font-extrabold tracking-[-0.035em]">{nickname}</p>
+                <p className="truncate text-[18px] font-extrabold tracking-[-0.035em]">{nickname || '불러오는 중…'}</p>
                 <p className="mt-0.5 text-[11px] text-[#8399AD]">우리 동네 빗물받이 집사</p>
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <button
@@ -294,7 +303,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <p className="px-2 text-center text-[11px] leading-5 text-[#97AABE]">닉네임은 계정에 저장되며, 사진은 현재 브라우저에만 저장됩니다. 돌봄 기록은 현재 앱에 표시된 목록을 기준으로 합니다.</p>
+      <p className="px-2 text-center text-[11px] leading-5 text-[#97AABE]">프로필 사진은 이 브라우저에만 저장됩니다.</p>
     </div>
   )
 }
