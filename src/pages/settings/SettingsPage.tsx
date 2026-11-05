@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router'
-import { getTerms, getTermsContent, logout, getErrorMessage, type TermsItem } from '../../apis/auth'
+import { logout, getErrorMessage } from '../../apis/auth'
 import { getNotificationSettings, updateNotificationSettings, getPauseStatus, requestPause, type NotificationSettings, type PauseStatus } from '../../apis/profile-settings'
 import { withdrawMyAccount } from '../../apis/account'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -52,15 +52,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
   const [pauseError, setPauseError] = useState('')
   const [pauseConfirm, setPauseConfirm] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
-  const [termsOpen, setTermsOpen] = useState(false)
-  const [termsLoading, setTermsLoading] = useState(false)
-  const [terms, setTerms] = useState<TermsItem[] | null>(null)
-  const [termsError, setTermsError] = useState('')
-  const [termOpen, setTermOpen] = useState(false)
-  const [termTitle, setTermTitle] = useState('')
-  const [termBody, setTermBody] = useState<string | null>(null)
-  const [termLoading, setTermLoading] = useState(false)
-  const [termError, setTermError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -120,31 +111,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     } finally {
       setPauseBusy(false)
     }
-  }
-
-  async function loadTerms() {
-    setTermsLoading(true)
-    setTermsError('')
-    try { setTerms((await getTerms()).filter(term => term.hasContent).sort((a, b) => a.displayOrder - b.displayOrder)) }
-    catch (error: unknown) { setTermsError(getErrorMessage(error)) }
-    finally { setTermsLoading(false) }
-  }
-
-  function openTerms() {
-    if (termsOpen) { setTermsOpen(false); return }
-    setTermsOpen(true)
-    if (!terms) void loadTerms()
-  }
-
-  async function showTerm(term: TermsItem) {
-    setTermOpen(true)
-    setTermTitle(term.title)
-    setTermBody(null)
-    setTermLoading(true)
-    setTermError('')
-    try { setTermBody((await getTermsContent(term.termsId)).content ?? '별도의 약관 전문이 없습니다.') }
-    catch (error: unknown) { setTermError(getErrorMessage(error)) }
-    finally { setTermLoading(false) }
   }
 
   function prettyDate(iso: string) {
@@ -302,19 +268,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
         </>}
       </div>}
     </div>
-    <div className={`${card} dd-settings-feature-card`}>
-      <h3>서비스 안내</h3>
-      <button type="button" className="dd-settings-pause-row" aria-expanded={termsOpen} onClick={() => { void openTerms() }}>
-        <span className="dd-settings-feature-name">이용약관 및 개인정보 처리방침</span>
-        <span className="dd-settings-pause-arrow" aria-hidden="true">{termsOpen ? '⌄' : '›'}</span>
-      </button>
-      {termsOpen && <div className="dd-settings-pause-preview">
-        {termsLoading ? <p role="status">약관을 불러오는 중입니다…</p> : termsError ?
-          <p role="alert">{termsError}<button type="button" className="ml-2 underline" onClick={() => { void loadTerms() }}>다시 시도</button></p>
-          : terms?.length ? terms.map(term => <button key={term.termsId} type="button" className="mb-2 block w-full text-left" onClick={() => { void showTerm(term) }}>{term.title} ›</button>)
-          : <p>확인할 수 있는 약관 전문이 없습니다.</p>}
-      </div>}
-    </div>
     <div className="dd-settings-account-actions">
       <button type="button" disabled={accountBusy} onClick={() => {setAccountError('');setConfirmAction('logout')}}>로그아웃</button>
       <button type="button" disabled={accountBusy} onClick={() => {setAccountError('');setWithdrawWord('');setConfirmAction('delete')}}>회원 탈퇴</button>
@@ -342,24 +295,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
               {accountBusy ? '처리 중…' : confirmAction === 'logout' ? '로그아웃' : '회원 탈퇴 확인'}
             </button>
           </div>
-        </section>
-      </div>, document.body
-    )}
-    {termOpen && createPortal(
-      <div className="fixed inset-0 z-[360] flex items-center justify-center bg-black/60 p-4"
-        onMouseDown={event => { if (event.target === event.currentTarget) setTermOpen(false) }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="dd-settings-term-title"
-          className="flex max-h-[85dvh] w-full max-w-sm flex-col rounded-3xl border p-5 shadow-2xl"
-          style={{ background: 'var(--dd-surface)', color: 'var(--dd-ink)', borderColor: 'var(--dd-line)' }}>
-          <div className="flex items-center justify-between gap-3">
-            <h3 id="dd-settings-term-title" className="text-base font-bold">{termTitle}</h3>
-            <button type="button" aria-label="약관 닫기" onClick={() => setTermOpen(false)}>✕</button>
-          </div>
-          <div className="mt-4 min-h-20 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-6">
-            {termLoading ? <p role="status">약관 전문을 불러오는 중입니다…</p> : termError ? <p role="alert">{termError}</p> : termBody}
-          </div>
-          <button type="button" className="mt-4 min-h-11 rounded-xl bg-[#3981F7] font-semibold text-white"
-            onClick={() => setTermOpen(false)}>닫기</button>
         </section>
       </div>, document.body
     )}
