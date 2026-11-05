@@ -218,6 +218,14 @@ export function InspectForm({
 
   const submitted = inspectionMutation.data
 
+  if (submitted) {
+    return (
+      <InspectionResult
+        result={submitted}
+        onClose={onCancel}
+      />
+    )
+  }
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="rounded-xl bg-[#EAF6FF] p-3 text-xs leading-relaxed text-[#447798]">
@@ -359,6 +367,7 @@ export function InspectForm({
   )
 }
 
+
 function InspectionResult({
   result,
   onClose,
@@ -366,31 +375,68 @@ function InspectionResult({
   result: ManagementLogResponse
   onClose: () => void
 }) {
-  // HTTP 200은 제출 성공. 인증 승인과 구분해 안내한다.
-  const reviewNeeded = result.locationMismatch ||
-    result.reviewStatus !== 'NOT_REQUIRED'
+  const isRejected =
+    result.status === 'REJECTED' ||
+    result.reviewStatus === 'REJECTED'
+
+  const needsReview =
+    !isRejected &&
+    (
+      result.reviewStatus === 'PENDING' ||
+      result.locationMismatch
+    )
+
+  const isCompleted =
+    !isRejected &&
+    !needsReview &&
+    result.status === 'VERIFIED'
+
+  const title = isRejected
+    ? '점검 인증이 반려됐어요.'
+    : needsReview
+      ? '점검 기록이 접수됐어요!'
+      : isCompleted
+        ? '점검이 완료됐어요!'
+        : '점검 기록이 제출됐어요.'
+
+  const description = isRejected
+    ? '점검 결과를 확인해 주세요.'
+    : needsReview
+      ? '관리자 검토 후 결과가 반영돼요.'
+      : null
 
   return (
-    <div role="status" className="rounded-xl bg-[#E8F7EF] p-3 text-xs leading-relaxed text-[#259B68]">
-      <p className="font-bold">
-        {reviewNeeded ? '점검 기록을 접수했어요. 검토 상태를 확인해 주세요.' :
-          '점검 기록이 서버에 제출됐어요.'}
+    <div
+      role="status"
+      className={`space-y-3 rounded-xl p-5 text-center text-sm ${
+        isRejected
+          ? 'bg-[#FFF1F1] text-[#B84D4D]'
+          : needsReview
+            ? 'bg-[#FFF7E8] text-[#A97822]'
+            : 'bg-[#E8F7EF] text-[#259B68]'
+      }`}
+    >
+      <p className="text-base font-bold">
+        {title}
       </p>
-      <p className="mt-1">기록 번호: {result.managementLogId}</p>
-      <p className="mt-1">처리 상태: {result.status} / 검토 상태: {result.reviewStatus}</p>
-      {result.locationMismatch && (
-        <p className="mt-1">점검 위치가 빗물받이와 멀어 관리자 검토가 필요할 수 있어요.</p>
+
+      {description && (
+        <p className="text-xs leading-5">
+          {description}
+        </p>
       )}
+
       <button
         type="button"
         onClick={onClose}
-        className="mt-3 rounded-full bg-white px-4 py-2 font-bold text-[#259B68]"
+        className="mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold"
       >
-        닫기
+        확인
       </button>
     </div>
   )
 }
+
 
 type ReleaseFormProps = {
   onConfirm: (payload: ReleaseAdoptionRequest) => void

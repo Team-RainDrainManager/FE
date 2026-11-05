@@ -1,11 +1,12 @@
 
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import {
   getAdoptionDrainDetail,
   getMyAdoptionList,
 } from '../../apis/adoptions'
+import { getMyRainRequests } from '../../apis/requests'
 import { useAuthStore } from '../../store/useAuthStore'
 
 import DrainInfo from './components/DrainInfo'
@@ -17,6 +18,16 @@ export default function DrainDetailPage() {
   const { drainId } = useParams()
   const id = Number(drainId)
   const validId = Number.isInteger(id) && id > 0
+
+  const [searchParams] = useSearchParams()
+  const requestedId = searchParams.get('requestId')
+  const requestId =
+    requestedId === null ? null : Number(requestedId)
+
+  const validRequestId =
+    requestId !== null &&
+    Number.isSafeInteger(requestId) &&
+    requestId > 0
 
   const accessToken = useAuthStore(
     (state) => state.accessToken,
@@ -44,6 +55,36 @@ export default function DrainDetailPage() {
     staleTime: 30_000,
     retry: 1,
   })
+
+  // 현재 점검 요청의 컨텍스트를 별도 캐시에 보관
+  // 점검 제출 후 목록이 갱신되어도 인증 폼은 유지됨
+  const {
+    data: rainRequests,
+    isError: rainRequestError,
+    isPending: rainRequestPending,
+  } = useQuery({
+    queryKey: ['rain-inspection-context', requestId],
+    queryFn: ({ signal }) =>
+      getMyRainRequests(undefined, signal),
+    enabled:
+      validId &&
+      validRequestId &&
+      Boolean(accessToken),
+    staleTime: 60_000,
+    retry: 1,
+  })
+
+  // 실제 서버에 존재하며 점검 가능한 요청인지 확인
+  const rainRequest = rainRequests?.find(
+    (request) =>
+      request.requestId === requestId &&
+      request.drain.drainId === id &&
+      request.availableActions.includes('INSPECT') &&
+      (
+        request.role === 'OWNER' ||
+        request.role === 'CLAIMANT'
+      ),
+  )
 
   const isMine =
     drain?.adoption != null &&
@@ -117,9 +158,23 @@ export default function DrainDetailPage() {
 
       <DrainPhoto drain={drain} />
 
+      {validRequestId &&
+        !rainRequestPending &&
+        !rainRequest && (
+          <p
+            role="alert"
+            className="rounded-xl bg-[#FFF4DC] p-3 text-xs text-[#A97822]"
+          >
+            {rainRequestError
+              ? '비 예보 요청 정보를 불러오지 못했어요. 알림함에서 다시 시도해 주세요.'
+              : '현재 이 빗물받이에서 진행 가능한 비 예보 점검 요청이 없어요.'}
+          </p>
+        )}
+
       <DrainActions
         drain={drain}
         isMine={isMine}
+        rainRequest={rainRequest}
       />
     </div>
   )

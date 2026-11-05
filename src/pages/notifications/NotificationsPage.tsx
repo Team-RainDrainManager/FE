@@ -43,7 +43,6 @@ export default function NotificationsPage() {
     isError: requestsFailed,
     error: requestsError,
     refetch: refetchRequests,
-    isFetching: refreshing,
   } = useQuery({
     queryKey: ['rain-requests', coordinates?.latitude ?? null, coordinates?.longitude ?? null],
     queryFn: ({ signal }) => getMyRainRequests(coordinates ?? undefined, signal),
@@ -146,11 +145,7 @@ export default function NotificationsPage() {
       </div>
       <section id="notification-panel-requests" role="tabpanel" aria-labelledby="notification-tab-requests" hidden={activeTab !== 'requests'} tabIndex={0}>
 
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 id="inspection-requests-title" className="text-sm font-bold text-[#203451]">비 예보 점검 요청</h2>
-          <span className="text-xs text-[#8C9AB0]">{requests.length}건</span>
-        </div>
-        <div className="mb-3 flex flex-wrap gap-2">
+        <div className="mb-3 flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={() => void showNearbyAtMyLocation()}
@@ -159,16 +154,8 @@ export default function NotificationsPage() {
           >
             {locationPending ? '위치 확인 중...' : '내 위치 주변 요청 보기'}
           </button>
-          <button
-            type="button"
-            onClick={() => void refetchRequests()}
-            disabled={refreshing}
-            className="min-h-9 rounded-xl border border-[#E3EAF4] px-3 text-xs font-semibold text-[#78899F] disabled:opacity-50"
-          >
-            {refreshing ? '새로고침 중...' : '새로고침'}
-          </button>
         </div>
-        {coordinates && <p className="mb-2 text-[11px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>}
+        {coordinates && requests.length > 0 && (<p className="mb-2 text-[11px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>)}
         {locationError && <p role="alert" className="mb-3 text-xs text-[#B84D4D]">{locationError}</p>}
         {requestMessage && <p role="status" className="mb-3 text-xs leading-5 text-[#637790]">{requestMessage}</p>}
         {requestsPending ? (
@@ -179,7 +166,11 @@ export default function NotificationsPage() {
             <button type="button" onClick={() => void refetchRequests()} className="mt-3 min-h-9 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
           </div>
         ) : requests.length === 0 ? (
-          <p className="py-6 text-xs text-[#8C9AB0]">아직 점검 요청이 없어요.</p>
+          <div className="flex min-h-[45dvh] items-center justify-center">
+            <p className="text-center text-sm text-[#8C9AB0]">
+              아직 점검 요청이 없어요.
+            </p>
+          </div>
         ) : (
           <div>
             {requests.map((request) => (
@@ -189,7 +180,9 @@ export default function NotificationsPage() {
                 onRespond={handleRespond}
                 disabled={respondMutation.isPending}
                 busy={respondMutation.isPending && respondMutation.variables?.requestId === request.requestId}
-                onViewDrain={(drainId) => navigate(`/drains/${drainId}`)}
+                onViewDrain={(drainId, requestId) =>
+                 navigate(`/drains/${drainId}?requestId=${requestId}`)
+                }
               />
             ))}
           </div>
