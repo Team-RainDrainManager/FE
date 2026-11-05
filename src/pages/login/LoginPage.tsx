@@ -174,8 +174,10 @@ export default function LoginPage() {
             <span className="dd-login-character-sparkles" aria-hidden="true">
               <span>✦</span><span>✧</span><span>✦</span>
             </span>
+            <span className="dd-login-character-tip" aria-hidden="true">
+              또랑이를 살짝 눌러보세요!
+            </span>
           </button>
-          <p className="dd-login-character-hint">또랑이를 살짝 눌러보세요!</p>
         </section>
 
         <section className="dd-login-features" aria-label="또랑 서비스 이용 방법">
@@ -208,11 +210,6 @@ export default function LoginPage() {
             >
               카카오톡 앱 연결이 안 되시나요? 카카오계정으로 로그인
             </button>
-          )}
-          {preferKakaoAccountOnThisDevice() && (
-            <p className="mt-2 text-center text-[11px] leading-relaxed text-[#74849A]">
-              PC와 Chrome 모바일 미리보기에서는 카카오계정 웹 로그인으로 진행합니다.
-            </p>
           )}
           <nav className="dd-login-email-links" aria-label="이메일 계정">
             <Link to="/login/email">이메일 로그인</Link>

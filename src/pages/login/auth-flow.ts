@@ -1,4 +1,5 @@
-import { getOnboarding } from '../../apis/auth'
+import { useAuthStore } from '../../store/useAuthStore'
+import { fetchOnboardingStatus } from './onboarding-status-cache'
 
 export const KAKAO_REDIRECT_PATH = '/oauth/kakao'
 const OAUTH_PENDING = 'ddorang:kakao-redirect-pending'
@@ -25,7 +26,9 @@ export function nextAfterCompletedOnboarding() { return '/my-drains' }
 
 /** 기존 회원도 서버의 완료 여부를 매번 확인합니다. */
 export async function nextAfterLogin(): Promise<string> {
-  const onboarding = await getOnboarding()
+  const token = useAuthStore.getState().accessToken
+  if (!token) return '/login'
+  const onboarding = await fetchOnboardingStatus(token)
   if (!onboarding.completed) return '/onboarding/terms'
   return nextAfterCompletedOnboarding()
 }
