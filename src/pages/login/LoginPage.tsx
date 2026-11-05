@@ -36,6 +36,19 @@ const REACTIONS = [
 
 type Reaction = (typeof REACTIONS)[number] & { id: number }
 
+/** Chrome device emulation changes the mobile User-Agent, but generally retains
+ * the physical desktop platform. Never try to launch the PC KakaoTalk app here.
+ * iPadOS can report MacIntel, so account for a touch-capable iPad.
+ */
+function preferKakaoAccountOnThisDevice(): boolean {
+  const platform = navigator.platform || ''
+  const agent = navigator.userAgent || ''
+  const looksLikeIPad = /Mac/i.test(platform) && navigator.maxTouchPoints > 1 && /Macintosh|iPad/i.test(agent)
+  if (looksLikeIPad) return false
+  if (/Win|Mac|Linux (?:x86|i686|x86_64)/i.test(platform)) return true
+  return !/Android|iPhone|iPad|iPod/i.test(agent) && navigator.maxTouchPoints === 0
+}
+
 export default function LoginPage() {
   const location = useLocation()
   const [message, setMessage] = useState(() => {
@@ -70,7 +83,7 @@ export default function LoginPage() {
     setReaction({ ...REACTIONS[index % REACTIONS.length], id: index })
   }
 
-  const handleKakaoLogin = async () => {
+  const handleKakaoLogin = async (mode: 'auto' | 'account' = 'auto') => {
     setMessage('')
     setLoginPending(true)
     try {
@@ -79,8 +92,10 @@ export default function LoginPage() {
       if (url.protocol !== 'https:' || url.hostname !== 'kauth.kakao.com') {
         throw new Error('카카오 로그인 주소가 올바르지 않습니다.')
       }
-      // 카카오계정 세션이 남아 있어도 다음 로그인 때 직접 인증하도록 합니다.
-      url.searchParams.set('prompt', 'login')
+      // PC 및 계정 로그인 선택 시에는 앱 호출 대신 카카오계정 웹 로그인을 사용합니다.
+      if (mode === 'account' || preferKakaoAccountOnThisDevice()) {
+        url.searchParams.set('prompt', 'login')
+      }
       markKakaoRedirect()
       window.location.assign(url.href)
     } catch (err: unknown) {
@@ -182,8 +197,23 @@ export default function LoginPage() {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="dd-login-kakao-icon">
               <path d="M12 3C6.75 3 2.5 6.38 2.5 10.55c0 2.64 1.72 4.97 4.32 6.32l-.87 3.67a.5.5 0 0 0 .73.54l4.18-2.45c.37.04.75.06 1.14.06 5.25 0 9.5-3.38 9.5-7.55S17.25 3 12 3Z" />
             </svg>
-            {loginPending ? '카카오 로그인 연결 중…' : '카카오로 시작하기'}
+            {loginPending ? '카카오 로그인 연결 중…' : preferKakaoAccountOnThisDevice() ? '카카오계정으로 시작하기' : '카카오로 시작하기'}
           </button>
+          {!preferKakaoAccountOnThisDevice() && (
+            <button
+              type="button"
+              disabled={loginPending}
+              onClick={() => { void handleKakaoLogin('account') }}
+              className="mt-2 w-full rounded-xl py-2 text-center text-xs font-medium text-[#667A92] underline-offset-4 hover:underline disabled:opacity-50"
+            >
+              카카오톡 앱 연결이 안 되시나요? 카카오계정으로 로그인
+            </button>
+          )}
+          {preferKakaoAccountOnThisDevice() && (
+            <p className="mt-2 text-center text-[11px] leading-relaxed text-[#74849A]">
+              PC와 Chrome 모바일 미리보기에서는 카카오계정 웹 로그인으로 진행합니다.
+            </p>
+          )}
           <nav className="dd-login-email-links" aria-label="이메일 계정">
             <Link to="/login/email">이메일 로그인</Link>
             <span aria-hidden="true">·</span>
