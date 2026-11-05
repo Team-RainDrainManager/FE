@@ -1,10 +1,19 @@
 import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 
-
-import { sortInspectionRequests } from '../../mocks/notifications'
-
-import type { InspectionRequest, RequestAction } from '../../types/notifications'
+import { getCurrentCoordinates } from '../../apis/adoptions'
+import { getErrorMessage } from '../../apis/auth'
+import {
+  claimRainRequest,
+  getMyRainRequests,
+  replyRainRequest,
+} from '../../apis/requests'
+import type {
+  ActivityNotification,
+  RequestAction,
+} from '../../types/notifications'
+import type { Coordinates } from '../../apis/requests'
 
 import InspectionRequestCard from './components/InspectionRequestCard'
 
@@ -21,14 +30,52 @@ function formatNotificationDate(value: string) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
-  // 시연용 카운트: 새로고침하면 초기화되며 실제 일일 제한은 서버에서 검증합니다.
-  const [claimCount, setClaimCount] = useState(0)
+  const queryClient = useQueryClient()
   const [requestMessage, setRequestMessage] = useState('')
   const [activeTab, setActiveTab] = useState<'requests' | 'activity'>('requests')
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(null)
+  const [locationPending, setLocationPending] = useState(false)
+  const [locationError, setLocationError] = useState('')
 
-  const [requests, setRequests] = useState<InspectionRequest[]>([])
+  const {
+    data: requests = [],
+    isPending: requestsPending,
+    isError: requestsFailed,
+    error: requestsError,
+    refetch: refetchRequests,
+    isFetching: refreshing,
+  } = useQuery({
+    queryKey: ['rain-requests', coordinates?.latitude ?? null, coordinates?.longitude ?? null],
+    queryFn: ({ signal }) => getMyRainRequests(coordinates ?? undefined, signal),
+    staleTime: 20_000,
+    refetchInterval: 60_000,
+  })
 
-  const [notifications, setNotifications] = useState<{ notificationId: number; text: string; createdAt: string; read: boolean }[]>([])
+  type RequestMutationInput = { requestId: number; action: RequestAction }
+  const respondMutation = useMutation({
+    mutationFn: async ({ requestId, action }: RequestMutationInput) => {
+      if (action === 'claim') {
+        // 대신 점검은 반드시 현재 GPS 위치를 서버에 전송합니다.
+        const current = await getCurrentCoordinates()
+        return claimRainRequest(requestId, current)
+      }
+      return replyRainRequest(requestId, action === 'accept' ? 'ACCEPT' : 'DECLINE')
+    },
+    onSuccess: async (_result, { action }) => {
+      await queryClient.invalidateQueries({ queryKey: ['rain-requests'] })
+      setRequestMessage(
+        action === 'claim'
+          ? '대신 점검을 맡았어요. 입양권은 이동하지 않아요.'
+          : action === 'decline'
+            ? '주변에 대신 점검 요청을 공개했어요. 불이익은 없어요.'
+            : '점검 가능으로 응답했어요. 마감 전에 점검해 주세요.',
+      )
+    },
+    onError: (error) => setRequestMessage(getErrorMessage(error)),
+  })
+
+  // 활동 알림은 별도의 조회 API 연동 전까지 빈 목록을 유지합니다.
+  const [notifications, setNotifications] = useState<ActivityNotification[]>([])
 
   const markRead = (id: number) => {
     setNotifications((previous) => previous.map((item) =>
@@ -45,40 +92,27 @@ export default function NotificationsPage() {
   ).length
 
   const handleRespond = (requestId: number, action: RequestAction) => {
+    if (respondMutation.isPending) return
     const target = requests.find((request) => request.requestId === requestId)
     const requiredAction = action === 'claim' ? 'CLAIM' : 'REPLY'
     if (!target?.availableActions.includes(requiredAction)) return
-    if (action === 'claim' && claimCount >= 3) {
-      setRequestMessage('오늘 대신 점검 가능한 횟수를 모두 사용했어요.')
-      return
+    setRequestMessage('')
+    respondMutation.mutate({ requestId, action })
+  }
+
+  const showNearbyAtMyLocation = async () => {
+    if (locationPending) return
+    setLocationPending(true)
+    setLocationError('')
+    try {
+      const current = await getCurrentCoordinates()
+      // GET 파라미터: 위도와 경도를 함께 전달해야 합니다.
+      setCoordinates(current)
+    } catch (error) {
+      setLocationError(`${getErrorMessage(error)} 내 또랑이 주변 요청은 계속 볼 수 있어요.`)
+    } finally {
+      setLocationPending(false)
     }
-    // 목데이터에서는 현재 위치 검증과 선착순 처리가 성공했다고 가정합니다.
-    // 실제 연동 시 claim 바디에 현재 latitude/longitude를 보내고 서버 오류를 처리하세요.
-    if (action === 'claim') setClaimCount((count) => count + 1)
-    setRequestMessage(action === 'decline' ? '주변에 요청을 공개했어요. 불이익은 없어요.' :
-      action === 'claim' ? '대신 점검을 맡았어요. 입양권은 이동하지 않아요.' : '점검 예정으로 변경했어요.')
-    setRequests((previous) => sortInspectionRequests(previous.map((request) => {
-      if (request.requestId !== requestId) return request
-      const requiredAction = action === 'claim' ? 'CLAIM' : 'REPLY'
-      if (!request.availableActions.includes(requiredAction)) return request
-
-      // 응답 후에는 응답 마감 대신 완료 마감까지 남은 시간을 표시합니다.
-      const remainingMinutes = request.remainingMinutes === null ? null :
-        Math.max(0, request.remainingMinutes + (requiredAction === 'REPLY'
-          ? Math.round((Date.parse(request.deadlineAt) - Date.parse(request.replyDeadlineAt)) / 60000)
-          : 0))
-
-      if (action === 'decline') {
-        return { ...request, state: 'OPEN', remainingMinutes, availableActions: [] }
-      }
-      return {
-        ...request,
-        state: action === 'claim' ? 'CLAIMED' : 'ACCEPTED',
-        role: action === 'claim' ? 'CLAIMANT' as const : request.role,
-        remainingMinutes,
-        availableActions: ['INSPECT'] as InspectionRequest['availableActions'],
-      }
-    })))
   }
 
   return (
@@ -116,13 +150,47 @@ export default function NotificationsPage() {
           <h2 id="inspection-requests-title" className="text-sm font-bold text-[#203451]">비 예보 점검 요청</h2>
           <span className="text-xs text-[#8C9AB0]">{requests.length}건</span>
         </div>
+        <div className="mb-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void showNearbyAtMyLocation()}
+            disabled={locationPending}
+            className="min-h-9 rounded-xl bg-[#EAF2FF] px-3 text-xs font-semibold text-[#3981F7] disabled:opacity-50"
+          >
+            {locationPending ? '위치 확인 중...' : '내 위치 주변 요청 보기'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void refetchRequests()}
+            disabled={refreshing}
+            className="min-h-9 rounded-xl border border-[#E3EAF4] px-3 text-xs font-semibold text-[#78899F] disabled:opacity-50"
+          >
+            {refreshing ? '새로고침 중...' : '새로고침'}
+          </button>
+        </div>
+        {coordinates && <p className="mb-2 text-[11px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>}
+        {locationError && <p role="alert" className="mb-3 text-xs text-[#B84D4D]">{locationError}</p>}
         {requestMessage && <p role="status" className="mb-3 text-xs leading-5 text-[#637790]">{requestMessage}</p>}
-        {requests.length === 0 ? (
+        {requestsPending ? (
+          <p role="status" className="py-6 text-xs text-[#8C9AB0]">점검 요청을 불러오는 중이에요.</p>
+        ) : requestsFailed ? (
+          <div role="alert" className="py-6 text-xs text-[#B84D4D]">
+            <p>{getErrorMessage(requestsError)}</p>
+            <button type="button" onClick={() => void refetchRequests()} className="mt-3 min-h-9 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
+          </div>
+        ) : requests.length === 0 ? (
           <p className="py-6 text-xs text-[#8C9AB0]">아직 점검 요청이 없어요.</p>
         ) : (
           <div>
             {requests.map((request) => (
-              <InspectionRequestCard key={request.requestId} request={request} onRespond={handleRespond} onViewDrain={(drainId) => navigate(`/drains/${drainId}`)} />
+              <InspectionRequestCard
+                key={request.requestId}
+                request={request}
+                onRespond={handleRespond}
+                disabled={respondMutation.isPending}
+                busy={respondMutation.isPending && respondMutation.variables?.requestId === request.requestId}
+                onViewDrain={(drainId) => navigate(`/drains/${drainId}`)}
+              />
             ))}
           </div>
         )}

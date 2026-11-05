@@ -10,6 +10,8 @@ interface InspectionRequestCardProps {
     action: RequestAction,
   ) => void
   onViewDrain: (drainId: number) => void
+  disabled?: boolean
+  busy?: boolean
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -47,6 +49,8 @@ export default function InspectionRequestCard({
   request,
   onRespond,
   onViewDrain,
+  disabled = false,
+  busy = false,
 }: InspectionRequestCardProps) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -71,9 +75,9 @@ export default function InspectionRequestCard({
           {level != null ? <Character type="level" level={Math.min(50, Math.max(1, level))} size={48} /> : <Character type="state" state="happy" size={48} />}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="break-words text-sm font-bold leading-5 text-[#203451]">{request.drain.name ?? '빗물받이'}</h3>
+          <h3 className="break-words text-sm font-bold leading-5 text-[#203451]">{request.drain.name?.trim() || `빗물받이 #${request.drain.drainId}`}</h3>
           <p className="mt-0.5 text-[11px] leading-4 text-[#8C9AB0]">
-            {isOwner ? '내 또랑이' : isNearby ? request.distanceM != null ? `내 위치에서 ${request.distanceM}m` : '내 또랑이 근처' : '내가 수락한 요청'}
+            {isOwner ? '내 또랑이' : isNearby ? request.distanceM != null ? `내 위치에서 ${Math.round(request.distanceM)}m` : '내 또랑이 근처' : '내가 수락한 요청'}
           </p>
         </div>
         <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${STATUS_COLORS[request.state] ?? 'bg-[#F0F3F6] text-[#8595A3]'}`}>{REQUEST_STATUS_LABELS[request.state] ?? (finished ? '요청 종료' : '진행 중')}</span>
@@ -97,10 +101,10 @@ export default function InspectionRequestCard({
       </div>
 
       {canReply && <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => onRespond(request.requestId, 'accept')} className="min-h-10 rounded-xl bg-[#3981F7] px-2 text-xs font-bold text-white hover:bg-[#2870E6]">점검 가능</button>
-        <button type="button" onClick={() => onRespond(request.requestId, 'decline')} className="min-h-10 rounded-xl border border-[#DCE5F0] px-2 text-xs font-bold text-[#78899F] hover:bg-[#F8FAFD]">점검 불가</button>
+        <button type="button" disabled={disabled} onClick={() => onRespond(request.requestId, 'accept')} className="min-h-10 rounded-xl bg-[#3981F7] px-2 text-xs font-bold text-white hover:bg-[#2870E6] disabled:opacity-50">{busy ? '처리 중...' : '점검 가능'}</button>
+        <button type="button" disabled={disabled} onClick={() => onRespond(request.requestId, 'decline')} className="min-h-10 rounded-xl border border-[#DCE5F0] px-2 text-xs font-bold text-[#78899F] hover:bg-[#F8FAFD] disabled:opacity-50">점검 불가</button>
       </div>}
-      {canClaim && <button type="button" onClick={() => onRespond(request.requestId, 'claim')} className="mt-3 min-h-10 w-full rounded-xl bg-[#EAF2FF] px-2 text-xs font-bold text-[#3981F7] hover:bg-[#DFEAFF]">대신 점검하기 ›</button>}
+      {canClaim && <button type="button" disabled={disabled} onClick={() => onRespond(request.requestId, 'claim')} className="mt-3 min-h-10 w-full rounded-xl bg-[#EAF2FF] px-2 text-xs font-bold text-[#3981F7] hover:bg-[#DFEAFF] disabled:opacity-50">{busy ? '처리 중...' : '대신 점검하기 ›'}</button>}
       {canInspect && <button type="button" onClick={() => onViewDrain(request.drain.drainId)} className="mt-2 min-h-10 w-full rounded-xl px-2 text-xs font-bold text-[#3981F7] hover:bg-[#F6F9FF]">점검하러 가기 ›</button>}
       {isOwner && request.state === 'OPEN' && <p className="mt-2 text-[11px] leading-5 text-[#A97822]">주변 사용자에게 대신 점검 요청을 공개했어요.</p>}
       
