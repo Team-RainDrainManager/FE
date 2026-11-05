@@ -3,34 +3,43 @@ import { useState } from 'react'
 
 import ModalShell from '../../../components/common/Modalshell'
 import type { DrainDetailDto } from '../../../types/drainDetail'
+import type { InspectionRequest } from '../../../types/notifications'
 
 import { AdoptForm, ReleaseForm } from './AdoptionForms'
 import { InspectForm } from '../../mydrains/components/ActionForms'
+import RainInspectForm from './RainInspectForm'
 
 type Action =
   | 'adopt'
   | 'release'
   | 'inspect'
+  | 'rain-inspect'
   | 'report'
 
 type Props = {
   drain: DrainDetailDto
   isMine: boolean
+  rainRequest?: InspectionRequest
 }
 
 const TITLES: Record<Action, string> = {
   adopt: '빗물받이 입양하기',
   release: '입양 그만두기',
   inspect: '사진으로 점검 기록',
+  'rain-inspect': '비 예보 점검 인증',
   report: '빗물받이 제보',
 }
 
 export default function DrainActions({
   drain,
   isMine,
+  rainRequest,
 }: Props) {
   const [action, setAction] =
     useState<Action | null>(null)
+
+  const [dismissedRequestId, setDismissedRequestId] =
+    useState<number | null>(null)
 
   const canAdopt =
     drain.status === 'ACTIVE' &&
@@ -40,7 +49,32 @@ export default function DrainActions({
     drain.adoptionStatus === 'ADOPTED' &&
     isMine
 
-  const closeModal = () => setAction(null)
+  const canUseRainRequest =
+    Boolean(rainRequest) &&
+    (
+      rainRequest?.role === 'CLAIMANT' ||
+      (
+        rainRequest?.role === 'OWNER' &&
+        isMyAdoption
+      )
+    )
+
+  // 알림함에서 진입한 요청은 자동으로 인증 모달 열기
+  // 사용자가 닫은 뒤에는 자동으로 다시 열지 않음
+  const autoOpenRain =
+    canUseRainRequest &&
+    dismissedRequestId !== rainRequest?.requestId &&
+    action === null
+
+  const activeAction: Action | null =
+    action ?? (autoOpenRain ? 'rain-inspect' : null)
+
+  const closeModal = () => {
+    if (rainRequest) {
+      setDismissedRequestId(rainRequest.requestId)
+    }
+    setAction(null)
+  }
 
   if (drain.status === 'REMOVED') {
     return (
@@ -124,6 +158,21 @@ export default function DrainActions({
             </details>
           </>
         )}
+
+        {canUseRainRequest && rainRequest && (
+          <button
+            type="button"
+            onClick={() => {
+              setDismissedRequestId(rainRequest.requestId)
+              setAction('rain-inspect')
+            }}
+            className="mt-3 min-h-11 w-full rounded-full border border-[#B9D7FF] bg-[#EAF2FF] p-3 text-xs font-bold text-[#3981F7]"
+          >
+            {rainRequest.role === 'CLAIMANT'
+              ? '대신 점검 인증하기'
+              : '비 예보 점검 인증하기'}
+          </button>
+        )}
       </section>
 
       <button
@@ -134,34 +183,59 @@ export default function DrainActions({
         이곳을 제보하기
       </button>
 
-      {action && (
+      {activeAction && (
         <ModalShell
-          title={TITLES[action]}
+          title={
+            activeAction === 'rain-inspect' &&
+            rainRequest?.role === 'CLAIMANT'
+              ? '대신 점검 인증'
+              : TITLES[activeAction]
+          }
           onClose={closeModal}
         >
-          {action === 'adopt' && (
+          {activeAction === 'adopt' && (
             <AdoptForm
               drainId={drain.id}
               onClose={closeModal}
             />
           )}
 
-          {action === 'release' && (
+          {activeAction === 'release' && (
             <ReleaseForm />
           )}
 
-          {action === 'inspect' &&
+          {activeAction === 'inspect' &&
             drain.adoption &&
             isMyAdoption && (
               <InspectForm
-  adoptionId={drain.adoption.adoptionId}
-  drainId={drain.id}
-  adoptionName={drain.adoption.nickname}
-  onCancel={closeModal}
-/>
+                adoptionId={drain.adoption.adoptionId}
+                drainId={drain.id}
+                adoptionName={drain.adoption.nickname}
+                onCancel={closeModal}
+              />
             )}
 
-          {action === 'report' && (
+          {activeAction === 'rain-inspect' &&
+            canUseRainRequest &&
+            rainRequest && (
+              <RainInspectForm
+                key={rainRequest.requestId}
+                drainId={drain.id}
+                requestId={rainRequest.requestId}
+                kind={
+                  rainRequest.role === 'CLAIMANT'
+                    ? 'SUBSTITUTE'
+                    : 'FORECAST'
+                }
+                adoptionName={
+                  drain.adoption?.nickname ||
+                  `빗물받이 #${drain.id}`
+                }
+                onCancel={closeModal}
+              />
+            )}
+
+          {activeAction === 'report' && (
             <p className="text-xs leading-relaxed text-[#607C99]">
               막힘, 신규 등록, 위치 수정,
               삭제 요청, 악취 등의 제보 기능은
