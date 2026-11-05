@@ -273,7 +273,7 @@ onSuccess: async (result) => {
     }
   }
 
-  const useCurrentLocation = async () => {
+  const handleCurrentLocation = async () => {
     try {
       setFormError('')
       const position = await getCurrentCoordinates()
@@ -588,7 +588,7 @@ onSuccess: async (result) => {
                 <button
                   type="button"
                   disabled={mutation.isPending}
-                  onClick={() => void useCurrentLocation()}
+                  onClick={() => void handleCurrentLocation()}
                   className="text-xs font-semibold text-[#6384EF] disabled:opacity-50"
                 >
                   현재 위치 좌표 사용
