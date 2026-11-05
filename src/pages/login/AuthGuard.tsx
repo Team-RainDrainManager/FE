@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router'
 import { getErrorMessage, type OnboardingStatus } from '../../apis/auth'
 import { useAuthStore } from '../../store/useAuthStore'
 import { nextAfterCompletedOnboarding, needsNickname } from './auth-flow'
+import { syncPushTokenIfAllowed } from '../../services/push-messaging'
 import {
   clearOnboardingStatusCache,
   fetchOnboardingStatus,
@@ -23,7 +24,13 @@ export default function AuthGuard({ children, mode }: { children: ReactNode; mod
     // A navigation to another tab is NOT a new sign-in. Only check a new
     // session/token, or retry a failed check. Also deduplicates StrictMode.
     void fetchOnboardingStatus(accessToken).then((status) => {
-      if (active) setCheck({ token: accessToken, status })
+      if (active) {
+        setCheck({ token: accessToken, status })
+        if (status.completed) {
+          // 이미 브라우저 알림을 허용한 사용자만 등록합니다. 권한 팝업은 띄우지 않습니다.
+          void syncPushTokenIfAllowed().catch(() => { /* 설정 스위치에서 재시도할 수 있습니다. */ })
+        }
+      }
     }).catch((error: unknown) => {
       if (active) setCheck({ token: accessToken, error: getErrorMessage(error) })
     })
