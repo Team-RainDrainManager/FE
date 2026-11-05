@@ -21,13 +21,15 @@ type CapturedImage = {
 
 type PhotoStep = 'before' | 'after' | 'details'
 
+
 type Props = {
   drainId: number
-  requestId: number
-  kind: 'FORECAST' | 'SUBSTITUTE'
+  requestId?: number
+  kind: 'ROUTINE' | 'FORECAST' | 'SUBSTITUTE'
   adoptionName: string
   onCancel: () => void
 }
+
 
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024
 const IMAGE_TYPES = [
@@ -117,22 +119,30 @@ export default function RainInspectForm({
     startResult?.status === 'NEEDS_CLEANING'
 
   // 점검 이후 최신 데이터 불러오기
-  const refreshData = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ['rain-requests'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['my-adoptions'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['drain-detail', drainId],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['map-drains'],
-      }),
-    ])
-  }
+  
+const refreshData = async () => {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: ['rain-requests'],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['my-adoptions'],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['drain-detail', drainId],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['map-drains'],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['adoption-inspections'],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ['drain-growth', drainId],
+    }),
+  ])
+}
+
 
   // 1단계: 점검 전 사진 제출 및 AI 판정
   const startMutation = useMutation({
@@ -159,18 +169,16 @@ export default function RainInspectForm({
 
       // 점검 시작 API 호출
       return startInspection({
-        drainId,
-        kind,
-        requestId,
-        beforeKey,
-        latitude,
-        longitude,
-        capturedAt,
-        ...(note.trim()
-          ? { note: note.trim() }
-          : {}),
-        safetyConfirmed: true,
-      })
+  drainId,
+  kind,
+  ...(requestId !== undefined ? { requestId } : {}),
+  beforeKey,
+  latitude,
+  longitude,
+  capturedAt,
+  ...(note.trim() ? { note: note.trim() } : {}),
+  safetyConfirmed: true,
+})
     },
 
     onSuccess: async (result) => {
@@ -444,12 +452,19 @@ export default function RainInspectForm({
         {adoptionName}
       </h3>
 
-      <p className="text-xs font-semibold text-[#3981F7]">
-        {kind === 'SUBSTITUTE'
-          ? '대신 점검'
-          : '비 예보 점검'}{' '}
-        · 요청 #{requestId}
-      </p>
+      
+<p className="text-xs font-semibold text-[#3981F7]">
+  {kind === 'ROUTINE'
+    ? '일반 정기 점검'
+    : kind === 'SUBSTITUTE'
+      ? '대신 점검'
+      : '비 예보 점검'}
+
+  {requestId !== undefined && (
+    <> · 요청 #{requestId}</>
+  )}
+</p>
+
 
       <section className="space-y-2">
         <p className="text-xs font-bold text-[#24496B]">
