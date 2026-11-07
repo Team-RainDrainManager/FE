@@ -18,7 +18,9 @@ import {
 import {
   getDrainDetail,
   getMapDrains,
+  getDrainPage,
   mergeDrainDetail,
+  type DrainSearchItem,
 } from '../../apis/drains'
 import { hasCoordinates } from '../../types/map'
 import type {
@@ -30,6 +32,7 @@ import type {
 import DrainMarker from './components/DrainMarker'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
+import CreateDrainModal from './components/CreateDrainModal'
 
 const DEFAULT_CENTER = {
   lat: 37.4884,
@@ -81,6 +84,17 @@ const STATUS_LABELS = {
   risk: '주의',
   unknown: '상태 미확인',
 }
+
+
+// /list API의 status 파라미터는 지도 표시 상태 enum을 사용합니다.
+const SEARCH_STATUSES: Partial<Record<DrainMapFilter, string>> = {
+  unadopted: 'AVAILABLE',
+  normal: 'NORMAL',
+  overdue: 'MANAGEMENT_DELAYED',
+  blocked: 'BLOCKAGE_REPORTED',
+}
+
+const SEARCH_PAGE_SIZE = 10
 
 interface Position {
   lat: number
@@ -135,9 +149,11 @@ function KakaoMapContent({
 
   const [loading, error] = useKakaoLoader({
     appkey: appKey,
+    libraries: ['services'],
   })
 
   const mapRef = useRef<kakao.maps.Map | null>(null)
+  const searchAreaRef = useRef<HTMLElement | null>(null)
 
   const [bounds, setBounds] =
     useState<MapBoundsParams | null>(null)
@@ -146,6 +162,10 @@ function KakaoMapContent({
     useState<MapBoundsParams | null>(null)
 
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchPage, setSearchPage] = useState(0)
+  const [searchSelectionId, setSearchSelectionId] = useState<number | null>(null)
   const [filter, setFilter] =
     useState<DrainMapFilter>('all')
 
@@ -154,12 +174,34 @@ function KakaoMapContent({
 
   const [listOpen, setListOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const [currentPosition, setCurrentPosition] =
     useState<Position | null>(null)
 
   const [locating, setLocating] = useState(false)
   const [notice, setNotice] = useState('')
+
+  // 검색 영역 밖을 누르면 결과 목록만 닫습니다. 검색어는 유지합니다.
+  useEffect(() => {
+    if (!searchOpen) return
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (
+        target instanceof Node &&
+        !searchAreaRef.current?.contains(target)
+      ) {
+        setSearchOpen(false)
+      }
+    }
+
+    // 지도 SDK 등의 이벤트 처리보다 먼저 감지합니다. 모바일 터치도 지원합니다.
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true)
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsidePointerDown, true)
+    }
+  }, [searchOpen])
 
   // 지도 이동 완료 후 350ms 대기
   useEffect(() => {
@@ -184,6 +226,34 @@ function KakaoMapContent({
     queryFn: ({ signal }) =>
       getMapDrains(requestBounds!, signal),
     enabled: requestBounds !== null,
+    staleTime: 30_000,
+    retry: 1,
+  })
+
+  // 입력 중 불필요한 요청 방지를 위한 검색어 디바운스
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(query.trim())
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  // 검색창은 지도 영역과 무관하게 전체 빗물받이 목록 API 사용
+  const {
+    data: searchResults,
+    isPending: searchPending,
+    isError: searchError,
+    error: searchQueryError,
+    refetch: refetchSearch,
+  } = useQuery({
+    queryKey: ['drain-search', debouncedQuery, filter, searchPage],
+    queryFn: ({ signal }) => getDrainPage({
+      q: debouncedQuery,
+      page: searchPage,
+      size: SEARCH_PAGE_SIZE,
+      status: SEARCH_STATUSES[filter],
+    }, signal),
+    enabled: debouncedQuery.length > 0,
     staleTime: 30_000,
     retry: 1,
   })
@@ -222,6 +292,81 @@ function KakaoMapContent({
     )
   }, [selectedSummary, selectedDetail])
 
+  // 서버 주소가 없을 때만 선택한 빗물받이의 좌표를 주소로 변환합니다.
+  // 카카오맵 services 라이브러리의 역지오코딩을 사용합니다.
+  const serverAddress = selectedDrain?.address?.trim() ?? ''
+  const hasServerAddress = Boolean(
+    serverAddress && serverAddress !== '주소 정보 없음',
+  )
+  const selectedLatitude =
+    selectedDrain && hasCoordinates(selectedDrain)
+      ? selectedDrain.latitude
+      : null
+  const selectedLongitude =
+    selectedDrain && hasCoordinates(selectedDrain)
+      ? selectedDrain.longitude
+      : null
+  const shouldLookupAddress =
+    !loading &&
+    !error &&
+    selectedId !== null &&
+    !hasServerAddress &&
+    selectedLatitude !== null &&
+    selectedLongitude !== null
+
+  const {
+    data: addressFromCoordinates,
+    isFetching: addressFetching,
+  } = useQuery<string | null>({
+    queryKey: [
+      'drain-coordinate-address',
+      selectedId,
+      selectedLatitude,
+      selectedLongitude,
+    ],
+    enabled: shouldLookupAddress,
+    staleTime: 60 * 60 * 1000,
+    retry: 0,
+    queryFn: () => {
+      if (selectedLatitude === null || selectedLongitude === null) {
+        return Promise.resolve(null)
+      }
+
+      return new Promise<string | null>((resolve) => {
+        const geocoder = new kakao.maps.services.Geocoder()
+
+        // 카카오맵 좌표 → 주소 순서는 경도(x), 위도(y)입니다.
+        geocoder.coord2Address(
+          selectedLongitude,
+          selectedLatitude,
+          (results, status) => {
+            if (status !== kakao.maps.services.Status.OK || !results[0]) {
+              resolve(null)
+              return
+            }
+
+            const location = results[0]
+            // 도로명 주소가 없는 위치는 지번 주소로 표시합니다.
+            resolve(
+              location.road_address?.address_name ||
+                location.address?.address_name ||
+                null,
+            )
+          },
+        )
+      })
+    },
+  })
+
+  const addressLabel = hasServerAddress
+    ? serverAddress
+    : addressFromCoordinates ||
+      (addressFetching
+        ? '주소 확인 중...'
+        : selectedLatitude !== null && selectedLongitude !== null
+          ? `위도 ${selectedLatitude.toFixed(5)} · 경도 ${selectedLongitude.toFixed(5)}`
+          : '주소 정보 없음')
+
   // 지도 영역 업데이트
   const updateBounds = useCallback(
     (map: kakao.maps.Map) => {
@@ -244,47 +389,30 @@ function KakaoMapContent({
     [updateBounds],
   )
 
-  // 목록에 좌표가 없으면 상세 조회 후 이동
+  // /list 응답은 좌표가 없으므로 상세 조회 후 지도 위치로 이동
   useEffect(() => {
-    if (!selectedSummary) return
-    if (hasCoordinates(selectedSummary)) return
-    if (!selectedDrain) return
-    if (!hasCoordinates(selectedDrain)) return
+    if (!selectedSummary || hasCoordinates(selectedSummary)) return
+    if (!selectedDrain || !hasCoordinates(selectedDrain)) return
 
-    mapRef.current?.panTo(
-      new kakao.maps.LatLng(
-        selectedDrain.latitude,
-        selectedDrain.longitude,
-      ),
+    const position = new kakao.maps.LatLng(
+      selectedDrain.latitude,
+      selectedDrain.longitude,
     )
-  }, [selectedSummary, selectedDrain])
 
-  // 검색 및 상태 필터
+    if (searchSelectionId === selectedSummary.id) {
+      mapRef.current?.setCenter(position)
+      mapRef.current?.setLevel(3)
+    } else {
+      mapRef.current?.panTo(position)
+    }
+  }, [selectedSummary, selectedDrain, searchSelectionId])
+
+  // 지도 마커·목록은 기존 지도 영역 API만 사용
   const filteredDrains = useMemo(() => {
-    const keyword = query.trim().toLowerCase()
-
-    return drains.filter((drain) => {
-      if (
-        filter !== 'all' &&
-        drain.status !== filter
-      ) {
-        return false
-      }
-
-      const searchable = [
-        drain.name,
-        drain.nickname ?? '',
-        drain.address ?? '',
-        String(drain.id),
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      return (
-        !keyword || searchable.includes(keyword)
-      )
-    })
-  }, [drains, query, filter])
+    return drains.filter((drain) =>
+      filter === 'all' || drain.status === filter,
+    )
+  }, [drains, filter])
 
   // 좌표가 있는 빗물받이만 마커 표시
   const visibleDrains = useMemo(() => {
@@ -311,22 +439,52 @@ function KakaoMapContent({
       ? selectedDrain
       : null
 
-  // 마커 또는 목록 선택
-  const handleSelectDrain = (
-    drain: DrainMapItem,
-  ) => {
+  // 지도 마커 또는 현재 지도 내 목록 선택
+  const handleSelectDrain = (drain: DrainMapItem) => {
+    setSearchOpen(false)
+    setSearchSelectionId(null)
     setSelectedSummary(drain)
     setListOpen(false)
     setNotice('')
 
     if (hasCoordinates(drain)) {
       mapRef.current?.panTo(
-        new kakao.maps.LatLng(
-          drain.latitude,
-          drain.longitude,
-        ),
+        new kakao.maps.LatLng(drain.latitude, drain.longitude),
       )
     }
+  }
+
+  // /list 검색 결과 선택: 현재 지도에 없는 빗물받이도 상세 API로 찾음
+  const handleSelectSearchResult = (item: DrainSearchItem) => {
+    const existing = drains.find((drain) => drain.id === item.id)
+    if (existing) {
+      handleSelectDrain(existing)
+      return
+    }
+
+    const summary: DrainMapItem = {
+      id: item.id,
+      name: item.name,
+      address: item.address,
+      nickname: item.nickname,
+      latitude: null,
+      longitude: null,
+      adoptionStatus: null,
+      isRisk: null,
+      status: 'unknown',
+      displayStatus: null,
+      displayStatusLabel: null,
+      dirtLevel: null,
+      levelTitle: null,
+      level: null,
+      score: null,
+    }
+
+    setSelectedSummary(summary)
+    setSearchSelectionId(item.id)
+    setSearchOpen(false)
+    setListOpen(false)
+    setNotice('')
   }
 
   // 내 위치 이동
@@ -378,19 +536,17 @@ function KakaoMapContent({
     )
   }
 
-  const handleSearch = (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
-    if (filteredDrains.length === 0) {
-      setNotice(
-        '현재 지도 영역에서 검색 결과가 없어요.',
-      )
+    const keyword = query.trim()
+    if (!keyword) {
+      setSearchOpen(false)
       return
     }
-
-    handleSelectDrain(filteredDrains[0])
+    setSearchPage(0)
+    setDebouncedQuery(keyword)
+    setSearchOpen(true)
+    setListOpen(false)
   }
 
   
@@ -493,7 +649,8 @@ const statusNotice = drainsError
           {/* 검색창 */}
           <section
             aria-label="지도 검색"
-            className="absolute inset-x-3 top-3 z-10"
+            ref={searchAreaRef}
+            className="absolute inset-x-3 top-3 z-30"
           >
             <form
               onSubmit={handleSearch}
@@ -519,9 +676,17 @@ const statusNotice = drainsError
               <input
                 type="search"
                 value={query}
+                onFocus={() => {
+                  if (query.trim()) setSearchOpen(true)
+                }}
+                onClick={() => {
+                  if (query.trim()) setSearchOpen(true)
+                }}
                 onChange={(event) => {
                   setQuery(event.target.value)
-                  setSelectedSummary(null)
+                  setSearchPage(0)
+                  setSearchOpen(Boolean(event.target.value.trim()))
+                  setListOpen(false)
                 }}
                 placeholder="역곡동 · 빗물받이 검색"
                 aria-label="위치 또는 빗물받이 검색"
@@ -535,12 +700,90 @@ const statusNotice = drainsError
                 검색
               </button>
             </form>
+
+            {/* 전체 빗물받이 검색 결과: GET /api/v1/drain/list */}
+            {searchOpen && query.trim() && (
+              <div
+                aria-label="빗물받이 검색 결과"
+                className="mt-2 max-h-[min(52dvh,380px)] overflow-y-auto rounded-2xl border border-[#E8EDF5] bg-white shadow-[0_12px_32px_rgba(23,43,77,0.18)]"
+              >
+                {query.trim() !== debouncedQuery || searchPending ? (
+                  <p role="status" className="px-4 py-4 text-xs text-[#8294A5]">
+                    검색 결과를 불러오는 중이에요.
+                  </p>
+                ) : searchError ? (
+                  <div className="flex items-center justify-between gap-2 px-4 py-4 text-xs text-[#B84D4D]">
+                    <span>{getErrorText(searchQueryError)}</span>
+                    <button
+                      type="button"
+                      className="shrink-0 font-bold text-[#3981F7]"
+                      onClick={() => void refetchSearch()}
+                    >
+                      재시도
+                    </button>
+                  </div>
+                ) : searchResults && searchResults.content.length === 0 ? (
+                  <p className="px-4 py-4 text-xs text-[#8294A5]">
+                    검색된 빗물받이가 없어요.
+                  </p>
+                ) : searchResults ? (
+                  <>
+                    <div className="border-b border-[#EDF1F5] px-4 py-2 text-[11px] text-[#8294A5]">
+                      전체 {searchResults.totalElements}개 검색 결과
+                    </div>
+                    <div className="divide-y divide-[#F0F3F8]">
+                      {searchResults.content.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectSearchResult(item)}
+                          className="block w-full px-4 py-3 text-left transition hover:bg-[#F5F8FF]"
+                        >
+                          <span className="block truncate text-sm font-semibold text-[#203451]">
+                            {item.nickname || item.name}
+                          </span>
+                          <span className="mt-1 block truncate text-[11px] text-[#8294A5]">
+                            {item.address ? `${item.address} · ` : ''}빗물받이 #{item.id}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    {searchResults.totalPages > 1 && (
+                      <div className="flex items-center justify-between border-t border-[#EDF1F5] px-4 py-2">
+                        <button
+                          type="button"
+                          disabled={searchPage === 0}
+                          onClick={() => setSearchPage((page) => Math.max(0, page - 1))}
+                          className="text-xs font-semibold text-[#3981F7] disabled:opacity-30"
+                        >
+                          이전
+                        </button>
+                        <span className="text-[11px] text-[#8294A5]">
+                          {searchResults.page + 1} / {searchResults.totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={!searchResults.hasNext}
+                          onClick={() => setSearchPage((page) => page + 1)}
+                          className="text-xs font-semibold text-[#3981F7] disabled:opacity-30"
+                        >
+                          다음
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            )}
           </section>
 
           {/* 목록 버튼 */}
           <button
             type="button"
-            onClick={() => setListOpen(true)}
+            onClick={() => {
+              setSearchOpen(false)
+              setListOpen(true)
+            }}
             aria-expanded={listOpen}
             className="absolute right-3 top-[72px] z-10 flex h-10 items-center justify-center gap-1.5 rounded-2xl border border-[#E8EDF5] bg-white px-3 text-xs font-bold text-[#203451] shadow-[0_4px_14px_rgba(23,43,77,0.12)]"
           >
@@ -627,14 +870,12 @@ const statusNotice = drainsError
                   </h2>
 
                   <p className="mt-1 text-xs text-[#8294A5]">
-                    {selectedDrain.address ??
-                      '주소 정보 없음'}
+                    {addressLabel}
                   </p>
 
                   <p className="mt-2 text-xs text-[#607B90]">
                     {selectedDrain.score !== null &&
-                      `XP ${selectedDrain.score} · `}
-                    빗물받이 #{selectedDrain.id}
+                      `XP ${selectedDrain.score}  `}
                   </p>
                 </div>
 
@@ -665,17 +906,22 @@ const statusNotice = drainsError
                 </p>
               )}
 
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    `/drains/${selectedDrain.id}`,
-                  )
-                }
-                className="mt-4 w-full rounded-2xl bg-[#3981F7] py-3 text-sm font-bold text-white transition hover:bg-[#2871E8] active:scale-[0.99]"
-              >
-                빗물받이 상세 보기
-              </button>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setReportOpen(true)}
+                  className="min-h-11 rounded-2xl border border-[#DCE4F5] bg-[#F5F7FF] px-2 py-3 text-xs font-bold text-[#586FC8] transition hover:bg-[#EAF0FF] active:scale-[0.99]"
+                >
+                  제보하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/drains/${selectedDrain.id}`)}
+                  className="min-h-11 rounded-2xl bg-[#3981F7] px-2 py-3 text-xs font-bold text-white transition hover:bg-[#2871E8] active:scale-[0.99]"
+                >
+                  빗물받이 상세 보기
+                </button>
+              </div>
             </div>
           )}
 
@@ -712,9 +958,9 @@ const statusNotice = drainsError
             </svg>
           </button>
 
-          {/* 하단 필터 및 제보 */}
+          {/* 하단 필터 및 빗물받이 등록 */}
           <section
-            aria-label="지도 상태 필터 및 제보"
+            aria-label="지도 상태 필터 및 빗물받이 등록"
             className="absolute inset-x-0 bottom-0 z-10 h-[114px] border-t border-[#E8EDF5] bg-white px-3 py-3"
           >
             <div
@@ -760,24 +1006,15 @@ const statusNotice = drainsError
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setReportOpen(true)}
-              className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#3981F7] px-5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(57,129,247,0.30)]"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                className="h-5 w-5"
+            <div className="mt-2.5">
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="flex h-11 w-full items-center justify-center rounded-2xl border border-transparent bg-[#6384EF] px-3 text-sm font-semibold text-white outline-none shadow-[0_3px_10px_rgba(99,132,239,0.18)] transition-colors hover:bg-[#5476E3] active:bg-[#4869D4] focus-visible:ring-2 focus-visible:ring-[#8FA5F5] focus-visible:ring-offset-2"
               >
-                <path d="M10 4v12M4 10h12" />
-              </svg>
-              제보하기
-            </button>
+                새로운 빗물받이
+              </button>
+            </div>
           </section>
 
           {/* 빗물받이 목록 */}
@@ -791,7 +1028,18 @@ const statusNotice = drainsError
             />
           )}
 
-          {/* 제보 시연 모달 */}
+          {/* 실제 빗물받이 등록 */}
+          {createOpen && (
+            <CreateDrainModal
+              onClose={() => setCreateOpen(false)}
+              onViewDetail={(drainId) => {
+                setCreateOpen(false)
+                navigate(`/drains/${drainId}`)
+              }}
+            />
+          )}
+
+          {/* 선택된 빗물받이 제보 모달 */}
           {reportOpen && (
             <ReportDraftModal
               drains={drains}
