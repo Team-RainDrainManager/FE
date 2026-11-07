@@ -1,0 +1,30 @@
+/* 또랑 FE 제재 이력/미관리 경고 전용 스타일. 기존 설정 및 알림 탭 스타일 변경 없음. */
+.dd21-sanctions-overlay { position:fixed; inset:0; z-index:10020; display:flex; justify-content:center; align-items:flex-end; background:rgba(9,18,32,.55); backdrop-filter:blur(4px); }
+.dd21-sanctions-sheet { box-sizing:border-box; width:min(100%,480px); max-height:85dvh; display:flex; flex-direction:column; overflow:hidden; border-radius:25px 25px 0 0; background:#f7faff; color:#24496b; box-shadow:0 -10px 42px #091b3233; }
+.dd21-sanctions-grab { min-height:34px; flex:0 0 34px; width:100%; display:grid; place-items:center; touch-action:none; cursor:grab; }
+.dd21-sanctions-grab span { width:47px; height:5px; border-radius:10px; background:#a8bdd0; }
+.dd21-sanctions-heading { display:flex; align-items:center; justify-content:space-between; padding:8px 19px 16px; border-bottom:1px solid #dae8f4; }
+.dd21-sanctions-heading h2 { margin:0; font-size:18px; font-weight:800; }
+.dd21-sanctions-heading button { width:32px; height:32px; border-radius:10px; background:#e9f2fb; color:inherit; font-size:25px; }
+.dd21-sanctions-body { overflow:auto; padding:17px; min-height:150px; -webkit-overflow-scrolling:touch; }
+.dd21-sanctions-empty { min-height:125px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; font-size:13px; color:#718ca4; }
+.dd21-sanctions-empty button { border-radius:9px; background:#327cdb; padding:9px 17px; color:#fff; font-weight:700; }
+.dd21-sanctions-item { margin-bottom:10px; display:grid; gap:6px; border:1px solid #deebf8; border-radius:14px; background:white; padding:14px; font-size:12px; }
+.dd21-sanctions-item strong { font-size:14px; }
+.dd21-sanctions-item span { color:#6a86a1; }
+.dd21-care-warning-overlay { position:fixed; inset:0; z-index:10030; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(9,18,32,.55); backdrop-filter:blur(4px); }
+.dd21-care-warning-box { box-sizing:border-box; width:100%; max-width:365px; border-radius:22px; padding:20px; border:1px solid #e5b7bd; background:rgba(255,249,250,.88); color:#883847; box-shadow:0 16px 44px #1a102435; backdrop-filter:blur(16px); }
+.dd21-care-warning-box h2 { margin:0 0 12px; font-size:17px; font-weight:800; }
+.dd21-care-warning-message { margin:0; border-radius:12px; padding:13px; background:rgba(253,210,214,.66); line-height:1.7; font-size:13px; font-weight:650; }
+.dd21-care-warning-actions { display:flex; gap:8px; margin-top:15px; }
+.dd21-care-warning-actions button, .dd21-care-warning-actions a { display:flex; flex:1; align-items:center; justify-content:center; min-height:43px; border-radius:11px; font-size:13px; font-weight:800; text-decoration:none; }
+.dd21-care-warning-actions button { background:#f1dce1; color:#913b4b; }
+.dd21-care-warning-actions a { background:#327cdb; color:#fff; }
+html[data-dd-theme='dark'] .dd21-sanctions-sheet { background:#152439; color:#f1f6ff; }
+html[data-dd-theme='dark'] .dd21-sanctions-heading { border-color:#354e69; }
+html[data-dd-theme='dark'] .dd21-sanctions-heading button { background:#2b4059; }
+html[data-dd-theme='dark'] .dd21-sanctions-item { background:#1d3149; border-color:#39536f; }
+html[data-dd-theme='dark'] .dd21-sanctions-item span, html[data-dd-theme='dark'] .dd21-sanctions-empty { color:#bbcee0; }
+html[data-dd-theme='dark'] .dd21-care-warning-box { background:rgba(47,32,44,.88); border-color:#80515b; color:#ffccd2; }
+html[data-dd-theme='dark'] .dd21-care-warning-message { background:rgba(114,44,57,.64); }
+html[data-dd-theme='dark'] .dd21-care-warning-actions button { background:#5f3641; color:#ffdae0; }
