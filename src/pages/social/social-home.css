@@ -63,7 +63,12 @@
 .rd-social-user-row { display: flex; align-items: center; gap: 11px; min-height: 76px; padding: 13px; border-bottom: 1px solid var(--rd-line); }
 .rd-social-user-row:last-child { border-bottom: 0; }
 .rd-social-user-row > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.rd-social-user-row button { border-radius: 11px; padding: 10px 11px; white-space: nowrap; background: #eaf3ff; color: #287fe7; font-size: 11px; font-weight: 850; }
+.rd-social-user-row button { border-radius: 11px; padding: 10px 11px; white-space: nowrap; background: #eaf3ff; color: #287fe7; font-size: 11px; font-weight: 850; transition: background .16s ease, color .16s ease, transform .14s ease; }
+.rd-social-recommend-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.rd-social-recommend-actions > button { min-width: 78px; justify-content: center; }
+.rd-social-user-row button.is-pressed { background: #226fd6; color: #fff; }
+.rd-social-report-button { background: #eff2f6 !important; color: #8894a0 !important; }
+.rd-social-report-button.is-active { background: #df616d !important; color: #fff !important; }
 .rd-social-wide-add { width: 100%; margin-top: 14px; }
 .rd-social-disclaimer { margin: 16px 3px 4px; color: var(--rd-sub); font-size: 11px; line-height: 1.6; }
 .rd-social-toast { position: fixed; left: 50%; bottom: max(103px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: min(90vw, 320px); z-index: 240; padding: 11px 17px; background: #213752; color: white; text-align: center; border-radius: 999px; box-shadow: 0 7px 25px #10294035; font-size: 12px; font-weight: 750; }
@@ -319,3 +324,7 @@ html[data-dd-theme='dark'] .rd-social-league-summary-wood .rd-social-rank-pill {
   color:#442b17 !important; background:#fff7eced !important;
 }
 
+
+html[data-dd-theme='dark'] .rd-social-report-button { background: #334457 !important; color: #d3dce7 !important; }
+html[data-dd-theme='dark'] .rd-social-report-button.is-active { background: #c95c68 !important; color: #fff !important; }
+html[data-dd-theme='dark'] .rd-social-user-row button.is-pressed { background: #4e91ed; color: #fff; }

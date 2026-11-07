@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router'
 
 import Character from '../../components/common/Character'
 import './profile-tune.css'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import type { MyAdoptionDto } from '../../types/myDrains'
-import { changeNickname, getErrorMessage, getMe } from '../../apis/auth'
+import { getErrorMessage, getMe } from '../../apis/auth'
+import NicknameChangeDialog from '../../features/nickname/NicknameChangeDialog'
 
 // The server nickname is authoritative; preview names must not override signup.
 const NAME_STORAGE_KEY = 'ddorang:demo-profile-name'
@@ -56,12 +57,7 @@ export default function ProfilePage() {
   const [nickname, setNickname] = useState('')
   const [photo, setPhoto] = useState(() => loadFromStorage(PHOTO_STORAGE_KEY))
   const [editing, setEditing] = useState(false)
-  const [draftNickname, setDraftNickname] = useState(nickname)
   const [message, setMessage] = useState('')
-  const [savingNickname, setSavingNickname] = useState(false)
-  const trimmedDraftNickname = draftNickname.trim()
-  const nicknameDraftValid = trimmedDraftNickname.length >= 2 && trimmedDraftNickname.length <= 20
-  const nicknameUnchanged = trimmedDraftNickname === nickname
 
   useEffect(() => {
     let active = true
@@ -69,7 +65,6 @@ export default function ProfilePage() {
       if (!active) return
       const serverName = me.nickname?.trim() || '또랑이집사'
       setNickname(serverName)
-      setDraftNickname(serverName)
       // Existing social mock UI also reads this value; do not invent another name.
       saveToStorage(NAME_STORAGE_KEY, serverName)
     }).catch((err: unknown) => { if (active) setMessage(getErrorMessage(err)) })
@@ -89,30 +84,6 @@ export default function ProfilePage() {
     return lastCareAt !== null && lastCareAt <= now && now - lastCareAt <= 14 * 24 * 60 * 60 * 1000
   }).length
   const needsCare = adoptions.filter((adoption) => getCareStatus(adoption, now) === 'overdue')
-
-  const saveNickname = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const trimmed = draftNickname.trim()
-    if (trimmed.length < 2 || trimmed.length > 20) {
-      setMessage('닉네임은 2~20자로 입력해 주세요.')
-      return
-    }
-    if (trimmed === nickname) {
-      setEditing(false)
-      setMessage('')
-      return
-    }
-    setMessage('')
-    setSavingNickname(true)
-    try {
-      await changeNickname(trimmed)
-      setNickname(trimmed)
-      setEditing(false)
-      saveToStorage(NAME_STORAGE_KEY, trimmed)
-      setMessage('닉네임을 변경했습니다.')
-    } catch (error: unknown) { setMessage(getErrorMessage(error)) }
-    finally { setSavingNickname(false) }
-  }
 
   const changePhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -176,6 +147,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-[calc(100dvh-128px)] space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]">
+      {editing && <NicknameChangeDialog currentNickname={nickname} onClose={() => setEditing(false)} onChanged={value => { setNickname(value); setEditing(false); saveToStorage(NAME_STORAGE_KEY, value); setMessage('닉네임을 변경했습니다.') }} />}
       <section className="rounded-[24px] bg-[#EAF5FF] px-5 pb-5 pt-6">
         <div className="dd-profile-titlebar">
           <p className="text-[20px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
@@ -207,48 +179,14 @@ export default function ProfilePage() {
           </div>
 
           <div className="min-w-0 flex-1">
-            {editing ? (
-              <form onSubmit={saveNickname} className="dd-profile-nickname-editor">
-                <div className="dd-profile-nickname-heading">
-                  <label htmlFor="nickname">닉네임 변경</label>
-                  <span aria-live="polite">{draftNickname.length}/20</span>
-                </div>
-                <input
-                  id="nickname"
-                  autoFocus
-                  required
-                  minLength={2}
-                  maxLength={20}
-                  autoComplete="nickname"
-                  aria-describedby="dd-profile-nickname-help"
-                  aria-invalid={trimmedDraftNickname.length > 0 && !nicknameDraftValid}
-                  disabled={savingNickname}
-                  value={draftNickname}
-                  onChange={(event) => { setDraftNickname(event.target.value); setMessage('') }}
-                  className="dd-profile-nickname-input"
-                />
-                <p id="dd-profile-nickname-help" className="dd-profile-nickname-help">2~20자로 입력해 주세요.</p>
-                <div className="dd-profile-nickname-actions">
-                  <button type="button" disabled={savingNickname} onClick={() => { setEditing(false); setMessage('') }} className="dd-profile-nickname-cancel">취소</button>
-                  <button type="submit" disabled={savingNickname || !nicknameDraftValid || nicknameUnchanged} className="dd-profile-nickname-save">{savingNickname ? '저장 중…' : '저장하기'}</button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <p className="truncate text-[18px] font-extrabold tracking-[-0.035em]">{nickname || '불러오는 중…'}</p>
-                <p className="mt-0.5 text-[11px] text-[#8399AD]">우리 동네 빗물받이 집사</p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <button
-                    type="button"
-                    onClick={() => { setDraftNickname(nickname); setEditing(true); setMessage('') }}
-                    className="text-[11px] font-bold text-[#338CF0]"
-                  >
-                    닉네임 수정
-                  </button>
-                  {photo && <button type="button" onClick={removePhoto} className="text-[11px] font-medium text-[#8A9EB0]">사진 삭제</button>}
-                </div>
-              </>
-            )}
+            <>
+              <p className="truncate text-[18px] font-extrabold tracking-[-0.035em]">{nickname || '불러오는 중…'}</p>
+              <p className="mt-0.5 text-[11px] text-[#8399AD]">우리 동네 빗물받이 집사</p>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <button type="button" onClick={() => { setEditing(true); setMessage('') }} className="text-[11px] font-bold text-[#338CF0]">닉네임 수정</button>
+                {photo && <button type="button" onClick={removePhoto} className="text-[11px] font-medium text-[#8A9EB0]">사진 삭제</button>}
+              </div>
+            </>
           </div>
         </div>
         {message && <p role="status" className="mt-3 rounded-xl bg-white px-3 py-2 text-[11px] leading-5 text-[#3A78A9]">{message}</p>}
