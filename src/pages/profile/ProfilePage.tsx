@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 
 import Character from '../../components/common/Character'
 import MySanctionsSection from '../../features/account/MySanctionsSection'
+import MyReportsSection from '../../features/account/MyReportsSection'
 import './profile-tune.css'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import type { MyAdoptionDto } from '../../types/myDrains'
@@ -304,7 +305,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <p className="px-2 text-center text-[11px] leading-5 text-[#97AABE]">프로필 사진은 이 브라우저에만 저장됩니다.</p>
+      <MyReportsSection />
       <MySanctionsSection />
     </div>
   )
