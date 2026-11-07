@@ -1,3 +1,5 @@
+import { useContext } from 'react'
+import { AccountId, award } from '../../features/missions/wallet'
 import {
   useCallback,
   useEffect,
@@ -776,6 +778,7 @@ export default function CameraCapture({
     height: number
   } | null>(null)
 
+  const account = useContext(AccountId)
   const [facingMode, setFacingMode] = useState<CameraFacing>('environment')
   const [retryCount, setRetryCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -999,6 +1002,7 @@ export default function CameraCapture({
           setError('사진 저장에 실패했어요. 다시 촬영해주세요.')
           return
         }
+        void award(account, 'photo').catch(console.error)
         const capturedAt = Date.now()
         const file = new File([blob], `drain-inspection-${capturedAt}.jpg`, {
           type: 'image/jpeg',
@@ -1022,7 +1026,7 @@ export default function CameraCapture({
       'image/jpeg',
       0.9,
     )
-  }, [setQuad, setDetection])
+  }, [account, setQuad, setDetection])
 
   // 원본 코드처럼 센서가 있으면 센서, 없으면 프레임 변화량을 사용합니다.
   useEffect(() => {
@@ -1136,7 +1140,9 @@ export default function CameraCapture({
     } catch {
       URL.revokeObjectURL(url)
       // 미리보기 디코딩을 지원하지 않아도 기존 파일 선택 기능은 유지합니다.
-      if (mountedRef.current) onCapture(file)
+      if (mountedRef.current) {
+        onCapture(file)
+      }
     }
   }
 

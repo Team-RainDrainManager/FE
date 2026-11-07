@@ -23,6 +23,7 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
   {
     id: 2,
     nickname: '햇살집사',
+    outfit: 'h02',
     avatar: '☀️',
     organization: '역곡동 환경동아리',
     zone: '성심교정–역곡역',
@@ -37,6 +38,7 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
   {
     id: 3,
     nickname: '초록발걸음',
+    outfit: 'a03',
     avatar: '🍀',
     organization: null,
     zone: '성심교정–역곡역',
@@ -48,6 +50,7 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
   {
     id: 4,
     nickname: '비구름',
+    outfit: 'a01',
     avatar: '🌧️',
     organization: '부천 물길지킴이',
     zone: '성심교정–역곡역',
@@ -59,6 +62,7 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
   {
     id: 5,
     nickname: '맑은하루',
+    outfit: 'e01',
     avatar: '🌼',
     organization: '부천 물길지킴이',
     zone: '성심교정–역곡역',
@@ -70,6 +74,7 @@ export const MOCK_SOCIAL_USERS: SocialUser[] = [
   {
     id: 6,
     nickname: '또랑친구',
+    outfit: 'p01',
     avatar: '💧',
     organization: null,
     zone: '성심교정–역곡역',

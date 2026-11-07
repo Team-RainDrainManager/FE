@@ -1,3 +1,5 @@
+import { useContext } from 'react'
+import { AccountId, award } from '../../../features/missions/wallet'
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -89,6 +91,7 @@ export default function RainInspectForm({
   adoptionName,
   onCancel,
 }: Props) {
+  const account = useContext(AccountId)
   const queryClient = useQueryClient()
 
   const [photoStep, setPhotoStep] =
@@ -225,6 +228,9 @@ const refreshData = async () => {
     },
 
     onSuccess: async (result) => {
+      if (result.status === 'COMPLETED' && kind === 'SUBSTITUTE') {
+        void award(account, 'substitute').catch(console.error)
+      }
       setStartResult(result)
 
       if (result.status === 'NEEDS_CLEANING') {
@@ -268,6 +274,9 @@ const refreshData = async () => {
     },
 
     onSuccess: async (result) => {
+      if (result.status === 'COMPLETED' && kind !== 'FORECAST') {
+        void award(account, kind === 'SUBSTITUTE' ? 'substitute' : 'clean').catch(console.error)
+      }
       setFinalResult(result)
       await refreshData()
     },

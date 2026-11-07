@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useOutlet } from 'react-router'
 import './tab-swipe.css'
 
 // Keep the order in sync with BottomNavigation. These are the only swipeable routes.
-const TAB_PATHS = ['/my-drains', '/map', '/social', '/notifications', '/profile'] as const
+const TAB_PATHS = ['/my-drains', '/notifications', '/map', '/social', '/profile'] as const
 const NON_SWIPE_TARGETS = [
   'a', 'button', 'input', 'textarea', 'select', 'label', 'iframe', 'canvas',
   '[contenteditable="true"]', '[draggable="true"]',

@@ -1,3 +1,5 @@
+import Avatar from '../../shop/Avatar'
+import { greet } from '../../shop/greet'
 
 import { CustomOverlayMap } from 'react-kakao-maps-sdk'
 import type {
@@ -6,31 +8,11 @@ import type {
 
 interface DrainMarkerProps {
   drain: PositionedDrainMapItem
+  outfit?: string | null
   selected: boolean
   onSelect: (
     drain: PositionedDrainMapItem,
   ) => void
-}
-
-const levelFiles = import.meta.glob(
-  '../../../assets/characters/level/*.svg',
-  {
-    eager: true,
-    query: '?url',
-    import: 'default',
-  },
-) as Record<string, string>
-
-const levelImages = new Map<number, string>()
-
-for (const [path, url] of Object.entries(levelFiles)) {
-  const match = path.match(
-    /(?:level|lv)?[_-]?0*(\d+)\.svg$/i,
-  )
-
-  if (match) {
-    levelImages.set(Number(match[1]), url)
-  }
 }
 
 const MARKER_STYLES = {
@@ -40,15 +22,6 @@ const MARKER_STYLES = {
   blocked: 'bg-[#EF7272]',
   risk: 'bg-[#F5B84B]',
   unknown: 'bg-[#98A2B3]',
-}
-
-const FALLBACK_ICONS = {
-  unadopted: '○',
-  normal: '🌱',
-  overdue: '!',
-  blocked: '!',
-  risk: '!',
-  unknown: '?',
 }
 
 const STATUS_NAMES = {
@@ -63,13 +36,9 @@ const STATUS_NAMES = {
 export default function DrainMarker({
   drain,
   selected,
+  outfit,
   onSelect,
 }: DrainMarkerProps) {
-  const image =
-    drain.level !== null
-      ? levelImages.get(drain.level)
-      : undefined
-
   return (
     <CustomOverlayMap
       position={{
@@ -83,7 +52,7 @@ export default function DrainMarker({
     >
       <button
         type="button"
-        onClick={() => onSelect(drain)}
+        onClick={event => { greet(event); onSelect(drain) }}
         
 aria-label={`${
   drain.nickname ?? drain.name
@@ -113,18 +82,7 @@ aria-label={`${
             }
           `}
         >
-          {image ? (
-            <img
-              src={image}
-              alt=""
-              className="h-9 w-9 object-contain"
-              draggable={false}
-            />
-          ) : (
-            <span className="text-xl font-bold text-white">
-              {FALLBACK_ICONS[drain.status]}
-            </span>
-          )}
+          <Avatar outfit={outfit} available={drain.adoptionStatus === 'AVAILABLE' || drain.status === 'unadopted'} />
         </span>
 
         {drain.level !== null && (
