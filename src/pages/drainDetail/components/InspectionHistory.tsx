@@ -1,12 +1,13 @@
 
 import { useState } from 'react'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
 import {
   getAdoptionInspections,
   type AdoptionInspection,
 } from '../../../apis/adoption-inspections'
 import { getErrorMessage } from '../../../apis/auth'
+import { getInspectionDetail } from '../../../apis/inspections'
 
 type Props = {
   adoptionId: number
@@ -33,11 +34,63 @@ function getReviewLabel(review: string) {
   return labels[review] ?? review
 }
 
+// 사용자가 상세 보기를 열 때에만 점검 상세 API를 호출합니다.
+function InspectionDetailPanel({ inspectionId }: { inspectionId: number }) {
+  const { data, isPending, isError, error, refetch } = useQuery({
+    queryKey: ['inspection-detail', inspectionId],
+    queryFn: ({ signal }) => getInspectionDetail(inspectionId, signal),
+    staleTime: 30_000,
+    retry: 1,
+  })
+
+  if (isPending) {
+    return <p role="status" className="mt-3 text-xs text-[#78899F]">점검 상세 정보를 불러오는 중이에요.</p>
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="mt-3 space-y-2 text-xs text-[#B84D4D]">
+        <p role="alert">{getErrorMessage(error)}</p>
+        <button type="button" onClick={() => void refetch()} className="font-bold underline">다시 조회</button>
+      </div>
+    )
+  }
+
+  return (
+    <section aria-label="점검 상세 정보" className="mt-3 space-y-2 rounded-xl bg-[#F4F7FC] p-3 text-xs leading-5 text-[#53647E]">
+      <p>빗물받이: {data.drain.name}</p>
+      <p>점검 종류: {getKindLabel(data.kind)}</p>
+      <p>점검 일시: {new Date(data.createdAt).toLocaleString('ko-KR')}</p>
+      <p>검토 상태: {getReviewLabel(data.review)}</p>
+      {data.reviewReason && <p className="whitespace-pre-wrap break-words">검토 사유: {data.reviewReason}</p>}
+      <p>점검 전 등급: {data.beforeGrade ?? '정보 없음'}</p>
+      <p>점검 후 등급: {data.afterGrade ?? '정보 없음'}</p>
+      <p>청소 여부: {data.cleaned ? '청소함' : '청소하지 않음'}</p>
+      <p>점검 위치 거리: {data.distanceM === null ? '정보 없음' : `${data.distanceM}m`}</p>
+      <p>획득 경험치: {data.xp} XP</p>
+      {data.level !== null && <p>점검 당시 레벨: Lv.{data.level}</p>}
+      {data.displayStatus && <p>빗물받이 상태: {data.displayStatus}</p>}
+      <p>막힘 제보 여부: {data.hasBlockageReport ? '있음' : '없음'}</p>
+      {data.note && <p className="whitespace-pre-wrap break-words">메모: {data.note}</p>}
+      {data.photoDeleted ? (
+        <p className="rounded-lg bg-white p-2 text-[#8297AC]">사진 보존 기간(365일)이 지나 삭제되었어요.</p>
+      ) : data.beforePhotoUrl || data.afterPhotoUrl ? (
+        <div className="grid grid-cols-2 gap-2">
+          {data.beforePhotoUrl && <div><p className="mb-1">점검 전</p><img src={data.beforePhotoUrl} alt="점검 전 사진" loading="lazy" className="h-28 w-full rounded-lg object-cover" /></div>}
+          {data.afterPhotoUrl && <div><p className="mb-1">청소 후</p><img src={data.afterPhotoUrl} alt="청소 후 사진" loading="lazy" className="h-28 w-full rounded-lg object-cover" /></div>}
+        </div>
+      ) : <p className="text-[#8297AC]">상세 기록에 표시할 사진이 없어요.</p>}
+    </section>
+  )
+}
+
 function InspectionItem({
   item,
 }: {
   item: AdoptionInspection
 }) {
+  const [detailOpen, setDetailOpen] = useState(false)
+
   const hasBeforePhoto =
     !item.photoDeleted && Boolean(item.beforePhotoUrl)
 
@@ -105,6 +158,16 @@ function InspectionItem({
           )}
         </div>
       )}
+
+      <button
+        type="button"
+        aria-expanded={detailOpen}
+        onClick={() => setDetailOpen((current) => !current)}
+        className="mt-3 w-full rounded-lg border border-[#E4EDF7] bg-[#F7FAFF] px-3 py-2 text-xs font-semibold text-[#3981F7]"
+      >
+        {detailOpen ? '점검 상세 접기 −' : '점검 상세 보기 +'}
+      </button>
+      {detailOpen && <InspectionDetailPanel inspectionId={item.inspectionId} />}
     </article>
   )
 }
