@@ -14,7 +14,7 @@
 .dd-nick-heading h2 {font-size:17px;font-weight:800;line-height:1.4;margin:0}
 .dd-nick-close {font-size:23px;line-height:1;min-width:32px;min-height:32px;border-radius:50%;color:inherit;background:rgba(130,159,187,.14)}
 .dd-nick-flow {display:grid;gap:12px}
-.dd-nick-notice {margin:0;padding:12px 13px;border-radius:13px;font-size:14px;font-weight:700;line-height:1.68;background:#8fb2e1;color:#fff}
+.dd-nick-notice {margin:0;padding:12px 13px;border-radius:13px;font-size:14px;font-weight:700;line-height:1.68;background: #327cdb;color:#fff}
 .dd-nick-warning {margin:0;padding:13px;border:1px solid rgba(201,87,94,.35);border-radius:13px;color:#9d3341;background:rgba(253,210,214,.55);font-size:13px;line-height:1.65}
 .dd-nick-label {display:block;font-size:13px;font-weight:700;line-height:1.5}
 .dd-nick-input {min-width:0;width:100%;box-sizing:border-box;border:1px solid #9fbad6;border-radius:12px;min-height:46px;padding:11px 12px;color:#203f5d;background:rgba(255,255,255,.87);outline:none;font-size:16px !important;line-height:1.4}
@@ -31,7 +31,7 @@
 .dd-nick-success {color:#157a45}.dd-nick-error {color:#c0273b}
 .dd-nick-disclaimer {font-size:10px;line-height:1.65;color:#607589;margin:0}
 html[data-dd-theme='dark'] .dd-nick-dialog {background:rgba(24,39,57,.75);color:#f1f6ff;border-color:rgba(109,140,175,.55)}
-html[data-dd-theme='dark'] .dd-nick-notice {background:#5d7faa;color:#fff}
+html[data-dd-theme='dark'] .dd-nick-notice {background: #5d7faa;color: #fff;}
 html[data-dd-theme='dark'] .dd-nick-warning {color:#ffc6cd;background:rgba(114,44,57,.52);border-color:rgba(235,124,138,.45)}
 html[data-dd-theme='dark'] .dd-nick-input {color:#f1f6ff;background:rgba(21,35,53,.92);border-color:#5d7898}
 html[data-dd-theme='dark'] .dd-nick-close {background:rgba(125,158,194,.15)}
