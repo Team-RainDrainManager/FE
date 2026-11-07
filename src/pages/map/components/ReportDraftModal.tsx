@@ -17,6 +17,7 @@ import {
   uploadAdoptionPhoto,
 } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
+import { apiClient } from '../../../apis/axios-instance'
 import {
   createReport,
   getReportDetail,
@@ -38,7 +39,6 @@ type Props = {
 
 const REPORT_TYPES: { value: ReportType; label: string }[] = [
   { value: 'BLOCKAGE', label: '막힘 제보' },
-  { value: 'NEW_DRAIN', label: '신규 빗물받이' },
   { value: 'LOCATION_FIX', label: '위치 수정' },
   { value: 'REMOVAL', label: '삭제 요청' },
   { value: 'ODOR', label: '악취 제보' },
@@ -46,6 +46,35 @@ const REPORT_TYPES: { value: ReportType; label: string }[] = [
 
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024
+
+type PhotoAssessment = {
+  grade: number
+  dirtLevel: number
+  isRisk: boolean
+  needsReport: boolean
+  confidence: number
+  reason: string
+}
+
+type AssessmentApiResponse = {
+  success: boolean
+  data: PhotoAssessment | null
+  error: { code: string; message: string } | null
+}
+
+// 테스트 전용: 사진 키만 전달해 AI 결과를 조회하며 제보는 등록하지 않음
+async function assessPhoto(photoKey: string): Promise<PhotoAssessment> {
+  const { data: response } = await apiClient.post<AssessmentApiResponse>(
+    '/api/v1/drain/assessments',
+    { photoKey },
+  )
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error?.message ?? '사진 판독에 실패했어요.')
+  }
+
+  return response.data
+}
 
 const FIELD_CLASS =
   'h-11 w-full rounded-xl border border-[#DFE5F0] bg-white px-3 text-sm text-[#304563] outline-none transition focus:border-[#7C93F2] focus:ring-2 focus:ring-[#EEF2FF] disabled:opacity-60'
@@ -164,10 +193,15 @@ export default function ReportDraftModal({
   const photoInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
   const [type, setType] = useState<ReportType>('BLOCKAGE')
-  const [drainId, setDrainId] = useState(
-    initialDrainId?.toString() ?? '',
-  )
+  // 지도에서 선택한 빗물받이 ID만 사용하며 모달에서는 변경할 수 없습니다.
+  const selectedDrain = drains.find((drain) => drain.id === initialDrainId)
+  const selectedDrainName = selectedDrain?.nickname ?? selectedDrain?.name
   const [photo, setPhoto] = useState<File | null>(null)
+  // 판독용(AFTER)과 실제 제보용(REPORT)은 업로드 키를 분리합니다.
+  const uploadedPhotoRef = useRef<{
+    file: File
+    keys: Partial<Record<'AFTER' | 'REPORT', string>>
+  } | null>(null)
   const [note, setNote] = useState('')
   const [safetyConfirmed, setSafetyConfirmed] = useState(false)
   const [newLatitude, setNewLatitude] = useState('')
@@ -176,7 +210,6 @@ export default function ReportDraftModal({
   const [submittedReportId, setSubmittedReportId] =
     useState<number | null>(null)
 
-  const isNewDrain = type === 'NEW_DRAIN'
   const isLocationFix = type === 'LOCATION_FIX'
 
   const {
@@ -204,19 +237,66 @@ export default function ReportDraftModal({
     }
   }
 
+  // 동일 사진 + 동일 업로드 용도의 키만 재사용합니다.
+  const getPhotoKey = async (
+    file: File,
+    purpose: 'AFTER' | 'REPORT',
+  ): Promise<string> => {
+    if (uploadedPhotoRef.current?.file === file) {
+      const existingKey = uploadedPhotoRef.current.keys[purpose]
+      if (existingKey) return existingKey
+    }
+
+    const key = await uploadAdoptionPhoto(file, purpose)
+    const keys = uploadedPhotoRef.current?.file === file
+      ? uploadedPhotoRef.current.keys
+      : {}
+
+    uploadedPhotoRef.current = {
+      file,
+      keys: { ...keys, [purpose]: key },
+    }
+    return key
+  }
+
+  const assessmentMutation = useMutation({
+    mutationFn: async () => {
+      if (!photo) {
+        throw new Error('AI 판독할 사진을 먼저 첨부해 주세요.')
+      }
+
+      const photoKey = await getPhotoKey(photo, 'AFTER')
+      return assessPhoto(photoKey)
+    },
+  })
+
+  // 판독 완료 + needsReport: true 인 경우에만 제보를 허용합니다.
+  const canSubmitReport = Boolean(
+    photo &&
+    assessmentMutation.isSuccess &&
+    assessmentMutation.data?.needsReport === true,
+  )
+
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!canSubmitReport || !photo) {
+        throw new Error('AI 판독에서 제보가 필요하다고 확인된 사진만 제출할 수 있어요.')
+      }
+
+      const drainId = initialDrainId
+      if (typeof drainId !== 'number' || !Number.isSafeInteger(drainId) || drainId <= 0) {
+        throw new Error('선택한 빗물받이 ID를 확인할 수 없어요.')
+      }
+
       const description = note.trim()
       const coordinates = await getCurrentCoordinates()
 
-      const photoKey = photo
-        ? await uploadAdoptionPhoto(photo, 'REPORT')
-        : undefined
+      const photoKey = await getPhotoKey(photo, 'REPORT')
 
       return createReport({
-        ...(!isNewDrain ? { drainId: Number(drainId) } : {}),
+        drainId,
         type,
-        ...(photoKey ? { photoKey } : {}),
+        photoKey,
         ...(description ? { description } : {}),
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
@@ -228,27 +308,24 @@ export default function ReportDraftModal({
           : {}),
       })
     },
-    
-onSuccess: async (result) => {
-  setSubmittedReportId(result.reportId)
+    onSuccess: async (result) => {
+      setSubmittedReportId(result.reportId)
 
-  await Promise.all([
-    queryClient.invalidateQueries({
-      queryKey: ['map-drains'],
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ['drain-detail'],
-    }),
-  ])
-},
-
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
+        queryClient.invalidateQueries({ queryKey: ['drain-detail'] }),
+      ])
+    },
   })
 
   const handlePhotoChange = (file: File | null) => {
-    if (!file) return
+    if (!file || mutation.isPending || assessmentMutation.isPending) return
 
     setFormError('')
     mutation.reset()
+    assessmentMutation.reset()
+    uploadedPhotoRef.current = null
+    setPhoto(null)
 
     if (!PHOTO_TYPES.includes(file.type)) {
       setFormError('JPG, PNG, WEBP 사진만 업로드할 수 있어요.')
@@ -264,6 +341,9 @@ onSuccess: async (result) => {
   }
 
   const removePhoto = () => {
+    if (mutation.isPending || assessmentMutation.isPending) return
+    uploadedPhotoRef.current = null
+    assessmentMutation.reset()
     setPhoto(null)
     setFormError('')
     mutation.reset()
@@ -288,17 +368,17 @@ onSuccess: async (result) => {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (mutation.isPending) return
+    if (mutation.isPending || assessmentMutation.isPending) return
 
     setFormError('')
     mutation.reset()
 
     if (
-      !isNewDrain &&
-      (!Number.isSafeInteger(Number(drainId)) ||
-        Number(drainId) <= 0)
+      typeof initialDrainId !== 'number' ||
+      !Number.isSafeInteger(initialDrainId) ||
+      initialDrainId <= 0
     ) {
-      setFormError('제보할 빗물받이를 선택해 주세요.')
+      setFormError('지도에서 제보할 빗물받이를 선택해 주세요.')
       return
     }
 
@@ -307,8 +387,17 @@ onSuccess: async (result) => {
       return
     }
 
-    if (!photo && !(type === 'ODOR' && note.trim())) {
-      setFormError('사진을 첨부해 주세요.')
+    if (!photo) {
+      setFormError('AI 판독할 사진을 첨부해 주세요.')
+      return
+    }
+
+    if (!canSubmitReport) {
+      setFormError(
+        assessmentMutation.data?.needsReport === false
+          ? 'AI 판독에서 제보가 필요하지 않다고 판단해 제출할 수 없어요.'
+          : '사진 AI 판독을 먼저 완료해 주세요.',
+      )
       return
     }
 
@@ -452,7 +541,7 @@ onSuccess: async (result) => {
   return (
     <ReportOverlay
       onDismiss={onClose}
-      busy={mutation.isPending}
+      busy={mutation.isPending || assessmentMutation.isPending}
     >
       <section
         aria-labelledby="report-title"
@@ -474,7 +563,7 @@ onSuccess: async (result) => {
           <button
             type="button"
             onClick={onClose}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || assessmentMutation.isPending}
             aria-label="제보 창 닫기"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4F6FA] text-xl text-[#7F8DA5] transition hover:bg-[#EAEFFA] focus-visible:outline-2 focus-visible:outline-[#6384EF] disabled:opacity-40"
           >
@@ -497,7 +586,7 @@ onSuccess: async (result) => {
               <select
                 id="report-type"
                 value={type}
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || assessmentMutation.isPending}
                 onChange={(event) => {
                   setType(event.target.value as ReportType)
                   setFormError('')
@@ -513,41 +602,18 @@ onSuccess: async (result) => {
               </select>
             </div>
 
-            {!isNewDrain && (
-              <div>
-                <label
-                  htmlFor="report-drain"
-                  className={LABEL_CLASS}
-                >
-                  대상 빗물받이
-                </label>
-                <select
-                  id="report-drain"
-                  value={drainId}
-                  disabled={mutation.isPending}
-                  onChange={(event) =>
-                    setDrainId(event.target.value)
-                  }
-                  className={FIELD_CLASS}
-                >
-                  <option value="">
-                    빗물받이를 선택해 주세요
-                  </option>
-                  {drains.map((drain) => (
-                    <option key={drain.id} value={drain.id}>
-                      {drain.nickname ?? drain.name} (#{drain.id})
-                    </option>
-                  ))}
-                </select>
+            {/* 지도에서 선택한 빗물받이 정보를 읽기 전용으로 표시합니다. */}
+            <div>
+              <span className={LABEL_CLASS}>대상 빗물받이</span>
+              <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-[#DFE5F0] bg-[#F4F6FB] px-3 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[#304563]">
+                    {selectedDrainName || '선택한 빗물받이'}
+                  </p>
+                  
+                </div>
               </div>
-            )}
-
-            {isNewDrain && (
-              <p className="rounded-xl bg-[#EEF3FF] p-3 text-xs leading-5 text-[#637AA8]">
-                신규 빗물받이는 현재 GPS 위치를 기준으로
-                제보해요. 빗물받이 현장에서 제출해 주세요.
-              </p>
-            )}
+            </div>
 
             {isLocationFix && (
               <div className="space-y-3 rounded-xl bg-[#F4F6FB] p-3">
@@ -561,7 +627,7 @@ onSuccess: async (result) => {
                     type="number"
                     step="any"
                     value={newLatitude}
-                    disabled={mutation.isPending}
+                    disabled={mutation.isPending || assessmentMutation.isPending}
                     onChange={(event) =>
                       setNewLatitude(event.target.value)
                     }
@@ -576,7 +642,7 @@ onSuccess: async (result) => {
                     type="number"
                     step="any"
                     value={newLongitude}
-                    disabled={mutation.isPending}
+                    disabled={mutation.isPending || assessmentMutation.isPending}
                     onChange={(event) =>
                       setNewLongitude(event.target.value)
                     }
@@ -587,7 +653,7 @@ onSuccess: async (result) => {
 
                 <button
                   type="button"
-                  disabled={mutation.isPending}
+                  disabled={mutation.isPending || assessmentMutation.isPending}
                   onClick={() => void handleCurrentLocation()}
                   className="text-xs font-semibold text-[#6384EF] disabled:opacity-50"
                 >
@@ -610,7 +676,7 @@ onSuccess: async (result) => {
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 capture="environment"
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || assessmentMutation.isPending}
                 onChange={(event) => {
                   handlePhotoChange(
                     event.currentTarget.files?.[0] ?? null,
@@ -636,7 +702,7 @@ onSuccess: async (result) => {
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
-                        disabled={mutation.isPending}
+                        disabled={mutation.isPending || assessmentMutation.isPending}
                         onClick={() =>
                           photoInputRef.current?.click()
                         }
@@ -646,7 +712,7 @@ onSuccess: async (result) => {
                       </button>
                       <button
                         type="button"
-                        disabled={mutation.isPending}
+                        disabled={mutation.isPending || assessmentMutation.isPending}
                         onClick={removePhoto}
                         className="text-xs font-medium text-[#8A96AA] disabled:opacity-50"
                       >
@@ -658,7 +724,7 @@ onSuccess: async (result) => {
               ) : (
                 <button
                   type="button"
-                  disabled={mutation.isPending}
+                  disabled={mutation.isPending || assessmentMutation.isPending}
                   onClick={() => photoInputRef.current?.click()}
                   className="flex min-h-[108px] w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#BAC8F4] bg-[#F5F7FF] px-3 py-4 text-center transition hover:bg-[#EAF0FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8CA2F5] disabled:opacity-50"
                 >
@@ -670,6 +736,56 @@ onSuccess: async (result) => {
                     JPG · PNG · WEBP / 최대 10MB
                   </span>
                 </button>
+              )}
+
+              {/* 판독 결과가 needsReport: true일 때만 실제 제보를 허용 */}
+              <button
+                type="button"
+                onClick={() => assessmentMutation.mutate()}
+                disabled={!photo || mutation.isPending || assessmentMutation.isPending}
+                className="mt-3 min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-4 py-3 text-sm font-bold text-[#6384EF] transition hover:bg-[#F5F7FF] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {assessmentMutation.isPending
+                  ? 'AI 사진 판독 중...'
+                  : 'AI 사진 판독'}
+              </button>
+
+              {assessmentMutation.isError && (
+                <p role="alert" className="mt-2 rounded-xl bg-[#FFF1F1] p-3 text-xs text-[#B84D4D]">
+                  {getErrorMessage(assessmentMutation.error)}
+                </p>
+              )}
+
+              {assessmentMutation.data && (
+                <div role="status" className="mt-3 space-y-2 rounded-xl border border-[#DCE4F8] bg-[#F5F7FF] p-3 text-sm text-[#304563]">
+                  <p className="font-bold text-[#3855B8]">AI 사진 판독 결과</p>
+                  <p>등급 (grade): {assessmentMutation.data.grade}</p>
+                  <p>오염도 (dirtLevel): {assessmentMutation.data.dirtLevel}</p>
+                  <p>위험 여부 (isRisk): {assessmentMutation.data.isRisk ? 'true' : 'false'}</p>
+                  <p>제보 필요 (needsReport): {assessmentMutation.data.needsReport ? 'true' : 'false'}</p>
+                  <p>신뢰도 (confidence): {assessmentMutation.data.confidence}</p>
+                  <p className="whitespace-pre-wrap break-words">판정 이유 (reason): {assessmentMutation.data.reason}</p>
+                  <details className="pt-1 text-xs">
+                    <summary className="cursor-pointer font-semibold text-[#6384EF]">원본 JSON 보기</summary>
+                    <pre className="mt-2 max-h-44 overflow-auto rounded-lg bg-white p-2 text-[11px] leading-5">
+                      {JSON.stringify(assessmentMutation.data, null, 2)}
+                    </pre>
+                  </details>
+                  <p
+                    className={`rounded-lg p-2 text-xs font-semibold ${
+                      assessmentMutation.data.needsReport
+                        ? 'bg-[#EAF7EF] text-[#247A4B]'
+                        : 'bg-[#FFF1F1] text-[#B84D4D]'
+                    }`}
+                  >
+                    {assessmentMutation.data.needsReport
+                      ? 'AI가 제보가 필요하다고 판단했어요. 이제 제보를 제출할 수 있어요.'
+                      : 'AI가 제보가 필요하지 않다고 판단했어요. 이 사진으로는 제보할 수 없어요.'}
+                  </p>
+                  <p className="text-xs text-[#8294A5]">
+                    사진 판독만 완료되었으며, 제보 제출 버튼을 눌러야 접수됩니다.
+                  </p>
+                </div>
               )}
             </div>
 
@@ -684,7 +800,7 @@ onSuccess: async (result) => {
                 id="report-note"
                 rows={3}
                 value={note}
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || assessmentMutation.isPending}
                 onChange={(event) =>
                   setNote(event.target.value)
                 }
@@ -697,7 +813,7 @@ onSuccess: async (result) => {
               <input
                 type="checkbox"
                 checked={safetyConfirmed}
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || assessmentMutation.isPending}
                 onChange={(event) =>
                   setSafetyConfirmed(event.target.checked)
                 }
@@ -720,13 +836,17 @@ onSuccess: async (result) => {
           </div>
 
           <div className="shrink-0 space-y-3 border-t border-[#EDF1F5] bg-white px-5 pb-5 pt-3">
-            <p className="text-[10px] leading-relaxed text-[#8B9BAD]">
-              제보는 관리자 검토 후 처리돼요. 경험치는
-              승인된 경우에 지급됩니다.
-            </p>
+            
+            {!canSubmitReport && !assessmentMutation.isPending && (
+              <p className="text-center text-xs text-[#8294A5]">
+                {assessmentMutation.data?.needsReport === false
+                  ? 'AI가 제보 불필요로 판단하여 제출이 제한돼요.'
+                  : '사진을 첨부하고 AI 판독을 먼저 진행해 주세요.'}
+              </p>
+            )}
             <button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={!canSubmitReport || mutation.isPending || assessmentMutation.isPending}
               className={BUTTON_CLASS}
             >
               {mutation.isPending
