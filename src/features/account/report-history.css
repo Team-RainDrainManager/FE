@@ -1,0 +1,18 @@
+/* 프로필 내 제보 내역 — 기존 제재 내역 바텀시트 스타일 재사용 */
+.dd23-reports-summary { color:#24496b; }
+.dd23-reports-count { color:#338cf0; font-weight:800; }
+.dd23-reports-updated { margin:5px 0 0; color:#8096ad; font-size:10px; font-weight:500; }
+.dd23-reports-open { min-height:34px; padding:0 2px; white-space:nowrap; }
+.dd23-reports-error { margin:7px 0 0; color:#bf5362; font-size:11px; }
+.dd23-reports-body { padding-bottom:max(22px,env(safe-area-inset-bottom)); }
+.dd23-reports-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.dd23-reports-status { flex:0 0 auto; border-radius:8px; padding:4px 7px; background:#eaf3ff; color:#327cdb!important; font-weight:800; font-size:10px; }
+.dd23-reports-toggle { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:47px; margin-top:9px; padding:10px 12px; border-radius:12px; background:#eaf2fb; color:#42637f; font-size:12px; font-weight:700; }
+.dd23-reports-toggle input { appearance:none; width:38px; height:22px; border-radius:20px; position:relative; flex:0 0 38px; cursor:pointer; background:#b3c2d2; transition:background .15s ease; }
+.dd23-reports-toggle input::after { content:''; display:block; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:white; transition:transform .15s ease; }
+.dd23-reports-toggle input:checked { background:#327cdb; }
+.dd23-reports-toggle input:checked::after { transform:translateX(16px); }
+.dd23-reports-toggle input:focus-visible { outline:2px solid #327cdb; outline-offset:3px; }
+html[data-dd-theme='dark'] .dd23-reports-summary { background:#1d3149; color:#f1f6ff; border-color:#39536f; }
+html[data-dd-theme='dark'] .dd23-reports-updated { color:#bbcee0; }
+html[data-dd-theme='dark'] .dd23-reports-toggle { background:#2b4059; color:#e2ecf8; }
