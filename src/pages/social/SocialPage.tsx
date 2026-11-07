@@ -9,6 +9,7 @@ import {
 import type { SocialUser } from '../../types/social'
 import FriendInviteDialog from './components/FriendInviteDialog'
 import ReportableNickname from '../../features/moderation/ReportableNickname'
+import { storeDemoReport } from '../../features/moderation/nickname-report-store'
 import './social-home.css'
 
 type View = 'feed' | 'add' | 'list'
@@ -260,6 +261,9 @@ export default function SocialPage() {
   const [pokedIds, setPokedIds] = useState<number[]>([])
   const [cheeredIds, setCheeredIds] = useState<number[]>([])
   const [leagueOpen, setLeagueOpen] = useState(false)
+  const [reportTarget, setReportTarget] = useState<SocialUser | null>(null)
+  const [pressedReportId, setPressedReportId] = useState<number | null>(null)
+  const [pressedRequestId, setPressedRequestId] = useState<number | null>(null)
   const [notice, setNotice] = useState('')
   const nickname = ownNickname()
 
@@ -287,6 +291,22 @@ export default function SocialPage() {
     setPendingIds(next)
     saveIds(PENDING_KEY, next)
     setNotice(`${user.nickname}님께 친구 요청을 보냈습니다. (시연용 · 실제 알림 미전송)`)
+  }
+
+  function handleRequestFriendClick(user: SocialUser) {
+    setPressedRequestId(user.id)
+    window.setTimeout(() => {
+      setPressedRequestId(current => current === user.id ? null : current)
+      requestFriend(user)
+    }, 130)
+  }
+
+  function handleReportClick(user: SocialUser) {
+    setPressedReportId(user.id)
+    window.setTimeout(() => {
+      setPressedReportId(current => current === user.id ? null : current)
+      setReportTarget(user)
+    }, 130)
   }
 
   // 서버 연동 전 테스트를 위한 수락 시연입니다. 실제 상대방이 누르는 동작은 아닙니다.
@@ -438,7 +458,22 @@ export default function SocialPage() {
                 <div className="rd-social-user-row" key={user.id}>
                   <span className="rd-social-avatar">{user.avatar}</span>
                   <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>또랑이 {user.drains.length}개 돌봄 중</small></div>
-                  <button type="button" onClick={() => requestFriend(user)}>＋ 친구 요청</button>
+                  <div className="rd-social-recommend-actions">
+                    <button
+                      type="button"
+                      className={`rd-social-report-button${pressedReportId === user.id ? ' is-active' : ''}`}
+                      onClick={() => handleReportClick(user)}
+                    >
+                      닉네임 신고
+                    </button>
+                    <button
+                      type="button"
+                      className={pressedRequestId === user.id ? 'is-pressed' : ''}
+                      onClick={() => handleRequestFriendClick(user)}
+                    >
+                      ＋ 친구 요청
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -462,6 +497,27 @@ export default function SocialPage() {
           </div>
           <button type="button" className="rd-social-wide-add" onClick={() => setView('add')}>＋ 친구 추가하기</button>
         </>
+      )}
+
+      {reportTarget && createPortal(
+        <div className="dd-nick-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReportTarget(null) }}>
+          <section className="dd-nick-dialog" role="dialog" aria-modal="true" aria-label="닉네임 신고하기">
+            <div className="dd-nick-heading">
+              <h2>닉네임 신고하기</h2>
+              <button type="button" className="dd-nick-close" aria-label="닫기" onClick={() => setReportTarget(null)}>×</button>
+            </div>
+            <div className="dd-nick-flow">
+              <p className="dd-nick-notice">{reportTarget.nickname} 님의 닉네임을 신고하시겠습니까?</p>
+              <p className="dd-nick-disclaimer">현재는 UI 시연 단계입니다. 신고는 이 브라우저에만 저장되며 관리자 서버로 전송되지 않습니다.</p>
+              <button type="button" className="dd-nick-primary" onClick={() => {
+                const saved = storeDemoReport(String(reportTarget.id), reportTarget.nickname)
+                setReportTarget(null)
+                setNotice(saved ? '시연용 신고를 이 브라우저에 저장했습니다.' : '신고 시연을 저장하지 못했습니다.')
+              }}>신고</button>
+            </div>
+          </section>
+        </div>,
+        document.body,
       )}
 
       {notice && <div className="rd-social-toast" role="status" aria-live="polite">{notice}</div>}
