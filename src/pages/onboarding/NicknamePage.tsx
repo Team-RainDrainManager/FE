@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { changeNickname, getErrorMessage, getMe } from '../../apis/auth'
 import { clearNicknamePending } from '../login/auth-flow'
 import '../login/auth-pages.css'
+import { validateNickname } from '../../features/nickname/nickname-policy'
 
 export default function NicknamePage() {
   const navigate = useNavigate()
@@ -21,7 +22,8 @@ export default function NicknamePage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const value = nickname.trim()
-    if (value.length < 2 || value.length > 20) { setError('닉네임은 2~20자로 입력해 주세요.'); return }
+    const validation = validateNickname(nickname)
+    if (!validation.valid) { setError(validation.reason); return }
     setPending(true); setError('')
     try {
       await changeNickname(value)
@@ -39,7 +41,8 @@ export default function NicknamePage() {
     <p className="dd-auth-explainer">또랑이에서 사용할 닉네임을 설정해 주세요.</p>
     {loading ? <p role="status">계정 정보를 불러오는 중이에요…</p> : <form className="dd-auth-form" onSubmit={submit}>
       <label htmlFor="onboarding-nickname">닉네임</label>
-      <input id="onboarding-nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} minLength={2} maxLength={20} autoComplete="nickname" required placeholder="2~20자" />
+      <input id="onboarding-nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} minLength={2} maxLength={12} autoComplete="nickname" required placeholder="한글 2~6자 / 영어 2~12자" />
+      <p className="dd-auth-explainer">한글+영어 혼합 및 특수문자는 사용할 수 없습니다.</p>
       {error && <p role="alert" className="dd-auth-error">{error}</p>}
       <button type="submit" disabled={pending} className="dd-auth-primary">{pending ? '저장 중…' : '또랑이 시작하기'}</button>
     </form>}
