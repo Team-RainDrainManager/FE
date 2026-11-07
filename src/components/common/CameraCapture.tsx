@@ -1022,7 +1022,7 @@ export default function CameraCapture({
       'image/jpeg',
       0.9,
     )
-  }, [])
+  }, [setQuad, setDetection])
 
   // 원본 코드처럼 센서가 있으면 센서, 없으면 프레임 변화량을 사용합니다.
   useEffect(() => {
@@ -1156,7 +1156,7 @@ export default function CameraCapture({
     setError(null)
   }
 
-  const beginDrag = (mode: DragMode) => (event: PointerEvent<Element>) => {
+  const beginDrag = (mode: DragMode, event: PointerEvent<Element>) => {
     if (!shot || !viewport.width || !viewport.height) return
     event.preventDefault()
     event.stopPropagation()
@@ -1237,7 +1237,7 @@ export default function CameraCapture({
                     vectorEffect="non-scaling-stroke"
                     strokeLinejoin="round"
                     style={{ cursor: 'move', touchAction: 'none' }}
-                    onPointerDown={beginDrag('move')}
+                    onPointerDown={(event) => beginDrag('move', event)}
                   />
                 </svg>
                 {CORNERS.map((corner) => (
@@ -1251,7 +1251,7 @@ export default function CameraCapture({
                       cursor: 'grab',
                       touchAction: 'none',
                     }}
-                    onPointerDown={beginDrag(corner)}
+                    onPointerDown={(event) => beginDrag(corner, event)}
                   >
                     <span className="h-5 w-5 rounded border-[3px] border-red-500 bg-white shadow-md" />
                   </div>
