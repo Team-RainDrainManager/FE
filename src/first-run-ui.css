@@ -72,9 +72,9 @@
   --dd-tour-arrow: 50%;
 }
 .dd-tour-bubble[data-tour-tab="my-drains"] { --dd-tour-arrow: 5.5%; }
-.dd-tour-bubble[data-tour-tab="map"] { --dd-tour-arrow: 28%; }
-.dd-tour-bubble[data-tour-tab="social"] { --dd-tour-arrow: 50%; }
-.dd-tour-bubble[data-tour-tab="notifications"] { --dd-tour-arrow: 72%; }
+.dd-tour-bubble[data-tour-tab="map"] { --dd-tour-arrow: 50%; }
+.dd-tour-bubble[data-tour-tab="social"] { --dd-tour-arrow: 72%; }
+.dd-tour-bubble[data-tour-tab="notifications"] { --dd-tour-arrow: 28%; }
 .dd-tour-bubble[data-tour-tab="profile"] { --dd-tour-arrow: 94.5%; }
 .dd-tour-bubble::after {
   content: '';

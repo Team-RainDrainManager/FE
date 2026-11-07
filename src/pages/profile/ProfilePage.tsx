@@ -1,3 +1,4 @@
+import { drops, useWallet } from '../../features/missions/wallet'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router'
 
@@ -56,6 +57,7 @@ function getCareStatus(adoption: MyAdoptionDto, now: number) {
 
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const wallet = useWallet()
   const [nickname, setNickname] = useState('')
   const [photo, setPhoto] = useState(() => loadFromStorage(PHOTO_STORAGE_KEY))
   const [editing, setEditing] = useState(false)
@@ -190,6 +192,7 @@ export default function ProfilePage() {
               </div>
             </>
           </div>
+          <output className="dd-water" aria-label="보유한 빗물">{wallet.id === null ? "—" : drops(wallet.balance)}</output>
         </div>
         {message && <p role="status" className="mt-3 rounded-xl bg-white px-3 py-2 text-[11px] leading-5 text-[#3A78A9]">{message}</p>}
       </section>

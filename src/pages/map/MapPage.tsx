@@ -1,3 +1,5 @@
+import { useWallet } from '../../features/missions/wallet'
+import { getMyAdoptions } from '../../apis/my-drains'
 
 import {
   useCallback,
@@ -145,6 +147,9 @@ function KakaoMapContent({
 }: {
   appKey: string
 }) {
+  const wallet = useWallet()
+  const mine = useQuery({ queryKey: ['my-adoptions', wallet.id], enabled: wallet.id !== null, queryFn: ({ signal }) => getMyAdoptions(signal) })
+  const outfitFor = (id: number) => mine.data?.adoptions.some(a => a.drainId === id) ? wallet.outfit : null
   const navigate = useNavigate()
 
   const [loading, error] = useKakaoLoader({
@@ -612,6 +617,7 @@ const statusNotice = drainsError
               <DrainMarker
                 key={drain.id}
                 drain={drain}
+                outfit={outfitFor(drain.id)}
                 selected={selectedId === drain.id}
                 onSelect={handleSelectDrain}
               />
@@ -620,6 +626,7 @@ const statusNotice = drainsError
             {selectedOverlay && (
               <DrainMarker
                 drain={selectedOverlay}
+                outfit={outfitFor(selectedOverlay.id)}
                 selected
                 onSelect={handleSelectDrain}
               />

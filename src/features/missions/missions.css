@@ -1,0 +1,30 @@
+.dd-water { flex:none; min-width:52px; height:52px; border-radius:50%; display:grid; place-content:center; padding:4px; background:#edf6ff; border:1px solid #cce3fb; color:#21578a; font-size:16px; font-weight:700; }
+.dd-mission-trigger { flex:none; margin-left:auto; display:grid; place-items:center; width:40px; height:40px; border-radius:12px; color:inherit; }
+.dd-mission-trigger svg { width:22px; height:22px; }
+.dd-missions { margin:12px 0 0; padding:0; }
+.dd-missions li { display:flex; align-items:center; gap:8px; margin-top:8px; padding:12px; border-radius:14px; background:white; border:1px solid #dae8f4; }
+.dd-missions strong { flex:1; font-size:13px; word-break:keep-all; }
+.dd-missions small { flex:none; font-size:12px; color:#314f71; }
+.dd-missions b { color:#ad3646; font-size:16px; }
+.dd-missions b[data-done="true"] { color:#12774f; }
+html[data-dd-theme="dark"] .dd-water, html[data-dd-theme="dark"] .dd-missions li { color:#edf5ff; background:#203550; border-color:#3b5470; }
+html[data-dd-theme="dark"] .dd-missions small { color:#dcecff; }
+html[data-dd-theme="dark"] .dd-missions b { color:#ff939d; }
+html[data-dd-theme="dark"] .dd-missions b[data-done="true"] { color:#70e2b0; }
+.dd-face { display:inline-grid; place-items:center; position:relative; width:38px; height:38px; overflow:hidden; border-radius:50%; vertical-align:middle; }
+.dd-face img { display:block; width:100%; height:100%; object-fit:contain; }
+.dd-face-studio { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(.19); pointer-events:none; }
+.dd-face-studio *, .dd-face-studio *::before, .dd-face-studio *::after { animation:none!important; }
+button.dd-social-face { flex:none; display:grid; place-items:center; width:42px; height:42px; padding:0; border:0; }
+.dd-shared-sheet { width:min(100%,430px); border-radius:24px 24px 0 0; animation:dd-slide-in 280ms cubic-bezier(.22,1,.36,1); }
+.dd-shared-overlay { animation:dd-sheet-fade 220ms ease-out; }
+.dd-shared-overlay[data-closing="true"] { animation:dd-sheet-fade 220ms ease-in reverse both; }
+.dd-shared-overlay[data-closing="true"] .dd-shared-sheet { animation:dd-slide-in 220ms ease-in reverse both; }
+@keyframes dd-sheet-fade { from { opacity:0; } to { opacity:1; } }
+@keyframes dd-slide-in { from { translate:0 48px; opacity:0; } to { translate:0 0; opacity:1; } }
+@media(prefers-reduced-motion: reduce) { .dd-shared-overlay, .dd-shared-sheet { animation:none; } }
+html body :is(button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"]), input[type="submit"]:not(:disabled)):active {
+  scale:.97; background-color:#317fdd!important; color:#fff!important;
+}
+
+.dd-shared-body { padding-bottom:max(18px, env(safe-area-inset-bottom)); }

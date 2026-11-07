@@ -1,3 +1,6 @@
+import Avatar from '../shop/Avatar'
+import { greet } from '../shop/greet'
+import { useWallet } from '../../features/missions/wallet'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -77,6 +80,13 @@ function leagueIndex(score: number) {
     if (score >= LEAGUE_STEPS[i].min) return i
   }
   return 0
+}
+
+function FriendAvatar({ user }: { user?: SocialUser }) {
+  const wallet = useWallet()
+  return <button className="rd-social-avatar dd-social-face" type="button" aria-label={`${user?.nickname ?? '친구'}의 또랑이와 인사하기`} onClick={greet}>
+    <Avatar outfit={user?.isMe ? wallet.outfit : user?.outfit} />
+  </button>
 }
 
 function TrophyIcon() {
@@ -217,7 +227,7 @@ function LeaguePanel({ onClose }: { onClose: () => void }) {
                     <div className="rd-social-rank-list">
                       {zone.rows.map(({ user, rank }) => (
                         <div key={user.id} className={`rd-social-rank-row${user.id === CURRENT_SOCIAL_USER_ID ? ' is-me' : ''}`}>
-                          <span className="rd-social-rank-num">{rank}</span><span className="rd-social-avatar">{user.avatar}</span>
+                          <span className="rd-social-rank-num">{rank}</span><FriendAvatar user={user} />
                           <div className="rd-social-rank-person"><strong><ReportableNickname nickname={user.nickname} targetId={String(user.id)} isMe={user.id === CURRENT_SOCIAL_USER_ID}/>{user.id === CURRENT_SOCIAL_USER_ID && <span className="rd-social-me">나</span>}</strong><small>또랑이 {user.drains.length}개 관리{user.drains[0] ? ` · ${user.drains[0].name}` : ''}</small></div>
                           <div className="rd-social-rank-end"><strong>{user.weeklyScore.toLocaleString('ko-KR')}점</strong></div>
                         </div>
@@ -400,7 +410,7 @@ export default function SocialPage() {
                 return (
                   <article key={feed.id} className="rd-social-post">
                     <div className="rd-social-post-author">
-                      <span className="rd-social-avatar">{user?.avatar ?? '🌱'}</span>
+                      <FriendAvatar user={user} />
                       <div><strong>{user ? <ReportableNickname targetId={String(user.id)} nickname={user.nickname} /> : '동네 친구'}</strong><small>{feed.dateLabel}</small></div>
                       <span className="rd-social-post-type">{feed.type === 'growth' ? '성장 기록' : '점검 완료'}</span>
                     </div>
@@ -456,7 +466,7 @@ export default function SocialPage() {
             <div className="rd-social-user-list">
               {recommendations.map(user => (
                 <div className="rd-social-user-row" key={user.id}>
-                  <span className="rd-social-avatar">{user.avatar}</span>
+                  <FriendAvatar user={user} />
                   <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>또랑이 {user.drains.length}개 돌봄 중</small></div>
                   <div className="rd-social-recommend-actions">
                     <button
