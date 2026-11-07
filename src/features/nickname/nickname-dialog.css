@@ -1,0 +1,44 @@
+/* 새 닉네임 및 신고 팝업 전용. 기존 SettingsModal, 팀원 모달에는 영향 없음. */
+.dd-nick-backdrop {
+  position:fixed; inset:0; z-index:10001; display:flex; align-items:center; justify-content:center;
+  background:rgba(9,18,32,.55); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+  padding:max(12px,env(safe-area-inset-top)) 16px max(12px,env(safe-area-inset-bottom));
+}
+.dd-nick-dialog {
+  box-sizing:border-box; width:100%; max-width:365px; max-height:min(90dvh,650px); overflow-y:auto;
+  border:1px solid rgba(173,199,228,.65); border-radius:22px;
+  padding:19px; background:rgba(255,255,255,.75); color:#1f3a57;
+  box-shadow:0 16px 45px rgba(4,16,30,.2); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+}
+.dd-nick-heading {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.dd-nick-heading h2 {font-size:17px;font-weight:800;line-height:1.4;margin:0}
+.dd-nick-close {font-size:23px;line-height:1;min-width:32px;min-height:32px;border-radius:50%;color:inherit;background:rgba(130,159,187,.14)}
+.dd-nick-flow {display:grid;gap:12px}
+.dd-nick-notice {margin:0;padding:12px;border-radius:13px;font-size:13px;line-height:1.65;background:rgba(218,234,251,.68)}
+.dd-nick-warning {margin:0;padding:13px;border:1px solid rgba(201,87,94,.35);border-radius:13px;color:#9d3341;background:rgba(253,210,214,.55);font-size:13px;line-height:1.65}
+.dd-nick-label {display:block;font-size:13px;font-weight:700;line-height:1.5}
+.dd-nick-input {min-width:0;width:100%;box-sizing:border-box;border:1px solid #9fbad6;border-radius:12px;min-height:46px;padding:11px 12px;color:#203f5d;background:rgba(255,255,255,.87);outline:none;font-size:16px !important;line-height:1.4}
+.dd-nick-input:focus {border-color:#367fe3;box-shadow:0 0 0 2px rgba(54,127,227,.17)}
+.dd-nick-input[aria-invalid='true'] {border-color:#bd4d55}
+.dd-nick-pledge {resize:vertical}
+.dd-nick-input-row {display:flex;align-items:stretch;gap:7px}
+.dd-nick-input-row .dd-nick-input {flex:1;width:0}
+.dd-nick-check {flex:none;padding:0 10px;border-radius:11px;color:#fff;background:#387fd0;font-size:12px;font-weight:800}
+.dd-nick-primary {width:100%;min-height:45px;border-radius:12px;background:#327cdb;color:#fff;font-size:14px;font-weight:800}
+.dd-nick-primary:disabled,.dd-nick-check:disabled {opacity:.43;cursor:not-allowed}
+.dd-nick-help {margin:0;font-size:11px;line-height:1.6;color:#526d85}
+.dd-nick-success,.dd-nick-error {margin:0;font-size:12px;line-height:1.5;font-weight:750}
+.dd-nick-success {color:#157a45}.dd-nick-error {color:#c0273b}
+.dd-nick-disclaimer {font-size:10px;line-height:1.65;color:#607589;margin:0}
+html[data-dd-theme='dark'] .dd-nick-dialog {background:rgba(24,39,57,.75);color:#f1f6ff;border-color:rgba(109,140,175,.55)}
+html[data-dd-theme='dark'] .dd-nick-notice {background:rgba(53,76,105,.7)}
+html[data-dd-theme='dark'] .dd-nick-warning {color:#ffc6cd;background:rgba(114,44,57,.52);border-color:rgba(235,124,138,.45)}
+html[data-dd-theme='dark'] .dd-nick-input {color:#f1f6ff;background:rgba(21,35,53,.92);border-color:#5d7898}
+html[data-dd-theme='dark'] .dd-nick-close {background:rgba(125,158,194,.15)}
+html[data-dd-theme='dark'] .dd-nick-help,html[data-dd-theme='dark'] .dd-nick-disclaimer {color:#bed0e4}
+html[data-dd-theme='dark'] .dd-nick-success {color:#8ae1b0}
+html[data-dd-theme='dark'] .dd-nick-error {color:#ffacb7}
+@media (max-width:360px) {.dd-nick-dialog {padding:15px}.dd-nick-check {padding:0 8px}}
+.dd-reportable-name {cursor:context-menu;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.dd-reportable-name:focus-visible {outline:2px solid #3981f7;border-radius:3px;outline-offset:2px}
+.dd-nick-toast {position:fixed;z-index:10003;left:50%;bottom:max(80px,env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:90vw;border-radius:12px;padding:11px 14px;background:rgba(29,53,78,.9);color:#fff;font-size:12px;font-weight:600;box-shadow:0 8px 25px rgba(0,0,0,.2)}

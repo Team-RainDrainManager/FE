@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import FriendInviteDialog from './FriendInviteDialog'
+import ReportableNickname from '../../../features/moderation/ReportableNickname'
 
 import {
   CURRENT_SOCIAL_USER_ID,
@@ -100,7 +101,7 @@ export default function FriendsTab() {
 
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-sm font-extrabold text-[#203451]">
-                    {user.nickname}
+                    <ReportableNickname targetId={String(user.id)} nickname={user.nickname} />
                   </h3>
                   <p className="mt-1 text-xs text-[#78899F]">
                     또랑이 {user.drains.length}개 돌봄 중

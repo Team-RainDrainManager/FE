@@ -21,6 +21,7 @@ import TermsPage from './pages/onboarding/TermsPage'
 import VerifyPage from './pages/onboarding/VerifyPage'
 import NicknamePage from './pages/onboarding/NicknamePage'
 import ShopPage from './pages/shop/ShopPage'
+import NicknameRestrictionGate from './features/nickname/NicknameRestrictionGate'
 
 /** 로그인한 사용자는 로그인·회원가입 화면으로 다시 들어가지 않습니다. */
 function GuestOnly({ children }: { children: ReactNode }) {
@@ -45,7 +46,7 @@ export default function App() {
       <Route path="/onboarding/verify" element={<AuthGuard mode="onboarding"><VerifyPage /></AuthGuard>} />
       <Route path="/onboarding/nickname" element={<AuthGuard mode="onboarding"><NicknamePage /></AuthGuard>} />
 
-      <Route element={<AuthGuard mode="main"><MainLayout /></AuthGuard>}>
+      <Route element={<AuthGuard mode="main"><NicknameRestrictionGate><MainLayout /></NicknameRestrictionGate></AuthGuard>}>
         <Route index element={<HomeRedirect />} />
         <Route path="/my-drains" element={<MyDrainsPage />} />
         <Route path="/drains/:drainId" element={<DrainDetailPage />} />

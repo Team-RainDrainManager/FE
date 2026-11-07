@@ -8,6 +8,7 @@ import {
 } from '../../mocks/social'
 import type { SocialUser } from '../../types/social'
 import FriendInviteDialog from './components/FriendInviteDialog'
+import ReportableNickname from '../../features/moderation/ReportableNickname'
 import './social-home.css'
 
 type View = 'feed' | 'add' | 'list'
@@ -216,7 +217,7 @@ function LeaguePanel({ onClose }: { onClose: () => void }) {
                       {zone.rows.map(({ user, rank }) => (
                         <div key={user.id} className={`rd-social-rank-row${user.id === CURRENT_SOCIAL_USER_ID ? ' is-me' : ''}`}>
                           <span className="rd-social-rank-num">{rank}</span><span className="rd-social-avatar">{user.avatar}</span>
-                          <div className="rd-social-rank-person"><strong>{user.nickname}{user.id === CURRENT_SOCIAL_USER_ID && <span className="rd-social-me">나</span>}</strong><small>또랑이 {user.drains.length}개 관리{user.drains[0] ? ` · ${user.drains[0].name}` : ''}</small></div>
+                          <div className="rd-social-rank-person"><strong><ReportableNickname nickname={user.nickname} targetId={String(user.id)} isMe={user.id === CURRENT_SOCIAL_USER_ID}/>{user.id === CURRENT_SOCIAL_USER_ID && <span className="rd-social-me">나</span>}</strong><small>또랑이 {user.drains.length}개 관리{user.drains[0] ? ` · ${user.drains[0].name}` : ''}</small></div>
                           <div className="rd-social-rank-end"><strong>{user.weeklyScore.toLocaleString('ko-KR')}점</strong></div>
                         </div>
                       ))}
@@ -233,7 +234,7 @@ function LeaguePanel({ onClose }: { onClose: () => void }) {
                 {topTen.map((user, index) => (
                   <div key={user.id} className={`rd-social-rank-row${user.isMe ? ' is-me' : ''}`}>
                     <span className="rd-social-rank-num">{index + 1}</span><span className="rd-social-avatar">{user.avatar}</span>
-                    <div className="rd-social-rank-person"><strong>{user.nickname}{user.isMe && <span className="rd-social-me">나</span>}</strong><small>{LEAGUE_STEPS[leagueIndex(user.weeklyScore)].name}</small></div>
+                    <div className="rd-social-rank-person"><strong><ReportableNickname nickname={user.nickname} targetId={String(user.id)} isMe={user.isMe}/>{user.isMe && <span className="rd-social-me">나</span>}</strong><small>{LEAGUE_STEPS[leagueIndex(user.weeklyScore)].name}</small></div>
                     <div className="rd-social-rank-end"><strong>{user.weeklyScore.toLocaleString('ko-KR')}점</strong></div>
                   </div>
                 ))}
@@ -380,7 +381,7 @@ export default function SocialPage() {
                   <article key={feed.id} className="rd-social-post">
                     <div className="rd-social-post-author">
                       <span className="rd-social-avatar">{user?.avatar ?? '🌱'}</span>
-                      <div><strong>{user?.nickname ?? '동네 친구'}</strong><small>{feed.dateLabel}</small></div>
+                      <div><strong>{user ? <ReportableNickname targetId={String(user.id)} nickname={user.nickname} /> : '동네 친구'}</strong><small>{feed.dateLabel}</small></div>
                       <span className="rd-social-post-type">{feed.type === 'growth' ? '성장 기록' : '점검 완료'}</span>
                     </div>
                     <div className="rd-social-post-content">
@@ -412,7 +413,7 @@ export default function SocialPage() {
               <div className="rd-social-user-list">{incoming.map(user => (
                 <div key={user.id} className="rd-social-user-row">
                   <span className="rd-social-avatar">{user.avatar}</span>
-                  <div><strong>{user.nickname}</strong><small>친구가 되고 싶어 해요</small></div>
+                  <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>친구가 되고 싶어 해요</small></div>
                   <div className="rd-social-request-buttons"><button type="button" onClick={() => answerIncoming(user, true)}>수락</button><button type="button" className="is-secondary" onClick={() => answerIncoming(user, false)}>거절</button></div>
                 </div>
               ))}</div>
@@ -424,7 +425,7 @@ export default function SocialPage() {
               <div className="rd-social-user-list">{outgoing.map(user => (
                 <div key={user.id} className="rd-social-user-row">
                   <span className="rd-social-avatar">{user.avatar}</span>
-                  <div><strong>{user.nickname}</strong><small>수락 대기</small></div>
+                  <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>수락 대기</small></div>
                   <div className="rd-social-request-buttons"><button type="button" onClick={() => demoAcceptSent(user)}>수락 시연</button><button type="button" className="is-secondary" onClick={() => cancelRequest(user)}>취소</button></div>
                 </div>
               ))}</div>
@@ -436,7 +437,7 @@ export default function SocialPage() {
               {recommendations.map(user => (
                 <div className="rd-social-user-row" key={user.id}>
                   <span className="rd-social-avatar">{user.avatar}</span>
-                  <div><strong>{user.nickname}</strong><small>또랑이 {user.drains.length}개 돌봄 중</small></div>
+                  <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>또랑이 {user.drains.length}개 돌봄 중</small></div>
                   <button type="button" onClick={() => requestFriend(user)}>＋ 친구 요청</button>
                 </div>
               ))}
@@ -454,7 +455,7 @@ export default function SocialPage() {
             {friends.map(user => (
               <div className="rd-social-user-row" key={user.id}>
                 <span className="rd-social-avatar">{user.avatar}</span>
-                <div><strong>{user.nickname}</strong><small>또랑이 {user.drains.length}개 관리 중</small></div>
+                <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>또랑이 {user.drains.length}개 관리 중</small></div>
                 {editingFriends ? <button type="button" className="rd-social-friend-delete" aria-label={`${user.nickname} 친구 삭제`} onClick={() => { if (window.confirm(`${user.nickname}님을 친구 목록에서 삭제하시겠습니까?`)) removeFriend(user) }}>×</button> : <button type="button" onClick={() => setSelectedFriend(user)}>현황 보기</button>}
               </div>
             ))}
