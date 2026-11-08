@@ -1,167 +1,279 @@
-import { useMemo, useState, type CSSProperties } from 'react'
-import { CURRENT_SOCIAL_USER_ID, MOCK_SOCIAL_USERS } from '../../mocks/social'
+import { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { DECORATIONS, type Category, type StudioItem } from './catalog'
+import { useWeeklyScore } from '../../apis/leaderboard'
+import {
+  useWallet,
+  applyItem,
+  buyItem,
+  storeItem,
+} from '../../features/missions/wallet'
+import {
+  categories,
+  DECORATIONS,
+  leagueLevel,
+  leagueNames,
+  tryOn,
+  wornItems,
+  type StudioItem,
+} from './catalog'
 import { ShopCharacter, DecorationArt } from './ShopCharacter'
-import { useWallet, wearOrBuy } from '../../features/missions/wallet'
-import './shop-studio.css'
-import './shop-motion.css'
-import './shop-compact.css'
+import { StudioDialog, PurchaseReveal } from './PurchaseReveal'
+import '../login/LoginPage.css'
 
-const CATEGORY_LIST: { id: Category | 'all'; title: string; caption: string }[] = [
-  { id: 'all', title: '전체', caption: 'ALL' },
-  { id: 'headwear', title: '모자', caption: 'HEADWEAR' },
-  { id: 'expression', title: '표정', caption: 'EXPRESSIONS' },
-  { id: 'accessory', title: '소품', caption: 'ACCESSORIES' },
-  { id: 'scene', title: '배경', caption: 'SCENES' },
-  { id: 'effect', title: '효과', caption: 'EFFECTS' },
-  { id: 'palette', title: '컬러', caption: 'COLORS' },
+const wishes = [
+  '이거 완전 제건데요?',
+  '너무 마음에 들어요!',
+  '저 사주시는 거에요?',
 ]
-
-// 시연용 상품 해금·가격 정책입니다. 실제 구매/보상 정책과 연결되지 않습니다.
-const SHOP_LEAGUES = ['WOOD','STONE','IRON','BRONZE','SILVER','GOLD','PLATINUM','DIAMOND'] as const
-const SHOP_LEVEL_MIN = [0,150,300,450,600,750,900,1050] as const
-const SHOP_PRICE_BASE = [4,8,14,23,35,53,80,120] as const
-const SHOP_ITEM_LEVELS: Record<string, number> = {
-  h01:0,h02:0,h03:3,h04:2,h05:6,h06:1,h07:4,h08:5,
-  e01:0,e02:0,e03:1,e04:4,e05:0,e06:1,e07:3,e08:5,
-  a01:0,a02:1,a03:3,a04:2,a05:5,a06:0,a07:6,a08:1,
-  s01:0,s02:0,s03:4,s04:7,s05:1,s06:6,s07:3,s08:5,
-  f01:0,f02:1,f03:6,f04:2,f05:4,f06:7,f07:3,f08:5,
-  p01:0,p02:0,p03:2,p04:1,p05:4,p06:6,p07:1,p08:5,
-}
-function requiredLevel(item: StudioItem): number { return SHOP_ITEM_LEVELS[item.id] ?? 0 }
-function itemPrice(item: StudioItem): number {
-  const level = requiredLevel(item)
-  return SHOP_PRICE_BASE[level] + (item.category === 'scene' || item.category === 'effect' ? 3 : 0) + (item.tag === 'SEASON' ? 2 : 0)
-}
-function ArrowIcon({ direction = 'right' }: { direction?: 'left' | 'right' }) {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d={direction === 'left' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
-    </svg>
-  )
-}
-
+const thanks = ['아싸!', '고마워요!', '신난다!']
+const dances = ['superjump', 'wiggle', 'spin', 'dance']
 export default function ShopPage() {
-  // 시연용 로컬 재화/구매 상태입니다. 실제 서버 계정·재화와 연결되지 않습니다.
-  const [category, setCategory] = useState<Category | 'all'>('all')
-  const [previewSelection, setPreviewId] = useState<string | null>(null)
-  const [excitementTick, setExcitementTick] = useState(0)
-  const { id, balance: wallet, owned: ownedIds, outfit } = useWallet()
-  const previewId = previewSelection ?? outfit ?? 'h01'
-  const [purchaseNotice, setPurchaseNotice] = useState('')
-  const myDemoScore = MOCK_SOCIAL_USERS.find(user => user.id === CURRENT_SOCIAL_USER_ID)?.weeklyScore ?? 0
-  const myDemoLeague = SHOP_LEVEL_MIN.reduce<number>((level, min, index) => myDemoScore >= min ? index : level, 0)
-  async function buyDemoItem(item: StudioItem) {
-    const level = requiredLevel(item)
-    const price = itemPrice(item)
-    if (level > myDemoLeague) return
-    try {
-      if (!await wearOrBuy(id, item.id, price)) return
-    } catch {
-      setPurchaseNotice('꾸미기를 저장하지 못했어요. 다시 시도해 주세요.')
-      return
-    }
-    setPreviewId(item.id)
-    setExcitementTick(value => value + 1)
-    setPurchaseNotice(`${item.title}을 착용했어요.`)
-  }
-  const preview = DECORATIONS.find((item) => item.id === previewId) ?? DECORATIONS[0]
-  const visibleItems = useMemo(
-    () => (category === 'all' ? DECORATIONS : DECORATIONS.filter((item) => item.category === category)),
-    [category],
+  const wallet = useWallet()
+  return <Studio key={wallet.id ?? 'pending'} wallet={wallet} />
+}
+function Studio({ wallet }: { wallet: ReturnType<typeof useWallet> }) {
+  const [tab, setTab] = useState<'상점' | '옷장'>('상점')
+  const [filter, setFilter] = useState('전체')
+  const [picked, pick] = useState<StudioItem | null>(null)
+  const [step, setStep] = useState<'idle' | 'film' | 'immediate' | 'confirm'>(
+    'idle',
   )
-
+  const [reaction, setReaction] = useState({ tick: 0, text: '', motion: '' })
+  const [notice, setNotice] = useState('')
+  const counters = useRef([0, 0])
+  const busy = useRef(false)
+  const score = useWeeklyScore(wallet.id)
+  const level = score.data === undefined ? -1 : leagueLevel(score.data)
+  const outfit = picked ? tryOn(wallet.outfit, picked) : wallet.outfit
+  const owned = picked && wallet.owned.includes(picked.id)
+  const worn =
+    picked && wornItems(wallet.outfit).some((i) => i.id === picked.id)
+  const items = DECORATIONS.filter(
+    (item) =>
+      wallet.owned.includes(item.id) === (tab === '옷장') &&
+      (filter === '전체' || item.category === filter),
+  )
+  const finishFilm = useCallback(() => setStep('immediate'), [])
+  function react(applied: boolean) {
+    const i = applied ? 1 : 0
+    const phrases = applied ? thanks : wishes
+    const text = phrases[counters.current[i]++ % phrases.length]
+    const motion = dances[Math.floor(Math.random() * dances.length)]
+    setReaction((old) => ({ tick: old.tick + 1, text, motion }))
+  }
+  function clearPreview() {
+    pick(null)
+    setStep('idle')
+    setReaction((old) => ({ ...old, text: '', motion: '' }))
+  }
+  async function purchase() {
+    if (!picked || busy.current) return
+    busy.current = true
+    try {
+      if (await buyItem(wallet.id, picked, level)) {
+        setNotice('')
+        setStep('film')
+      } else setNotice('잔액과 보유 아이템을 확인해 주세요.')
+    } catch {
+      setNotice('구매를 저장하지 못했어요. 다시 시도해 주세요.')
+    } finally {
+      busy.current = false
+    }
+  }
+  async function apply() {
+    if (!picked || busy.current) return
+    busy.current = true
+    try {
+      if (await applyItem(wallet.id, picked)) {
+        setNotice('적용되었습니다')
+        react(true)
+        pick(null)
+      } else setNotice('옷장에서 보유 아이템을 확인해 주세요.')
+    } catch {
+      setNotice('착용 상태를 저장하지 못했어요.')
+    } finally {
+      setStep('idle')
+      busy.current = false
+    }
+  }
   return (
-    <div className="dshop-page">
-      <div className="dshop-container">
-        <header className="dshop-heading">
-          <Link to="/profile" className="dshop-back" aria-label="프로필로 돌아가기"><ArrowIcon direction="left" /></Link>
-          <div className="dshop-heading__text"><span>MY DDORANG</span><strong>꾸미기 스튜디오</strong></div>
-          <span className="dshop-eyebrow-pill">시연용 상점</span>
-        </header>
-
-        <section className="dshop-hero" aria-labelledby="dshop-title">
-          <div className="dshop-hero__copy">
-            <p className="dshop-kicker"><span className="dshop-kicker__line" /> PERSONALIZE YOUR DDORANG</p>
-            <h1 id="dshop-title">리그를 키우고,<br /><em>또랑이를 꾸며요.</em></h1>
-            <p>리그가 올라갈수록 더 특별한 아이템이 열려요.</p>
+    <div className="collect">
+      <header>
+        <Link to="/profile" aria-label="프로필로 돌아가기">
+          ‹
+        </Link>
+        <h1>꾸미기 상점</h1>
+        <output aria-label="보유한 빗물">
+          💧 {wallet.id === null ? '—' : wallet.balance}
+        </output>
+      </header>
+      <div className="collect-preview">
+        <section className="collect-stage" aria-label="착용 미리보기">
+          {reaction.text && <span role="status">{reaction.text}</span>}
+          <button
+            key={reaction.tick}
+            className={'dd-login-character-action--' + reaction.motion}
+            aria-label="또랑이와 놀기"
+            onClick={() => react(false)}
+          >
+            <ShopCharacter outfit={outfit} />
+          </button>
+        </section>
+        <div className="collect-controls">
+          <div>
+            <strong>{picked?.title ?? '나의 또랑이'}</strong>
+            <small>
+              {level >= 0
+                ? leagueNames[level] + ' 리그'
+                : score.isError
+                  ? '리그 조회 실패'
+                  : '리그 확인 중'}{' '}
+              · 기기 저장 빗물
+            </small>
           </div>
-          <div className="dshop-stage" style={{ '--stage-accent': preview.color, '--stage-light': preview.secondary } as CSSProperties}>
-            <span className="dshop-stage__ring dshop-stage__ring--one" aria-hidden="true" />
-            <span className="dshop-stage__ring dshop-stage__ring--two" aria-hidden="true" />
-            <span className="dshop-stage__star dshop-stage__star--one" aria-hidden="true">✦</span>
-            <span className="dshop-stage__star dshop-stage__star--two" aria-hidden="true">✧</span>
-            <button type="button" key={`${preview.id}-${excitementTick}`} className={`dshop-stage__character${excitementTick > 0 ? ' is-excited' : ''}`} onClick={() => setExcitementTick(value => value + 1)} aria-label="또랑이와 놀기">
-              <ShopCharacter item={preview} />
+          {tab === '옷장' && picked && worn && (
+            <button
+              className="store-away"
+              onClick={async () => {
+                try {
+                  if (await storeItem(wallet.id, picked)) {
+                    clearPreview()
+                    setNotice('옷장에 보관했어요.')
+                  }
+                } catch {
+                  setNotice('보관 상태를 저장하지 못했어요.')
+                }
+              }}
+            >
+              보관
             </button>
-            <div className="dshop-stage__caption"><span className="dshop-stage__caption-dot" /> 또랑이의 새로운 모습 <strong>{preview.title}</strong></div>
-          </div>
-          <div className="dshop-hero__footer"><span>01 / MAKE IT YOURS</span><span>48 STYLES</span></div>
-        </section>
-
-        <div className="dshop-preview-note" role="note">
-          <span className="dshop-preview-note__symbol" aria-hidden="true">i</span>
-          <p><strong>시연용 상점입니다.</strong> 빗물·구매·리그는 브라우저 시연 데이터이며 실제 계정 포인트는 차감되지 않습니다.</p>
+          )}
+          {score.isError && (
+            <button onClick={() => void score.refetch()}>재시도</button>
+          )}
+          <button
+            className="collect-primary"
+            disabled={
+              !picked ||
+              wallet.id === null ||
+              (tab === '상점'
+                ? !!owned ||
+                  level < picked.level ||
+                  wallet.balance < picked.price
+                : !owned || !!worn)
+            }
+            onClick={() =>
+              tab === '상점' ? void purchase() : setStep('confirm')
+            }
+          >
+            {tab === '상점'
+              ? picked
+                ? '💧 ' + picked.price + ' 구매'
+                : '구매'
+              : worn
+                ? '착용 중'
+                : '적용'}
+          </button>
         </div>
-
-        <div className="dshop-wallet" aria-label="시연용 빗물 잔액">
-          <div><span className="dshop-wallet-droplet" aria-hidden="true">💧</span><span><small>시연용 빗물</small><strong>{wallet.toLocaleString('ko-KR')}개</strong></span></div>
-          <span className="dshop-wallet-level">현재 {SHOP_LEAGUES[myDemoLeague]} 리그</span>
-        </div>
-        {purchaseNotice && <p className="dshop-purchase-notice" role="status">{purchaseNotice}</p>}
-        <section className="dshop-collection" aria-labelledby="dshop-collection-title">
-          <div className="dshop-section-heading">
-            <div><span className="dshop-section-heading__eyebrow">THE COLLECTION</span><h2 id="dshop-collection-title">꾸미기 컬렉션 <span>{DECORATIONS.length}</span></h2></div>
-            <p>리그별 해금 · 빗물 가격</p>
-          </div>
-          <div className="dshop-filters" role="group" aria-label="꾸미기 아이템 종류">
-            {CATEGORY_LIST.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setCategory(tab.id)}
-                aria-pressed={category === tab.id}
-                className={`dshop-filter${category === tab.id ? ' is-selected' : ''}`}
-              >{tab.title}</button>
-            ))}
-          </div>
-          <div className="dshop-collection__meta"><span>{CATEGORY_LIST.find((tab) => tab.id === category)?.caption}</span><span>{visibleItems.length} ITEMS</span></div>
-          <div className="dshop-grid">
-            {visibleItems.map(item => {
-              const level = requiredLevel(item)
-              const locked = level > myDemoLeague
-              const owned = ownedIds.includes(item.id)
-              const price = itemPrice(item)
-              const affordable = wallet >= price
-              return (
-                <article key={item.id} className={`dshop-item dshop-item--tier-${level}${previewId === item.id ? ' is-previewed' : ''}${locked ? ' is-locked' : ''}`}>
-                  <button type="button" className="dshop-item__preview" aria-pressed={previewId === item.id} aria-label={`${item.title} 미리보기${locked ? `, ${SHOP_LEAGUES[level]} 리그에서 해금` : ''}`} onClick={() => { setPreviewId(item.id); setExcitementTick(value => value + 1) }}>
-                    <span className="dshop-item__art" style={{ '--item-color': item.color, '--item-light': item.secondary } as CSSProperties}>
-                      <span className="dshop-item__badge">{SHOP_LEAGUES[level]}</span>
-                      <DecorationArt item={item} />
-                      {locked && <span className="dshop-item__lock" aria-hidden="true">잠김</span>}
-                    </span>
-                  </button>
-                  <div className="dshop-item__information">
-                    <strong className="dshop-item__label">{item.title}</strong>
-                    <span className="dshop-item__price"><span aria-hidden="true">💧</span>{price}개</span>
-                  </div>
-                  <button type="button" className={`dshop-item__buy${owned ? ' is-owned' : ''}`} disabled={id === null || locked || outfit === item.id || (!owned && !affordable)} onClick={() => buyDemoItem(item)} aria-label={`${item.title} ${price}개 빗물로 시연 구매`}>
-                    {locked ? `${SHOP_LEAGUES[level]} 해금` : outfit === item.id ? '착용 중' : owned ? '착용하기' : affordable ? '시연 구매' : '빗물 부족'}
-                  </button>
-                </article>
-              )
-            })}
-          </div>
-        </section>
-
-        <footer className="dshop-footer">
-          <div className="dshop-footer__icon" aria-hidden="true">✳</div>
-          <div><strong>리그를 해금하며 새로운 꾸미기를 만나보세요.</strong><p>실제 구매와 빗물 차감은 추후 서버 API 연결이 필요합니다.</p></div>
-        </footer>
       </div>
+      {notice && <p role="status">{notice}</p>}
+      <div className="collect-filters" aria-label="종류">
+        {['전체', ...categories].map((c) => (
+          <button
+            key={c}
+            aria-pressed={filter === c}
+            onClick={() => setFilter(c)}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+      <section className="collect-grid" aria-label={tab + ' 아이템'}>
+        {items.map((item) => (
+          <button
+            key={item.id}
+            aria-pressed={picked?.id === item.id}
+            onClick={() => {
+              pick(item)
+              setNotice('')
+              react(false)
+            }}
+          >
+            <span
+              style={{
+                background:
+                  'linear-gradient(145deg,' + item.light + ',#fff8 110%)',
+              }}
+            >
+              {item.slot === 4 || item.slot === 2 ? (
+                <ShopCharacter outfit={item.id} />
+              ) : (
+                <DecorationArt item={item} />
+              )}
+            </span>
+            <strong>{item.title}</strong>
+            <small>
+              {tab === '옷장'
+                ? wornItems(wallet.outfit).some((i) => i.id === item.id)
+                  ? '착용 중'
+                  : '보관 중'
+                : leagueNames[item.level] + ' · 💧 ' + item.price}
+            </small>
+          </button>
+        ))}
+      </section>
+      {!items.length && (
+        <p>
+          {tab === '옷장'
+            ? '이 칸에 보관한 아이템이 없어요.'
+            : '이 칸의 아이템을 모두 보유하고 있어요.'}
+        </p>
+      )}
+      <nav aria-label="꾸미기 메뉴">
+        {(['상점', '옷장'] as const).map((t) => (
+          <button
+            key={t}
+            aria-current={tab === t ? 'page' : undefined}
+            onClick={() => {
+              setTab(t)
+              setFilter('전체')
+              clearPreview()
+              setNotice('')
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </nav>
+      {picked && step === 'film' && (
+        <PurchaseReveal item={picked} onDone={finishFilm} />
+      )}
+      {picked && (step === 'immediate' || step === 'confirm') && (
+        <StudioDialog
+          label="아이템 적용"
+          onCancel={() =>
+            step === 'immediate' ? clearPreview() : setStep('idle')
+          }
+        >
+          <h2>
+            {step === 'immediate'
+              ? '구매한 아이템을 즉시 적용할까요?'
+              : '적용하시겠습니까?'}
+          </h2>
+          <div>
+            <button
+              onClick={() =>
+                step === 'immediate' ? clearPreview() : setStep('idle')
+              }
+            >
+              아니오
+            </button>
+            <button className="collect-primary" onClick={() => void apply()}>
+              예
+            </button>
+          </div>
+        </StudioDialog>
+      )}
     </div>
   )
 }

@@ -114,7 +114,7 @@ export default function DrainCard({
       </details>
 
       <div className="flex items-center gap-3 pr-6">
-        <div className="relative shrink-0"><Character type="level" level={adoption.level} size={80} />{selectedDecoration&&<span aria-label={`장착한 장식: ${selectedDecoration.name}`} className="absolute -right-1 -top-1 rounded-full bg-white p-1 text-xl shadow-sm">{selectedDecoration.symbol}</span>}</div>
+        <div className="relative shrink-0"><Character type="level" level={adoption.level} size={92} />{selectedDecoration&&<span aria-label={`장착한 장식: ${selectedDecoration.name}`} className="absolute -right-1 -top-1 rounded-full bg-white p-1 text-xl shadow-sm">{selectedDecoration.symbol}</span>}</div>
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{specialName||adoption.adoption_name}</h3>
           <p className="mt-1 text-xs font-semibold text-[#3981F7]">Lv.{adoption.level} · {adoption.stage}</p>

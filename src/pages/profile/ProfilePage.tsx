@@ -152,15 +152,14 @@ export default function ProfilePage() {
   return (
     <div className="min-h-[calc(100dvh-128px)] space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]">
       {editing && <NicknameChangeDialog currentNickname={nickname} onClose={() => setEditing(false)} onChanged={value => { setNickname(value); setEditing(false); saveToStorage(NAME_STORAGE_KEY, value); setMessage('닉네임을 변경했습니다.') }} />}
-      <section className="rounded-[24px] bg-[#EAF5FF] px-5 pb-5 pt-6">
-        <div className="dd-profile-titlebar">
-          <p className="text-[20px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
+      <section className="rounded-[24px] bg-[#EAF5FF] px-3 py-3">
+        <div className="dd-profile-titlebar float-right ml-2">
           <Link to="/shop" className="dd-profile-shop-mini">꾸미기 상점 <span aria-hidden="true">›</span></Link>
         </div>
         <h2 className="mt-1 text-[14px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? `${nickname || '회원'}님의 첫 또랑이가 깨끗해지고 있어요!` : '오늘도 우리 동네를 돌보는 중'}</h2>
         <p className="mt-1 text-[10px] text-[#7C94AD]">나의 작은 활동이 동네를 더 안전하게 만들어요.</p>
 
-        <div className="mt-5 flex items-center gap-4 rounded-[20px] bg-white p-4">
+        <div className="mt-2.5 flex clear-both items-center gap-2 rounded-[16px] bg-white p-2.5">
           <div className="relative shrink-0">
             <button
               type="button"
@@ -171,7 +170,7 @@ export default function ProfilePage() {
               {photo ? (
                 <img src={photo} alt="내 프로필 사진" className="h-full w-full object-cover" />
               ) : (
-                <Character type="state" state="happy" size={67} />
+                <Character type="state" state="happy" size={77} />
               )}
             </button>
             <span aria-hidden="true" className="pointer-events-none absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border-2 border-white bg-[#338CF0] text-white">
@@ -192,31 +191,28 @@ export default function ProfilePage() {
               </div>
             </>
           </div>
-          <output className="dd-water" aria-label="보유한 빗물">{wallet.id === null ? "—" : drops(wallet.balance)}</output>
+          <div className="dd-water-wrap"><output className="dd-water" aria-label="보유한 빗물">{wallet.id === null ? "—" : drops(wallet.balance)}</output><small>보유한 빗물</small></div>
         </div>
         {message && <p role="status" className="mt-3 rounded-xl bg-white px-3 py-2 text-[11px] leading-5 text-[#3A78A9]">{message}</p>}
       </section>
 
-      <section className="rounded-[22px] border border-[#E5EEF7] bg-white p-5">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[15px] font-extrabold">나의 돌봄 기록</h3>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-[16px] bg-[#F2F8FF] p-4">
+      <section className="rounded-[22px] border border-[#E5EEF7] bg-white p-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-[16px] bg-[#F2F8FF] px-3 py-2">
             <p className="text-[11px] font-medium text-[#6C8CA8]">입양한 또랑이</p>
             <p className="mt-2 text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[#338CF0]">{adoptedCount}<span className="ml-1 text-[12px] font-bold">개</span></p>
           </div>
-          <div className="rounded-[16px] bg-[#F2F8FF] p-4">
+          <div className="rounded-[16px] bg-[#F2F8FF] px-3 py-2">
             <p className="text-[11px] font-medium text-[#6C8CA8]">최근 14일 점검</p>
             <p className="mt-2 text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[#338CF0]">{recentlyCheckedCount}<span className="ml-1 text-[12px] font-bold">개</span></p>
           </div>
         </div>
         {needsCare.length > 0 ? (
-          <Link to="/my-drains" className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-[#FFF8E8] px-3.5 py-3 text-[12px] font-semibold text-[#956D25]">
+          <Link to="/my-drains" className="mt-2 flex items-center justify-between gap-2 rounded-xl bg-[#FFF8E8] px-3.5 py-3 text-[12px] font-semibold text-[#956D25]">
             <span>점검이 필요한 또랑이가 {needsCare.length}개 있어요.</span><span aria-hidden="true">›</span>
           </Link>
         ) : (
-          <p className="mt-4 rounded-xl bg-[#EAF8F2] p-3 text-[12px] font-semibold text-[#268466]">{adoptedCount === 0 ? '아직 돌봄 기록이 없어요. 첫 또랑이를 입양해 보세요.' : '현재 점검이 필요한 또랑이는 없어요.'}</p>
+          <p className="mt-2 rounded-xl bg-[#EAF8F2] p-3 text-[12px] font-semibold text-[#268466]">{adoptedCount === 0 ? '아직 돌봄 기록이 없어요. 첫 또랑이를 입양해 보세요.' : '현재 점검이 필요한 또랑이는 없어요.'}</p>
         )}
       </section>
 
@@ -231,7 +227,7 @@ export default function ProfilePage() {
             return (
               <Link to={`/drains/${adoption.drain.drain_id}`} key={adoption.adoption_id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <div className="flex size-[58px] shrink-0 items-center justify-center rounded-2xl bg-[#F0F8FF]">
-                  <Character type="level" level={adoption.level} size={51} />
+                  <Character type="level" level={adoption.level} size={59} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-bold">{adoption.adoption_name}</p>

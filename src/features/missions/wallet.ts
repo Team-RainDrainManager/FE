@@ -1,3 +1,4 @@
+import { currentId, tryOn, wornItems, type StudioItem } from '../../pages/shop/catalog'
 import { createContext, useContext, useSyncExternalStore } from 'react'
 
 export const AccountId = createContext<number | null>(null)
@@ -25,7 +26,9 @@ function subscribe(listener: () => void) {
   }
 }
 function decode(raw: string | null): Wallet {
-  return raw ? JSON.parse(raw) as Wallet : empty
+  if (!raw) return empty
+  const state = JSON.parse(raw) as Wallet
+  return { ...state, owned: [...new Set(state.owned.map(currentId))], outfit: state.outfit?.split(',').map(currentId).join(',') || null }
 }
 export function useWallet() {
   const id = useContext(AccountId)
@@ -53,10 +56,22 @@ export function award(id: number | null, mission: Mission) {
     }
   })
 }
-export function wearOrBuy(id: number | null, item: string, price: number) {
+export function buyItem(id: number | null, item: StudioItem, level: number) {
   return change(id, state => {
-    if (state.owned.includes(item)) return { ...state, outfit: item }
-    if (price > state.balance) return state
-    return { ...state, balance: state.balance - price, owned: [...state.owned, item], outfit: item }
+    if (level < item.level || state.owned.includes(item.id) || state.balance < item.price) return state
+    return { ...state, balance: state.balance - item.price, owned: [...state.owned, item.id] }
+  })
+}
+export function applyItem(id: number | null, item: StudioItem) {
+  return change(id, state => state.owned.includes(item.id)
+    ? { ...state, outfit: tryOn(state.outfit, item) } : state)
+}
+
+export function storeItem(id: number | null, item: StudioItem) {
+  return change(id, state => {
+    const equipped = wornItems(state.outfit)
+    if (!equipped.some(other => other.id === item.id)) return state
+    const outfit = equipped.filter(other => other.id !== item.id).map(other => other.id).join(',')
+    return { ...state, outfit: outfit || null }
   })
 }

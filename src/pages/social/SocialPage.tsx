@@ -1,3 +1,5 @@
+import { rankStyle } from '../shop/catalog'
+import { useTopRanks, useWeeklyScore } from '../../apis/leaderboard'
 import Avatar from '../shop/Avatar'
 import { greet } from '../shop/greet'
 import { useWallet } from '../../features/missions/wallet'
@@ -36,13 +38,6 @@ const LEAGUE_STEPS = [
   { name: 'DIAMOND', min: 1050 },
 ] as const
 
-// 시연용 전체 순위 추가 참가자. 실제 서버 순위와 무관합니다.
-const DEMO_TOP_EXTRA = [
-  { id: 'demo-extra-1', nickname: '빗방울수집가', avatar: '💧', weeklyScore: 1110 },
-  { id: 'demo-extra-2', nickname: '맑은골목', avatar: '🌿', weeklyScore: 970 },
-  { id: 'demo-extra-3', nickname: '물길산책', avatar: '☀️', weeklyScore: 825 },
-  { id: 'demo-extra-4', nickname: '초록하루', avatar: '🍃', weeklyScore: 675 },
-]
 
 function readIds(key: string, fallback: number[]): number[] {
   try {
@@ -114,9 +109,12 @@ function LeaguePanel({ onClose }: { onClose: () => void }) {
   const scrollDragRef = useRef<{ pointerId: number; startY: number; scrollTop: number } | null>(null)
 
   const me = MOCK_SOCIAL_USERS.find(user => user.id === CURRENT_SOCIAL_USER_ID)
-  const myScore = me?.weeklyScore ?? 0
+  const wallet = useWallet()
+  const top = useTopRanks(wallet.id, view === 'top')
+  const weekly = useWeeklyScore(wallet.id)
+  const myScore = weekly.data ?? me?.weeklyScore ?? 0
   const currentLeague = leagueIndex(myScore)
-  const members = MOCK_SOCIAL_USERS
+  const members = MOCK_SOCIAL_USERS.map(user => user.isMe ? {...user, weeklyScore:myScore} : user)
     .filter(user => leagueIndex(user.weeklyScore) === currentLeague)
     .sort((a, b) => b.weeklyScore - a.weeklyScore)
   const movement = members.length >= 3 ? Math.max(1, Math.floor(members.length * 0.25)) : 0
@@ -126,15 +124,6 @@ function LeaguePanel({ onClose }: { onClose: () => void }) {
     { kind: 'hold', title: '유지 예정', rows: ranked.slice(movement, members.length - movement) },
     { kind: 'down', title: '↙ 하락 예정', rows: ranked.slice(members.length - movement) },
   ].filter(zone => zone.rows.length > 0)
-  const topTen = [
-    ...MOCK_SOCIAL_USERS.map(user => ({
-      id: `user-${user.id}`, nickname: user.nickname,
-      avatar: user.avatar, weeklyScore: user.weeklyScore,
-      isMe: user.id === CURRENT_SOCIAL_USER_ID,
-    })),
-    ...DEMO_TOP_EXTRA.map(user => ({ ...user, isMe: false })),
-  ].sort((a, b) => b.weeklyScore - a.weeklyScore).slice(0, 10)
-
   useEffect(() => {
     function onEscape(event: KeyboardEvent) { if (event.key === 'Escape') onClose() }
     window.addEventListener('keydown', onEscape)
@@ -242,15 +231,16 @@ function LeaguePanel({ onClose }: { onClose: () => void }) {
             <>
               <div className="rd-social-section-title"><div><h3>전체 상위 10명</h3><p>이번 주 참여 점수 기준</p></div></div>
               <div className="rd-social-rank-list">
-                {topTen.map((user, index) => (
-                  <div key={user.id} className={`rd-social-rank-row${user.isMe ? ' is-me' : ''}`}>
-                    <span className="rd-social-rank-num">{index + 1}</span><span className="rd-social-avatar">{user.avatar}</span>
-                    <div className="rd-social-rank-person"><strong><ReportableNickname nickname={user.nickname} targetId={String(user.id)} isMe={user.isMe}/>{user.isMe && <span className="rd-social-me">나</span>}</strong><small>{LEAGUE_STEPS[leagueIndex(user.weeklyScore)].name}</small></div>
-                    <div className="rd-social-rank-end"><strong>{user.weeklyScore.toLocaleString('ko-KR')}점</strong></div>
+                {(top.data ?? []).map(user => (
+                  <div key={user.userId} className={`rd-social-rank-row${user.isMe ? ' is-me' : ''}`}>
+                    <span className="rd-social-rank-num">{user.rank}</span>
+                    <button type="button" className="dd-social-face" aria-label={user.nickname+'의 또랑이와 인사하기'} onClick={greet}><Avatar outfit={user.isMe && wallet.outfit ? wallet.outfit : rankStyle(user.rank)}/></button>
+                    <div className="rd-social-rank-person"><strong><ReportableNickname nickname={user.nickname} targetId={String(user.userId)} isMe={user.isMe}/>{user.isMe && <span className="rd-social-me">나</span>}</strong></div>
+                    <div className="rd-social-rank-end"><strong>{user.score.toLocaleString('ko-KR')}점</strong></div>
                   </div>
                 ))}
               </div>
-              <p className="rd-social-disclaimer">시연용 TOP 10입니다. 실제 서버 랭킹 연동 전까지 실제 이용자 순위가 아닙니다.</p>
+              <p className="rd-social-disclaimer">{top.isError ? <button onClick={()=>void top.refetch()}>순위를 불러오지 못했어요. 다시 시도</button> : top.isPending ? '순위를 확인하고 있어요.' : !top.data.length ? '이번 주에 집계된 순위가 없어요.' : '다른 집사의 또랑이에는 랭커 전용 코디가 표시돼요.'}</p>
             </>
           )}
         </div>
@@ -442,7 +432,7 @@ export default function SocialPage() {
               <div className="rd-social-feed-heading"><h3>받은 친구 요청</h3><p>수락해야 친구가 연결됩니다. (시연)</p></div>
               <div className="rd-social-user-list">{incoming.map(user => (
                 <div key={user.id} className="rd-social-user-row">
-                  <span className="rd-social-avatar">{user.avatar}</span>
+                  <FriendAvatar user={user} />
                   <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>친구가 되고 싶어 해요</small></div>
                   <div className="rd-social-request-buttons"><button type="button" onClick={() => answerIncoming(user, true)}>수락</button><button type="button" className="is-secondary" onClick={() => answerIncoming(user, false)}>거절</button></div>
                 </div>
@@ -454,7 +444,7 @@ export default function SocialPage() {
               <div className="rd-social-feed-heading"><h3>보낸 친구 요청</h3><p>상대방 수락 대기 중 · 현재 시연 데이터</p></div>
               <div className="rd-social-user-list">{outgoing.map(user => (
                 <div key={user.id} className="rd-social-user-row">
-                  <span className="rd-social-avatar">{user.avatar}</span>
+                  <FriendAvatar user={user} />
                   <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>수락 대기</small></div>
                   <div className="rd-social-request-buttons"><button type="button" onClick={() => demoAcceptSent(user)}>수락 시연</button><button type="button" className="is-secondary" onClick={() => cancelRequest(user)}>취소</button></div>
                 </div>
@@ -499,7 +489,7 @@ export default function SocialPage() {
           <div className="rd-social-user-list">
             {friends.map(user => (
               <div className="rd-social-user-row" key={user.id}>
-                <span className="rd-social-avatar">{user.avatar}</span>
+                <FriendAvatar user={user} />
                 <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>또랑이 {user.drains.length}개 관리 중</small></div>
                 {editingFriends ? <button type="button" className="rd-social-friend-delete" aria-label={`${user.nickname} 친구 삭제`} onClick={() => { if (window.confirm(`${user.nickname}님을 친구 목록에서 삭제하시겠습니까?`)) removeFriend(user) }}>×</button> : <button type="button" onClick={() => setSelectedFriend(user)}>현황 보기</button>}
               </div>

@@ -1,3 +1,4 @@
+import { REACTIONS } from './reactions'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { getErrorMessage, getKakaoLoginUrl } from '../../apis/auth'
@@ -27,13 +28,6 @@ const RAIN_DROPS = Array.from({ length: 42 }, (_, index) => ({
 }))
 
 // 터치할 때마다 동작과 표정이 달라집니다. (기존 캐릭터 SVG 사용)
-const REACTIONS = [
-  { motion: 'superjump', face: 'joy', text: '짜잔! 나 불렀어?' },
-  { motion: 'wiggle', face: 'wink', text: '헤헤, 또 놀자!' },
-  { motion: 'spin', face: 'surprised', text: '앗! 간지러워!' },
-  { motion: 'dance', face: 'proud', text: '내 춤 어때?' },
-] as const
-
 type Reaction = (typeof REACTIONS)[number] & { id: number }
 
 /** Chrome device emulation changes the mobile User-Agent, but generally retains
