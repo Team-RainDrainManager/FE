@@ -8,14 +8,12 @@ import type { InspectionRequest } from '../../../types/notifications'
 import { AdoptForm, ReleaseForm } from './AdoptionForms'
 import { InspectForm } from '../../mydrains/components/ActionForms'
 import RainInspectForm from './RainInspectForm'
-import ReportDraftModal from '../../map/components/ReportDraftModal'
 
 type Action =
   | 'adopt'
   | 'release'
   | 'inspect'
   | 'rain-inspect'
-  | 'report'
 
 type Props = {
   drain: DrainDetailDto
@@ -28,7 +26,6 @@ const TITLES: Record<Action, string> = {
   release: '입양 그만두기',
   inspect: '사진으로 점검 기록',
   'rain-inspect': '비 예보 점검 인증',
-  report: '빗물받이 제보',
 }
 
 export default function DrainActions({
@@ -41,8 +38,7 @@ export default function DrainActions({
 
   const [dismissedRequestId, setDismissedRequestId] =
     useState<number | null>(null)
-  
-  const [reportNotice, setReportNotice] = useState('')
+
 
   const canAdopt =
     drain.status === 'ACTIVE' &&
@@ -178,24 +174,7 @@ export default function DrainActions({
         )}
       </section>
 
-      <button
-        type="button"
-        onClick={() => setAction('report')}
-        className="w-full rounded-full border border-[#E8EDF5] bg-white p-3 text-xs font-bold text-[#3981F7]"
-      >
-        이곳을 제보하기
-      </button>
-        
-{reportNotice && (
-  <p
-    role="status"
-    className="rounded-xl bg-[#E8F7EF] p-3 text-center text-xs font-semibold text-[#259B68]"
-  >
-    {reportNotice}
-  </p>
-)}
-
-      {activeAction && activeAction !== 'report' && (
+      {activeAction && (
         <ModalShell
           title={
             activeAction === 'rain-inspect' &&
@@ -250,25 +229,6 @@ export default function DrainActions({
         </ModalShell>
       )}
       
-{activeAction === 'report' && (
-  <ReportDraftModal
-    drains={[
-      {
-        id: drain.id,
-        name: `빗물받이 #${drain.id}`,
-        nickname: drain.adoption?.nickname ?? null,
-      },
-    ]}
-    initialDrainId={drain.id}
-    onClose={closeModal}
-    onComplete={(reportId) => {
-      closeModal()
-      setReportNotice(
-        `제보 #${reportId}가 접수됐어요. 관리자 검토를 기다리고 있어요.`,
-      )
-    }}
-  />
-)}
 
     </>
   )

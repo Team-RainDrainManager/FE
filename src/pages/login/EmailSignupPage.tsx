@@ -7,6 +7,7 @@ import { beginFirstRun } from '../../utils/firstRun'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import { useDecorationStore } from '../../store/useDecorationStore'
 import './auth-pages.css'
+import { validateNickname } from '../../features/nickname/nickname-policy'
 
 export default function EmailSignupPage() {
   const navigate = useNavigate()
@@ -24,9 +25,8 @@ export default function EmailSignupPage() {
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/.test(password)) {
       setError('비밀번호는 8~64자이며 영문과 숫자가 각각 1개 이상 필요합니다.'); return
     }
-    if (nickname.trim().length < 2 || nickname.trim().length > 20) {
-      setError('닉네임은 2~20자로 입력해 주세요.'); return
-    }
+    const nicknameValidation = validateNickname(nickname)
+    if (!nicknameValidation.valid) { setError(nicknameValidation.reason); return }
     setPending(true); setError('')
     try {
       const tokens = await emailSignup(email.trim(), password, nickname.trim())
@@ -52,7 +52,7 @@ export default function EmailSignupPage() {
       <label htmlFor="signup-confirm">비밀번호 확인</label>
       <input id="signup-confirm" type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="비밀번호 재입력" />
       <label htmlFor="signup-nickname">닉네임</label>
-      <input id="signup-nickname" required minLength={2} maxLength={20} value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="2~20자" />
+      <input id="signup-nickname" required minLength={2} maxLength={12} value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="한글 2~6자 / 영어 2~12자" />
       {error && <p role="alert" className="dd-auth-error">{error}</p>}
       <button type="submit" className="dd-auth-primary" disabled={pending}>{pending ? '가입 중…' : '계정 만들기'}</button>
     </form>

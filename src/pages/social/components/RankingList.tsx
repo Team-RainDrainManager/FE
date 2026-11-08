@@ -1,5 +1,6 @@
 
 import type { RankingRow } from '../../../types/social'
+import ReportableNickname from '../../../features/moderation/ReportableNickname'
 
 interface RankingListProps {
   rows: RankingRow[]
@@ -61,7 +62,7 @@ export default function RankingList({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <strong className="truncate text-[13px] text-[#203451]">
-                {row.name}
+                <ReportableNickname targetId={row.id} nickname={row.name} isMe={row.isMe || !/^\d+$/.test(row.id)} />
               </strong>
 
               {row.isMe && (

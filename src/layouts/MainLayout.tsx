@@ -3,6 +3,7 @@ import Header from '../components/layout/Header'
 import BottomNavigation from '../components/layout/BottomNavigation'
 import SwipeTabOutlet from '../components/layout/SwipeTabOutlet'
 import FirstTimeTour from '../components/FirstTimeTour'
+import CareWarningGate from '../features/care/CareWarningGate'
 
 export default function MainLayout() {
   const { pathname } = useLocation()
@@ -26,6 +27,7 @@ export default function MainLayout() {
 
         {!isDetailPage && <BottomNavigation />}
         <FirstTimeTour />
+        <CareWarningGate />
       </div>
     </div>
   )

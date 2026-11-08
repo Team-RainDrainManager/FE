@@ -1,6 +1,8 @@
+import { useContext } from 'react'
+import { AccountId, award } from '../../../features/missions/wallet'
 
 import { useEffect, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   getCurrentCoordinates,
@@ -9,6 +11,8 @@ import {
 import { getErrorMessage } from '../../../apis/auth'
 import {
   completeInspection,
+  getInspectionEligibility,
+  getInspectionEligibilityMessage,
   startInspection,
   type InspectionSubmitResponse,
 } from '../../../apis/inspections'
@@ -87,6 +91,7 @@ export default function RainInspectForm({
   adoptionName,
   onCancel,
 }: Props) {
+  const account = useContext(AccountId)
   const queryClient = useQueryClient()
 
   const [photoStep, setPhotoStep] =
@@ -117,6 +122,38 @@ export default function RainInspectForm({
 
   const needsCleaning =
     startResult?.status === 'NEEDS_CLEANING'
+
+  // 점검 화면 진입 전 현재 계정이 이 빗물받이를 점검할 수 있는지 확인
+  const eligibilityRequestId =
+    kind === 'ROUTINE' ? undefined : requestId
+
+  const eligibilityEnabled =
+    Number.isSafeInteger(drainId) &&
+    drainId > 0 &&
+    (kind === 'ROUTINE' ||
+      (eligibilityRequestId !== undefined &&
+        Number.isSafeInteger(eligibilityRequestId) &&
+        eligibilityRequestId > 0))
+
+  const {
+    data: eligibility,
+    isPending: eligibilityPending,
+    isFetching: eligibilityFetching,
+    isError: eligibilityError,
+    error: eligibilityQueryError,
+    refetch: refetchEligibility,
+  } = useQuery({
+    queryKey: ['inspection-eligibility', drainId, kind, eligibilityRequestId ?? null],
+    queryFn: ({ signal }) => getInspectionEligibility(
+      drainId,
+      eligibilityRequestId,
+      signal,
+    ),
+    enabled: eligibilityEnabled && startResult === null,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: 1,
+  })
 
   // 점검 이후 최신 데이터 불러오기
   
@@ -157,6 +194,15 @@ const refreshData = async () => {
         )
       }
 
+      // 서버는 제출 시에도 재검증하지만, 먼저 확인해 불필요한 업로드 방지
+      const latestEligibility = await getInspectionEligibility(
+        drainId,
+        eligibilityRequestId,
+      )
+      if (!latestEligibility.eligible) {
+        throw new Error(getInspectionEligibilityMessage(latestEligibility))
+      }
+
       // GPS 위치 먼저 확인
       const { latitude, longitude } =
         await getCurrentCoordinates()
@@ -171,7 +217,7 @@ const refreshData = async () => {
       return startInspection({
   drainId,
   kind,
-  ...(requestId !== undefined ? { requestId } : {}),
+  ...(eligibilityRequestId !== undefined ? { requestId: eligibilityRequestId } : {}),
   beforeKey,
   latitude,
   longitude,
@@ -182,6 +228,9 @@ const refreshData = async () => {
     },
 
     onSuccess: async (result) => {
+      if (result.status === 'COMPLETED' && kind === 'SUBSTITUTE') {
+        void award(account, 'substitute').catch(console.error)
+      }
       setStartResult(result)
 
       if (result.status === 'NEEDS_CLEANING') {
@@ -225,6 +274,9 @@ const refreshData = async () => {
     },
 
     onSuccess: async (result) => {
+      if (result.status === 'COMPLETED' && kind !== 'FORECAST') {
+        void award(account, kind === 'SUBSTITUTE' ? 'substitute' : 'clean').catch(console.error)
+      }
       setFinalResult(result)
       await refreshData()
     },
@@ -317,6 +369,45 @@ const refreshData = async () => {
   const pending =
     startMutation.isPending ||
     completeMutation.isPending
+
+  // 자격 확인 전에는 카메라·사진 업로드를 진행하지 않음
+  if (!eligibilityEnabled) {
+    return (
+      <div role="alert" className="space-y-3 rounded-xl bg-[#FFF4DC] p-4 text-xs text-[#956222]">
+        <p>점검할 빗물받이 또는 비 예보 요청 정보가 올바르지 않아요.</p>
+        <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
+      </div>
+    )
+  }
+
+  if ((eligibilityPending || eligibilityFetching) && !startResult) {
+    return <p role="status" className="py-5 text-center text-xs text-[#78899F]">점검 가능 여부를 확인하고 있어요.</p>
+  }
+
+  if ((eligibilityError || !eligibility) && !startResult) {
+    return (
+      <div className="space-y-3 rounded-xl bg-[#FFF1F1] p-4 text-xs text-[#B84D4D]">
+        <p role="alert">{getErrorMessage(eligibilityQueryError)}</p>
+        <div className="flex gap-4">
+          <button type="button" onClick={() => void refetchEligibility()} className="font-bold underline">다시 확인</button>
+          <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (eligibility && !eligibility.eligible && !startResult) {
+    return (
+      <div className="space-y-3 rounded-xl bg-[#FFF4DC] p-4 text-xs text-[#956222]">
+        <p role="alert" className="font-bold">현재 점검할 수 없어요.</p>
+        <p>{getInspectionEligibilityMessage(eligibility)}</p>
+        <div className="flex gap-4">
+          <button type="button" onClick={() => void refetchEligibility()} className="font-bold underline">다시 확인</button>
+          <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
+        </div>
+      </div>
+    )
+  }
 
   // 카메라 또는 파일 선택 화면
   if (

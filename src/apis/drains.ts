@@ -296,3 +296,188 @@ export function mergeDrainDetail(
     }),
   }
 }
+
+// POST /api/v1/drain/assessments — 사진 한 장 AI 사전 판독 (저장하지 않음)
+export interface DrainAssessmentResponse {
+  grade: number
+  dirtLevel: number
+  isRisk: boolean
+  needsReport: boolean
+  confidence: number
+  reason: string
+}
+
+export async function assessDrainPhoto(
+  photoKey: string,
+): Promise<DrainAssessmentResponse> {
+  const key = photoKey.trim()
+  if (!key) {
+    throw new Error('판독할 사진의 업로드 키가 필요해요.')
+  }
+
+  const { data: body } = await apiClient.post<
+    ApiResponse<DrainAssessmentResponse | null>
+  >('/api/v1/drain/assessments', { photoKey: key })
+
+  if (!body.success || !body.data) {
+    throw new Error(
+      body.error?.message ?? '사진 판독에 실패했어요.',
+    )
+  }
+
+  return body.data
+}
+
+/** POST /api/v1/drain - 현장에서 빗물받이 신규 등록 */
+export type DrainDisplayStatus =
+  | 'AVAILABLE'
+  | 'NORMAL'
+  | 'MANAGEMENT_DELAYED'
+  | 'BLOCKAGE_REPORTED'
+
+export interface DrainCreateRequest {
+  latitude: number
+  longitude: number
+  photoKey: string
+  name: string
+  address: string
+  isRisk: boolean
+  riskDescription: string
+}
+
+export interface DrainCreateResponse {
+  id: number
+  name: string
+  address: string
+  status: string
+  adoptionStatus: string
+  displayStatus: DrainDisplayStatus
+  displayStatusLabel: string
+  latitude: number
+  longitude: number
+  photoUrl: string
+  dirtLevel: number
+  isRisk: boolean
+  aiConfidence: number
+  riskRemind: boolean
+  riskReportId: number | null
+}
+
+export async function createDrain(
+  request: DrainCreateRequest,
+): Promise<DrainCreateResponse> {
+  const { latitude, longitude, photoKey, name, address, riskDescription } = request
+
+  if (
+    !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+    !Number.isFinite(longitude) || longitude < -180 || longitude > 180
+  ) {
+    throw new Error('올바른 위치 정보가 필요해요.')
+  }
+  if (!photoKey.trim()) {
+    throw new Error('빗물받이 사진을 첨부해 주세요.')
+  }
+  if (name.length > 50 || address.length > 200 || riskDescription.length > 500) {
+    throw new Error('이름·주소·위험 설명의 글자 수를 확인해 주세요.')
+  }
+
+  const { data: body } = await apiClient.post<
+    ApiResponse<DrainCreateResponse | null>
+  >('/api/v1/drain', request)
+
+  if (!body.success || !body.data) {
+    throw new Error(body.error?.message ?? '빗물받이 등록에 실패했어요.')
+  }
+
+  if (!Number.isSafeInteger(body.data.id) || body.data.id <= 0) {
+    throw new Error('등록됐지만 빗물받이 번호를 확인할 수 없어요. 지도를 확인해 주세요.')
+  }
+
+  return body.data
+}
+
+
+// GET /api/v1/drain/list — 전체 빗물받이의 검색·페이지 조회
+// 검색 응답에는 좌표가 없을 수 있으므로, 선택 시 상세 API를 조회합니다.
+export interface DrainSearchItem {
+  id: number
+  name: string
+  address: string | null
+  nickname: string | null
+}
+
+export interface DrainSearchPage {
+  content: DrainSearchItem[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  hasNext: boolean
+}
+
+type DrainSearchItemDto = {
+  drainId?: number
+  id?: number // 서버가 id로 반환하는 경우도 호환
+  name?: string | null
+  address?: string | null
+  nickname?: string | null
+}
+
+type DrainSearchPageDto = {
+  content: DrainSearchItemDto[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  hasNext: boolean
+}
+
+export async function getDrainPage(
+  params: {
+    q: string
+    page?: number
+    size?: number
+    status?: string
+  },
+  signal?: AbortSignal,
+): Promise<DrainSearchPage> {
+  const { q, page = 0, size = 10, status } = params
+  const { data: body } = await apiClient.get<
+    ApiResponse<DrainSearchPageDto | null>
+  >('/api/v1/drain/list', {
+    params: {
+      q: q.trim(),
+      page,
+      size,
+      ...(status ? { status } : {}),
+    },
+    signal,
+  })
+
+  if (!body.success || !body.data || !Array.isArray(body.data.content)) {
+    throw new Error(body.error?.message ?? '빗물받이 검색에 실패했어요.')
+  }
+
+  const content = body.data.content.map((item) => {
+    const id = item.drainId ?? item.id
+    if (!Number.isSafeInteger(id) || !id || id <= 0) {
+      throw new Error('검색 결과의 빗물받이 ID가 올바르지 않아요.')
+    }
+
+    return {
+      id,
+      name: item.name?.trim() || `빗물받이 #${id}`,
+      address: item.address ?? null,
+      nickname: item.nickname ?? null,
+    }
+  })
+
+  return {
+    content,
+    page: body.data.page,
+    size: body.data.size,
+    totalElements: body.data.totalElements,
+    totalPages: body.data.totalPages,
+    hasNext: body.data.hasNext,
+  }
+}
