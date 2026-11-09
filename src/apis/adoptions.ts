@@ -192,13 +192,17 @@ export type CleaningVerifyResponse = {
 // 청소 후 AI 인증
 export async function verifyAdoptionCleaning(
   cleaningId: number,
-  photoKey: string,
+  request: {
+    photoKey: string
+    latitude: number
+    longitude: number
+  },
 ): Promise<CleaningVerifyResponse> {
   const { data: body } = await apiClient.post<
     ApiResponse<CleaningVerifyResponse>
   >(
     `/api/v1/cleanings/${cleaningId}/verify`,
-    { photoKey },
+    request,
     { timeout: AI_REQUEST_TIMEOUT_MS },
   )
 

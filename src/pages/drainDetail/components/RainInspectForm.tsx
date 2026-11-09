@@ -1,9 +1,14 @@
-import { useContext } from 'react'
-import { AccountId, award } from '../../../features/missions/wallet'
-
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { AccountId, award } from '../../../features/missions/wallet'
+import {
+  clearDraft,
+  flowDraftKey,
+  loadDraft,
+  loadDraftPhoto,
+  saveDraft,
+} from '../../../features/flow-draft/flow-draft'
 import {
   getCurrentCoordinates,
   uploadAdoptionPhoto,
@@ -17,15 +22,29 @@ import {
   startInspection,
   type InspectionSubmitResponse,
 } from '../../../apis/inspections'
-import CameraCapture from '../../../components/common/CameraCapture'
+import CameraCapture, { type CaptureMeta } from '../../../components/common/CameraCapture'
+import type { Box } from '../../../components/common/camera/box'
+import { CAMERA } from '../../../components/common/camera/config'
+import type { Coordinates } from '../../../components/common/camera/geo'
+import { isPhotoStale, STALE_PHOTO_MESSAGE } from '../../../components/common/camera/image'
+import { requestMotionPermission } from '../../../components/common/camera/motion'
+import PhotoSubmitStatus from '../../../components/common/camera/PhotoSubmitStatus'
+import SafetyStart from '../../../components/common/camera/SafetyStart'
 
-type CapturedImage = {
-  file: File
-  previewUrl: string
+// 창을 닫아도 이어서 하도록 남기는 값입니다. 비 예보·대신 점검은 같은 요청으로 점검을 다시 시작할 수 없어서
+// 청소가 필요하다는 판정(점검 번호)을 잃으면 끝낼 방법이 없습니다.
+type InspectionDraft = {
+  startResult: InspectionSubmitResponse | null
+  note: string
+  safetyConfirmed: boolean
+  beforeBox: Box | null
 }
 
-type PhotoStep = 'before' | 'after' | 'details'
-
+type SubmitPhoto = {
+  photo: File
+  /** 찍을 때의 위치. null이면 보낼 때 다시 잽니다. */
+  coordinates: Coordinates | null
+}
 
 type Props = {
   drainId: number
@@ -35,21 +54,11 @@ type Props = {
   onCancel: () => void
 }
 
-
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024
-const IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-]
-
-
-// 서버 정책 location-mismatch-meters와 같은 값입니다.
-const LOCATION_LIMIT_M = 50
+const AI_WAIT_NOTE = '길면 1분쯤 걸려요.'
 
 function pendingReason(result: InspectionSubmitResponse) {
-  if (result.distanceM !== null && result.distanceM > LOCATION_LIMIT_M) {
-    return `빗물받이에서 ${result.distanceM}m 떨어진 곳에서 찍혔어요. ${LOCATION_LIMIT_M}m 안에서 다시 점검하면 바로 결과가 나와요.`
+  if (result.distanceM !== null && result.distanceM > CAMERA.locationLimitM) {
+    return `빗물받이에서 ${result.distanceM}m 떨어진 곳에서 찍혔어요. ${CAMERA.locationLimitM}m 안에서 다시 점검하면 바로 결과가 나와요.`
   }
   return 'AI 판정이 확실하지 않아 담당자 확인이 필요해요. 덮개가 잘 보이게 다시 찍어 점검할 수 있어요.'
 }
@@ -114,31 +123,36 @@ export default function RainInspectForm({
   const account = useContext(AccountId)
   const queryClient = useQueryClient()
 
-  const [photoStep, setPhotoStep] =
-    useState<PhotoStep>('before')
+  const draftKey = flowDraftKey('inspection', account, drainId, kind, requestId)
+  const [draft] = useState(() => loadDraft<InspectionDraft>(draftKey))
 
-  const [cameraOpen, setCameraOpen] = useState(false)
-  const [photoError, setPhotoError] =
-    useState<string | null>(null)
+  const [camera, setCamera] = useState<'before' | 'after' | null>(null)
 
   const [beforePhoto, setBeforePhoto] =
-    useState<CapturedImage | null>(null)
+    useState<File | null>(() => loadDraftPhoto(draftKey, 'before'))
+  const [beforeBox, setBeforeBox] =
+    useState<Box | null>(draft?.beforeBox ?? null)
 
   const [afterPhoto, setAfterPhoto] =
-    useState<CapturedImage | null>(null)
+    useState<File | null>(() => loadDraftPhoto(draftKey, 'after'))
 
-  const [capturedAt, setCapturedAt] =
-    useState<string | null>(null)
-
-  const [note, setNote] = useState('')
+  const [note, setNote] = useState(draft?.note ?? '')
   const [safetyConfirmed, setSafetyConfirmed] =
-    useState(false)
+    useState(draft?.safetyConfirmed ?? false)
 
   const [startResult, setStartResult] =
-    useState<InspectionSubmitResponse | null>(null)
+    useState<InspectionSubmitResponse | null>(draft?.startResult ?? null)
 
   const [finalResult, setFinalResult] =
     useState<InspectionSubmitResponse | null>(null)
+
+  const [stalePhoto, setStalePhoto] = useState(false)
+
+  // 새로고침으로 사진만 사라지고 남은 것이 없으면 이어서 할 것이 없습니다.
+  const [resumed, setResumed] = useState(
+    draft !== null &&
+      (draft.startResult !== null || beforePhoto !== null || draft.note.trim() !== ''),
+  )
 
   const needsCleaning =
     startResult?.status === 'NEEDS_CLEANING'
@@ -176,7 +190,7 @@ export default function RainInspectForm({
   })
 
   // 점검 이후 최신 데이터 불러오기
-  
+
 const refreshData = async () => {
   await Promise.all([
     queryClient.invalidateQueries({
@@ -203,17 +217,7 @@ const refreshData = async () => {
 
   // 1단계: 점검 전 사진 제출 및 AI 판정
   const startMutation = useMutation({
-    mutationFn: async () => {
-      if (
-        !beforePhoto ||
-        !capturedAt ||
-        !safetyConfirmed
-      ) {
-        throw new Error(
-          '점검 전 사진과 안전수칙 확인이 필요해요.',
-        )
-      }
-
+    mutationFn: async ({ photo, coordinates }: SubmitPhoto) => {
       // 서버는 제출 시에도 재검증하지만, 먼저 확인해 불필요한 업로드 방지
       const latestEligibility = await getInspectionEligibility(
         drainId,
@@ -223,13 +227,13 @@ const refreshData = async () => {
         throw new Error(getInspectionEligibilityMessage(latestEligibility))
       }
 
-      // GPS 위치 먼저 확인
+      // 찍을 때의 위치가 없으면 지금 위치를 확인
       const { latitude, longitude } =
-        await getCurrentCoordinates()
+        coordinates ?? await getCurrentCoordinates()
 
       // 점검 전 사진 업로드
       const beforeKey = await uploadAdoptionPhoto(
-        beforePhoto.file,
+        photo,
         'BEFORE',
       )
 
@@ -241,23 +245,29 @@ const refreshData = async () => {
   beforeKey,
   latitude,
   longitude,
-  capturedAt,
+  capturedAt: new Date(photo.lastModified).toISOString(),
   ...(note.trim() ? { note: note.trim() } : {}),
   safetyConfirmed: true,
 })
     },
 
-    onSuccess: async (result) => {
+    onSuccess: async (result, { photo }) => {
       if (result.status === 'COMPLETED' && kind === 'SUBSTITUTE') {
         void award(account, 'substitute').catch(console.error)
       }
       setStartResult(result)
+      setResumed(false)
 
       if (result.status === 'NEEDS_CLEANING') {
-        // 청소가 필요한 경우에만 사진 추가
-        setPhotoStep('after')
+        // 판정을 기다리다 창을 닫았어도 점검 번호가 남도록 바로 저장합니다.
+        saveDraft<InspectionDraft>(
+          draftKey,
+          { startResult: result, note, safetyConfirmed, beforeBox },
+          { before: photo, after: null },
+        )
       } else {
         // COMPLETED / PENDING / REJECTED
+        clearDraft(draftKey)
         setFinalResult(result)
         await refreshData()
       }
@@ -266,20 +276,13 @@ const refreshData = async () => {
 
   // 2단계: 청소 후 사진 제출
   const completeMutation = useMutation({
-    mutationFn: async () => {
-      if (
-        !needsCleaning ||
-        !startResult ||
-        !afterPhoto ||
-        !safetyConfirmed
-      ) {
-        throw new Error(
-          '청소 후 사진과 안전수칙 확인이 필요해요.',
-        )
+    mutationFn: async ({ photo }: SubmitPhoto) => {
+      if (!startResult) {
+        throw new Error('점검 정보를 찾지 못했어요. 처음부터 다시 해 주세요.')
       }
 
       const afterKey = await uploadAdoptionPhoto(
-        afterPhoto.file,
+        photo,
         'AFTER',
       )
 
@@ -294,101 +297,145 @@ const refreshData = async () => {
     },
 
     onSuccess: async (result) => {
+      setResumed(false)
+
+      // 청소가 아직 부족하면 같은 점검에 다시 찍어 올립니다.
+      if (result.status === 'NEEDS_CLEANING') {
+        setStartResult(result)
+        setAfterPhoto(null)
+        saveDraft<InspectionDraft>(
+          draftKey,
+          { startResult: result, note, safetyConfirmed, beforeBox },
+          { before: beforePhoto, after: null },
+        )
+        return
+      }
+
       if (result.status === 'COMPLETED' && kind !== 'FORECAST') {
         void award(account, kind === 'SUBSTITUTE' ? 'substitute' : 'clean').catch(console.error)
       }
+      clearDraft(draftKey)
       setFinalResult(result)
       await refreshData()
     },
   })
 
-  // 사진 미리보기 메모리 정리
+  // 진행 상황 저장. 결과가 나오면 지웁니다.
   useEffect(() => {
-    return () => {
-      if (beforePhoto) {
-        URL.revokeObjectURL(beforePhoto.previewUrl)
-      }
-    }
-  }, [beforePhoto])
-
-  useEffect(() => {
-    return () => {
-      if (afterPhoto) {
-        URL.revokeObjectURL(afterPhoto.previewUrl)
-      }
-    }
-  }, [afterPhoto])
-
-  const handleCapture = (file: File) => {
-    if (!IMAGE_TYPES.includes(file.type)) {
-      setPhotoError(
-        'JPG, PNG, WEBP 파일만 선택할 수 있어요.',
-      )
-      return
-    }
-
-    if (file.size > MAX_PHOTO_SIZE) {
-      setPhotoError(
-        '사진은 10MB 이하로 선택해 주세요.',
-      )
-      return
-    }
-
-    const photo: CapturedImage = {
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }
-
-    if (photoStep === 'before') {
-      setBeforePhoto(photo)
-
-      // 카메라 촬영/파일 선택 시점
-      setCapturedAt(new Date().toISOString())
-      startMutation.reset()
-    } else if (photoStep === 'after') {
-      setAfterPhoto(photo)
-      completeMutation.reset()
-    }
-
-    setCameraOpen(false)
-    setPhotoError(null)
-    setPhotoStep('details')
-  }
-
-  const openPhotoStep = (
-    step: 'before' | 'after',
-  ) => {
-    // 서버에 시작 기록을 만든 뒤에는
-    // 다른 점검 시작 요청을 중복 생성하지 않음
-    if (startResult && step === 'before') {
-      return
-    }
-
-    setPhotoError(null)
-    setCameraOpen(false)
-    setPhotoStep(step)
-  }
-
-  const handlePhotoCancel = () => {
-    if (cameraOpen) {
-      setCameraOpen(false)
-      return
-    }
-
     if (
-      photoStep === 'before' &&
-      !beforePhoto
+      finalResult ||
+      (!startResult && !beforePhoto && !note.trim() && !safetyConfirmed)
     ) {
-      onCancel()
+      clearDraft(draftKey)
       return
     }
+    saveDraft<InspectionDraft>(
+      draftKey,
+      { startResult, note, safetyConfirmed, beforeBox },
+      { before: beforePhoto, after: afterPhoto },
+    )
+  }, [
+    draftKey,
+    finalResult,
+    startResult,
+    beforePhoto,
+    beforeBox,
+    afterPhoto,
+    note,
+    safetyConfirmed,
+  ])
 
-    setPhotoStep('details')
+  // 찍으면 바로 AI 판정으로 넘어갑니다.
+  const handleCapture = (file: File, meta: CaptureMeta) => {
+    const step = camera
+    setCamera(null)
+
+    if (step === 'before') {
+      setBeforePhoto(file)
+      setBeforeBox(meta.box)
+      startMutation.mutate({ photo: file, coordinates: meta.coordinates })
+    } else if (step === 'after') {
+      setAfterPhoto(file)
+      completeMutation.mutate({ photo: file, coordinates: meta.coordinates })
+    }
+  }
+
+  const openCamera = (step: 'before' | 'after') => {
+    // 아이폰 센서 권한은 버튼을 누른 순간에만 물을 수 있습니다.
+    void requestMotionPermission()
+    startMutation.reset()
+    completeMutation.reset()
+    setStalePhoto(false)
+    setCamera(step)
+  }
+
+  const restart = () => {
+    clearDraft(draftKey)
+    startMutation.reset()
+    completeMutation.reset()
+    setStartResult(null)
+    setBeforePhoto(null)
+    setBeforeBox(null)
+    setAfterPhoto(null)
+    setNote('')
+    setSafetyConfirmed(false)
+    setResumed(false)
   }
 
   const pending =
     startMutation.isPending ||
     completeMutation.isPending
+
+  // 비 예보·대신 점검은 시작한 점검을 다시 시작할 수 없어서, 실패했을 때만 처음부터 하게 합니다.
+  const canRestart =
+    resumed &&
+    !pending &&
+    (!startResult || kind === 'ROUTINE' || completeMutation.isError)
+
+  const header = (
+    <div>
+      <h3 className="text-sm font-bold text-[#24496B]">
+        {adoptionName}
+      </h3>
+      <p className="mt-1 text-xs font-semibold text-[#3981F7]">
+        {kind === 'ROUTINE'
+          ? '일반 정기 점검'
+          : kind === 'SUBSTITUTE'
+            ? '대신 점검'
+            : '비 예보 점검'}
+
+        {requestId !== undefined && (
+          <> · 요청 #{requestId}</>
+        )}
+      </p>
+    </div>
+  )
+
+  const resumeNotice = resumed && (
+    <div className="flex items-center justify-between gap-2 rounded-xl bg-[#F4F7FC] p-3 text-xs text-[#3E5670]">
+      <span>하던 점검을 이어서 진행해요.</span>
+      {canRestart && (
+        <button
+          type="button"
+          onClick={restart}
+          className="shrink-0 font-bold text-[#3489DC] underline"
+        >
+          처음부터 다시
+        </button>
+      )}
+    </div>
+  )
+
+  const submitError = (startMutation.isError || completeMutation.isError || stalePhoto) && (
+    <p
+      role="alert"
+      className="rounded-xl bg-[#FFF1F1] p-3 text-sm leading-relaxed text-[#B84D4D]"
+    >
+      {stalePhoto
+        ? STALE_PHOTO_MESSAGE
+        : getErrorMessage(startMutation.error || completeMutation.error)}
+    </p>
+  )
 
   // 자격 확인 전에는 카메라·사진 업로드를 진행하지 않음
   if (!eligibilityEnabled) {
@@ -396,128 +443,6 @@ const refreshData = async () => {
       <div role="alert" className="space-y-3 rounded-xl bg-[#FFF4DC] p-4 text-xs text-[#956222]">
         <p>점검할 빗물받이 또는 비 예보 요청 정보가 올바르지 않아요.</p>
         <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
-      </div>
-    )
-  }
-
-  if ((eligibilityPending || eligibilityFetching) && !startResult) {
-    return <p role="status" className="py-5 text-center text-xs text-[#78899F]">점검 가능 여부를 확인하고 있어요.</p>
-  }
-
-  if ((eligibilityError || !eligibility) && !startResult) {
-    return (
-      <div className="space-y-3 rounded-xl bg-[#FFF1F1] p-4 text-xs text-[#B84D4D]">
-        <p role="alert">{getErrorMessage(eligibilityQueryError)}</p>
-        <div className="flex gap-4">
-          <button type="button" onClick={() => void refetchEligibility()} className="font-bold underline">다시 확인</button>
-          <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
-        </div>
-      </div>
-    )
-  }
-
-  if (eligibility && !eligibility.eligible && !startResult) {
-    return (
-      <div className="space-y-3 rounded-xl bg-[#FFF4DC] p-4 text-xs text-[#956222]">
-        <p role="alert" className="font-bold">현재 점검할 수 없어요.</p>
-        <p>{getInspectionEligibilityMessage(eligibility)}</p>
-        <div className="flex gap-4">
-          <button type="button" onClick={() => void refetchEligibility()} className="font-bold underline">다시 확인</button>
-          <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
-        </div>
-      </div>
-    )
-  }
-
-  // 카메라 또는 파일 선택 화면
-  if (
-    photoStep !== 'details' &&
-    !finalResult
-  ) {
-    const before = photoStep === 'before'
-
-    const title = before
-      ? '점검 전 사진 등록'
-      : '청소 후 사진 등록'
-
-    if (cameraOpen) {
-      return (
-        <CameraCapture
-          title={title}
-          onCapture={handleCapture}
-          onCancel={handlePhotoCancel}
-        />
-      )
-    }
-
-    return (
-      <div className="space-y-4">
-        <h3 className="text-sm font-bold text-[#24496B]">
-          {title}
-        </h3>
-
-        {needsCleaning && !before && (
-          <p className="rounded-xl bg-[#FFF4DC] p-3 text-xs leading-5 text-[#A97822]">
-            AI 판정 결과 청소가 필요해요.
-            주변 쓰레기를 안전하게 청소한 뒤
-            사진을 등록해 주세요.
-          </p>
-        )}
-
-        <p className="text-xs leading-relaxed text-[#758B9F]">
-          모바일에서는 카메라로 촬영하거나
-          PC에서 사진을 선택할 수 있어요.
-          JPG · PNG · WEBP, 최대 10MB까지 지원해요.
-        </p>
-
-        <label className="block space-y-2">
-          <span className="block text-xs font-semibold text-[#24496B]">
-            사진 파일 선택
-          </span>
-
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => {
-              const file =
-                event.currentTarget.files?.[0]
-
-              if (file) {
-                handleCapture(file)
-              }
-
-              event.currentTarget.value = ''
-            }}
-            className="block w-full cursor-pointer rounded-xl border border-[#CFE4F5] bg-white p-3 text-xs text-[#24496B] file:mr-3 file:rounded-lg file:border-0 file:bg-[#EAF6FF] file:px-3 file:py-2 file:font-semibold file:text-[#3489DC]"
-          />
-        </label>
-
-        {photoError && (
-          <p
-            role="alert"
-            className="rounded-xl bg-[#FFF1F1] p-3 text-xs text-[#B84D4D]"
-          >
-            {photoError}
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setCameraOpen(true)}
-          className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white"
-        >
-          카메라로 촬영하기
-        </button>
-
-        <button
-          type="button"
-          onClick={handlePhotoCancel}
-          className="w-full rounded-full border border-[#DCE8F1] bg-white p-3 text-xs font-semibold text-[#607C99]"
-        >
-          {before && !beforePhoto
-            ? '점검 취소'
-            : '돌아가기'}
-        </button>
       </div>
     )
   }
@@ -532,192 +457,174 @@ const refreshData = async () => {
     )
   }
 
-  // 점검 정보 및 제출 화면
+  // 카메라 화면
+  if (camera) {
+    return (
+      <CameraCapture
+        title={camera === 'before' ? '점검 전 사진 촬영' : '청소 후 사진 촬영'}
+        drainId={drainId}
+        reference={
+          camera === 'after' && beforePhoto && beforeBox
+            ? { file: beforePhoto, box: beforeBox }
+            : null
+        }
+        onCapture={handleCapture}
+        onCancel={() => setCamera(null)}
+      />
+    )
+  }
+
+  // 청소 후 사진 단계
+  if (startResult) {
+    return (
+      <div className="space-y-4">
+        {header}
+        {resumeNotice}
+
+        {needsCleaning && (
+          <p className="rounded-xl bg-[#FFF4DC] p-3 text-sm leading-relaxed text-[#7A5310]">
+            {startResult.cleanNotice ?? 'AI 판정 결과 청소가 필요해요.'}
+          </p>
+        )}
+
+        {submitError}
+
+        {afterPhoto ? (
+          <PhotoSubmitStatus
+            file={afterPhoto}
+            alt="청소 후 빗물받이"
+            busy={completeMutation.isPending}
+            busyText={`청소가 잘 됐는지 AI가 확인하고 있어요. ${AI_WAIT_NOTE}`}
+            retryLabel="다시 인증받기"
+            onRetake={() => openCamera('after')}
+            onRetry={() => {
+              if (isPhotoStale(afterPhoto)) {
+                completeMutation.reset()
+                setAfterPhoto(null)
+                setStalePhoto(true)
+                return
+              }
+              completeMutation.mutate({ photo: afterPhoto, coordinates: null })
+            }}
+          />
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => openCamera('after')}
+              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+            >
+              청소 후 사진 찍기
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="w-full rounded-full border border-[#DCE8F1] bg-white p-3 text-sm font-semibold text-[#3E5670]"
+            >
+              청소하고 나서 이어서 하기
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  if ((eligibilityPending || eligibilityFetching)) {
+    return <p role="status" className="py-5 text-center text-xs text-[#78899F]">점검 가능 여부를 확인하고 있어요.</p>
+  }
+
+  if (eligibilityError || !eligibility) {
+    return (
+      <div className="space-y-3 rounded-xl bg-[#FFF1F1] p-4 text-xs text-[#B84D4D]">
+        <p role="alert">{getErrorMessage(eligibilityQueryError)}</p>
+        <div className="flex gap-4">
+          <button type="button" onClick={() => void refetchEligibility()} className="font-bold underline">다시 확인</button>
+          <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!eligibility.eligible) {
+    return (
+      <div className="space-y-3 rounded-xl bg-[#FFF4DC] p-4 text-xs text-[#956222]">
+        <p role="alert" className="font-bold">현재 점검할 수 없어요.</p>
+        <p>{getInspectionEligibilityMessage(eligibility)}</p>
+        <div className="flex gap-4">
+          <button type="button" onClick={() => void refetchEligibility()} className="font-bold underline">다시 확인</button>
+          <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
+        </div>
+      </div>
+    )
+  }
+
+  // 점검 전 사진 단계
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault()
+    <div className="space-y-4">
+      {header}
+      {resumeNotice}
+      {submitError}
 
-        if (
-          pending ||
-          !safetyConfirmed
-        ) {
-          return
-        }
-
-        if (needsCleaning) {
-          completeMutation.mutate()
-        } else {
-          startMutation.mutate()
-        }
-      }}
-      className="space-y-4"
-    >
-      <p className="rounded-xl bg-[#EAF6FF] p-3 text-xs leading-relaxed text-[#447798]">
-        안전한 장소에서 점검해주세요.
-        비가 오거나 위험할 때는 점검하지 마세요.
-        빗물받이 덮개를 직접 열지 마세요.
-      </p>
-
-      <h3 className="text-sm font-bold text-[#24496B]">
-        {adoptionName}
-      </h3>
-
-      
-<p className="text-xs font-semibold text-[#3981F7]">
-  {kind === 'ROUTINE'
-    ? '일반 정기 점검'
-    : kind === 'SUBSTITUTE'
-      ? '대신 점검'
-      : '비 예보 점검'}
-
-  {requestId !== undefined && (
-    <> · 요청 #{requestId}</>
-  )}
-</p>
-
-
-      <section className="space-y-2">
-        <p className="text-xs font-bold text-[#24496B]">
-          점검 전 사진
-        </p>
-
-        {beforePhoto && (
-          <img
-            src={beforePhoto.previewUrl}
-            alt="점검 전 빗물받이"
-            className="h-[190px] w-full rounded-xl object-cover"
-          />
-        )}
-
-        {!startResult && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              openPhotoStep('before')
+      {beforePhoto ? (
+        <PhotoSubmitStatus
+          file={beforePhoto}
+          alt="점검 전 빗물받이"
+          busy={startMutation.isPending}
+          busyText={`AI가 사진을 확인하고 있어요. ${AI_WAIT_NOTE}`}
+          retryLabel="다시 판정받기"
+          onRetake={() => openCamera('before')}
+          onRetry={() => {
+            if (isPhotoStale(beforePhoto)) {
+              startMutation.reset()
+              setBeforePhoto(null)
+              setStalePhoto(true)
+              return
             }
-            className="w-full rounded-xl border border-[#CFE4F5] p-3 text-xs font-bold text-[#3489DC] disabled:opacity-40"
-          >
-            점검 전 사진 변경 (촬영/파일 선택)
-          </button>
-        )}
-      </section>
-
-      {needsCleaning && (
-        <section className="space-y-2">
-          <p className="rounded-xl bg-[#FFF4DC] p-3 text-xs leading-5 text-[#A97822]">
-            AI 판정 결과 청소가 필요해요.
-            {startResult.cleanNotice &&
-              ` ${startResult.cleanNotice}`}
-          </p>
-
-          <p className="text-xs font-bold text-[#24496B]">
-            청소 후 사진 (필수)
-          </p>
-
-          {afterPhoto ? (
-            <img
-              src={afterPhoto.previewUrl}
-              alt="청소 후 빗물받이"
-              className="h-[190px] w-full rounded-xl object-cover"
-            />
-          ) : (
-            <div className="flex h-[160px] items-center justify-center rounded-xl bg-[#F1F6FB]">
-              <p className="text-xs text-[#8297AC]">
-                청소 후 사진을 촬영해주세요.
-              </p>
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              openPhotoStep('after')
-            }
-            className="w-full rounded-xl bg-[#EAF6FF] p-3 text-xs font-bold text-[#3489DC] disabled:opacity-40"
-          >
-            {afterPhoto
-              ? '청소 후 사진 변경'
-              : '청소 후 사진 등록'}{' '}
-            (촬영/파일 선택)
-          </button>
-        </section>
-      )}
-
-      {!startResult && (
-        <label className="block text-xs font-bold text-[#24496B]">
-          점검 메모 (선택)
-
-          <textarea
-            value={note}
-            maxLength={500}
-            disabled={pending}
-            onChange={(event) =>
-              setNote(event.target.value)
-            }
-            placeholder="빗물받이 상태를 입력해주세요."
-            className="mt-2 min-h-20 w-full rounded-xl border border-[#DCE8F1] p-3 text-xs"
-          />
-        </label>
-      )}
-
-      <label className="flex items-start gap-2 text-xs leading-relaxed text-[#607C99]">
-        <input
-          type="checkbox"
-          checked={safetyConfirmed}
-          disabled={pending}
-          onChange={(event) =>
-            setSafetyConfirmed(
-              event.target.checked,
-            )
-          }
-          required
-          className="mt-0.5"
+            startMutation.mutate({ photo: beforePhoto, coordinates: null })
+          }}
         />
+      ) : (
+        <>
+          <label className="block text-xs font-bold text-[#24496B]">
+            점검 메모 (선택)
 
-        <span>
-          안전수칙을 지켰고,
-          사진에 얼굴이나 차량 번호판 등
-          개인정보가 포함되지 않았음을 확인했어요.
-        </span>
-      </label>
+            <textarea
+              value={note}
+              maxLength={500}
+              onChange={(event) =>
+                setNote(event.target.value)
+              }
+              placeholder="빗물받이 상태를 입력해주세요."
+              className="mt-2 min-h-16 w-full rounded-xl border border-[#DCE8F1] p-3 text-sm font-normal"
+            />
+          </label>
 
-      <button
-        type="submit"
-        disabled={
-          pending ||
-          !safetyConfirmed ||
-          (
-            needsCleaning
-              ? !afterPhoto
-              : !beforePhoto
-          )
-        }
-        className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white disabled:opacity-40"
-      >
-        {pending
-          ? '사진 업로드 및 점검 제출 중...'
-          : needsCleaning
-            ? '청소 후 점검 완료하기'
-            : '점검 전 사진으로 AI 판정받기'}
-      </button>
-
-      {(
-        startMutation.isError ||
-        completeMutation.isError
-      ) && (
-        <p
-          role="alert"
-          className="rounded-xl bg-[#FFF1F1] p-3 text-xs text-[#B84D4D]"
-        >
-          {getErrorMessage(
-            startMutation.error ||
-            completeMutation.error,
+          {safetyConfirmed ? (
+            <button
+              type="button"
+              onClick={() => openCamera('before')}
+              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+            >
+              카메라로 촬영하기
+            </button>
+          ) : (
+            <SafetyStart
+              onStart={() => {
+                setSafetyConfirmed(true)
+                setCamera('before')
+              }}
+            />
           )}
-        </p>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full rounded-full border border-[#DCE8F1] bg-white p-3 text-sm font-semibold text-[#3E5670]"
+          >
+            점검 취소
+          </button>
+        </>
       )}
-    </form>
+    </div>
   )
 }

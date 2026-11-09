@@ -1,8 +1,22 @@
 
-import { useState, type FormEvent } from 'react'
+import { useContext, useEffect, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-import CameraCapture from '../../../components/common/CameraCapture'
+import CameraCapture, { type CaptureMeta } from '../../../components/common/CameraCapture'
+import type { Box } from '../../../components/common/camera/box'
+import type { Coordinates } from '../../../components/common/camera/geo'
+import { isPhotoStale, STALE_PHOTO_MESSAGE } from '../../../components/common/camera/image'
+import { requestMotionPermission } from '../../../components/common/camera/motion'
+import PhotoSubmitStatus from '../../../components/common/camera/PhotoSubmitStatus'
+import SafetyStart from '../../../components/common/camera/SafetyStart'
+import {
+  clearDraft,
+  flowDraftKey,
+  loadDraft,
+  loadDraftPhoto,
+  saveDraft,
+} from '../../../features/flow-draft/flow-draft'
+import { AccountId } from '../../../features/missions/wallet'
 
 import {
   getCurrentCoordinates,
@@ -15,12 +29,6 @@ import {
 import { getErrorMessage } from '../../../apis/auth'
 import type { ReleaseReason } from '../../../types/drainDetail'
 
-const SAFETY_RULES = [
-  '인도 등 안전한 장소에서만 점검할게요.',
-  '비가 내리거나 위험한 상황에서는 점검하지 않을게요.',
-  '빗물받이 덮개를 직접 열지 않을게요.',
-]
-
 type Phase =
   | 'before'
   | 'after'
@@ -29,6 +37,19 @@ type Phase =
   | 'success'
 
 type CameraMode = 'before' | 'after' | null
+
+// 창을 닫아도 이어서 하도록 남기는 값입니다. 사진은 flow-draft가 메모리에 따로 둡니다.
+type AdoptionDraft = {
+  phase: Phase
+  cleaningId: number | null
+  name: string
+  safetyConfirmed: boolean
+  pledge: boolean
+  notice: string
+  beforeBox: Box | null
+}
+
+const AI_WAIT_NOTE = '길면 1분쯤 걸려요.'
 
 type AdoptFormProps = {
   drainId: number
@@ -40,55 +61,101 @@ export function AdoptForm({
   onClose,
 }: AdoptFormProps) {
   const queryClient = useQueryClient()
+  const account = useContext(AccountId)
 
-  const [phase, setPhase] = useState<Phase>('before')
+  const draftKey = flowDraftKey('adoption', account, drainId)
+  const [draft] = useState(() => loadDraft<AdoptionDraft>(draftKey))
+
+  const [phase, setPhase] = useState<Phase>(draft?.phase ?? 'before')
   const [camera, setCamera] = useState<CameraMode>(null)
 
   const [beforePhoto, setBeforePhoto] =
-    useState<File | null>(null)
+    useState<File | null>(() => loadDraftPhoto(draftKey, 'before'))
+  const [beforeBox, setBeforeBox] =
+    useState<Box | null>(draft?.beforeBox ?? null)
   const [afterPhoto, setAfterPhoto] =
-    useState<File | null>(null)
+    useState<File | null>(() => loadDraftPhoto(draftKey, 'after'))
 
   const [cleaningId, setCleaningId] =
-    useState<number | null>(null)
+    useState<number | null>(draft?.cleaningId ?? null)
 
-  const [name, setName] = useState('')
-  const [safety, setSafety] = useState([
-    false,
-    false,
-    false,
-  ])
-  const [pledge, setPledge] = useState(false)
+  const [name, setName] = useState(draft?.name ?? '')
+  const [safetyConfirmed, setSafetyConfirmed] =
+    useState(draft?.safetyConfirmed ?? false)
+  const [pledge, setPledge] = useState(draft?.pledge ?? false)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState(draft?.notice ?? '')
+  // 새로고침으로 사진만 사라진 첫 단계는 이어서 할 것이 없습니다.
+  const [resumed, setResumed] = useState(
+    draft !== null && (draft.phase !== 'before' || beforePhoto !== null),
+  )
 
-  const safetyAgreed =
-    safety.every(Boolean) && pledge
+  // 진행 상황 저장. 끝나거나 아직 시작 전이면 지웁니다.
+  useEffect(() => {
+    if (
+      phase === 'success' ||
+      phase === 'blocked' ||
+      (phase === 'before' && !beforePhoto && !safetyConfirmed)
+    ) {
+      clearDraft(draftKey)
+      return
+    }
+
+    saveDraft<AdoptionDraft>(
+      draftKey,
+      { phase, cleaningId, name, safetyConfirmed, pledge, notice, beforeBox },
+      { before: beforePhoto, after: afterPhoto },
+    )
+  }, [
+    draftKey,
+    phase,
+    cleaningId,
+    name,
+    safetyConfirmed,
+    pledge,
+    notice,
+    beforeBox,
+    beforePhoto,
+    afterPhoto,
+  ])
+
+  const openCamera = (mode: 'before' | 'after') => {
+    // 아이폰 센서 권한은 버튼을 누른 순간에만 물을 수 있습니다.
+    void requestMotionPermission()
+    setError('')
+    setCamera(mode)
+  }
+
+  const restart = () => {
+    clearDraft(draftKey)
+    setPhase('before')
+    setBeforePhoto(null)
+    setBeforeBox(null)
+    setAfterPhoto(null)
+    setCleaningId(null)
+    setName('')
+    setSafetyConfirmed(false)
+    setPledge(false)
+    setError('')
+    setNotice('')
+    setResumed(false)
+  }
 
   const canRegister =
     cleaningId !== null &&
     name.trim().length > 0 &&
-    safetyAgreed &&
+    pledge &&
     !busy
 
-  const handleCapture = (file: File) => {
-    if (camera === 'before') {
-      setBeforePhoto(file)
-    }
-
-    if (camera === 'after') {
-      setAfterPhoto(file)
-    }
-
-    setCamera(null)
-    setError('')
-  }
-
   // 1. 청소 전 사진 업로드 및 AI 판정
-  const handleStartCleaning = async () => {
-    if (!beforePhoto || busy) return
+  const submitBefore = async (
+    photo: File,
+    knownCoordinates: Coordinates | null,
+    box: Box | null,
+  ) => {
+    if (busy) return
 
     setBusy(true)
     setError('')
@@ -96,10 +163,10 @@ export function AdoptForm({
 
     try {
       const coordinates =
-        await getCurrentCoordinates()
+        knownCoordinates ?? await getCurrentCoordinates()
 
       const photoKey = await uploadAdoptionPhoto(
-  beforePhoto,
+  photo,
   'BEFORE',
 )
 
@@ -112,24 +179,36 @@ export function AdoptForm({
       )
 
       setCleaningId(result.cleaningId)
+      setResumed(false)
 
       // 서버는 막힘이면서 신고가 필요할 때만 막고, 이때 제보도 자동으로 접수합니다.
       if (result.blocked) {
+        clearDraft(draftKey)
         setPhase('blocked')
         return
       }
 
-      if (result.mustClean) {
-        setPhase('after')
-        setNotice(
-          '청소가 필요한 빗물받이예요. 안전하게 청소한 뒤 사진을 촬영해 주세요.',
-        )
-      } else {
-        setPhase('register')
-        setNotice(
-          '추가 청소가 필요하지 않은 것으로 판정됐어요. 입양 정보를 입력해 주세요.',
-        )
-      }
+      const nextPhase = result.mustClean ? 'after' : 'register'
+      const nextNotice = result.mustClean
+        ? '청소가 필요한 빗물받이예요. 안전하게 청소한 뒤 사진을 촬영해 주세요.'
+        : '추가 청소가 필요하지 않은 것으로 판정됐어요. 입양 정보를 입력해 주세요.'
+
+      // AI 판정을 기다리다 창을 닫았어도 청소 번호가 남도록 바로 저장합니다.
+      saveDraft<AdoptionDraft>(
+        draftKey,
+        {
+          phase: nextPhase,
+          cleaningId: result.cleaningId,
+          name,
+          safetyConfirmed,
+          pledge,
+          notice: nextNotice,
+          beforeBox: box,
+        },
+        { before: photo, after: null },
+      )
+      setPhase(nextPhase)
+      setNotice(nextNotice)
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -138,36 +217,54 @@ export function AdoptForm({
   }
 
   // 2. 청소 후 사진으로 AI 인증
-  const handleVerifyCleaning = async () => {
-    if (
-      cleaningId === null ||
-      !afterPhoto ||
-      busy
-    ) {
-      return
-    }
+  const submitAfter = async (
+    photo: File,
+    knownCoordinates: Coordinates | null,
+  ) => {
+    if (cleaningId === null || busy) return
 
     setBusy(true)
     setError('')
-    setNotice('')
 
     try {
+      // 서버는 청소 후 사진을 찍은 위치도 빗물받이와 맞는지 확인합니다.
+      const coordinates =
+        knownCoordinates ?? await getCurrentCoordinates()
+
       const photoKey = await uploadAdoptionPhoto(
-  afterPhoto,
+  photo,
   'AFTER',
 )
 
       const result =
         await verifyAdoptionCleaning(
           cleaningId,
-          photoKey,
+          {
+            photoKey,
+            ...coordinates,
+          },
         )
 
+      setResumed(false)
+
       if (result.passed) {
-        setPhase('register')
-        setNotice(
-          '청소 인증을 통과했어요. 이제 입양할 수 있어요.',
+        const nextNotice = '청소 인증을 통과했어요. 이제 입양할 수 있어요.'
+
+        saveDraft<AdoptionDraft>(
+          draftKey,
+          {
+            phase: 'register',
+            cleaningId,
+            name,
+            safetyConfirmed,
+            pledge,
+            notice: nextNotice,
+            beforeBox,
+          },
+          { before: beforePhoto, after: photo },
         )
+        setPhase('register')
+        setNotice(nextNotice)
       } else {
         setAfterPhoto(null)
         setNotice(
@@ -178,6 +275,23 @@ export function AdoptForm({
       setError(getErrorMessage(err))
     } finally {
       setBusy(false)
+    }
+  }
+
+  // 찍으면 바로 AI 판정으로 넘어갑니다.
+  const handleCapture = (file: File, meta: CaptureMeta) => {
+    const mode = camera
+    setCamera(null)
+
+    if (mode === 'before') {
+      setBeforePhoto(file)
+      setBeforeBox(meta.box)
+      void submitBefore(file, meta.coordinates, meta.box)
+    }
+
+    if (mode === 'after') {
+      setAfterPhoto(file)
+      void submitAfter(file, meta.coordinates)
     }
   }
 
@@ -199,6 +313,7 @@ export function AdoptForm({
         safetyAgreed: true,
       })
 
+      clearDraft(draftKey)
       setPhase('success')
 
       // 상세·지도·본인 입양 목록 재조회
@@ -227,6 +342,12 @@ export function AdoptForm({
           camera === 'before'
             ? '청소 전 사진 촬영'
             : '청소 후 사진 촬영'
+        }
+        drainId={drainId}
+        reference={
+          camera === 'after' && beforePhoto && beforeBox
+            ? { file: beforePhoto, box: beforeBox }
+            : null
         }
         onCapture={handleCapture}
         onCancel={() => setCamera(null)}
@@ -278,11 +399,37 @@ export function AdoptForm({
 
   return (
     <div className="space-y-4">
-      <p className="rounded-xl bg-[#EAF6FF] p-3 text-xs leading-relaxed text-[#447798]">
-        안전한 장소에서 촬영해 주세요.
-        위험한 상황에서는 청소를 진행하지 마세요.
-        사진 인증에는 위치 권한이 필요합니다.
-      </p>
+      {resumed && (
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-[#F4F7FC] p-3 text-xs text-[#3E5670]">
+          <span>하던 입양을 이어서 진행해요.</span>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={restart}
+            className="shrink-0 font-bold text-[#3489DC] underline disabled:opacity-40"
+          >
+            처음부터 다시
+          </button>
+        </div>
+      )}
+
+      {notice && (
+        <p
+          role="status"
+          className="rounded-xl bg-[#EAF6FF] p-3 text-sm leading-relaxed text-[#2F5570]"
+        >
+          {notice}
+        </p>
+      )}
+
+      {error && (
+        <p
+          role="alert"
+          className="rounded-xl bg-[#FDECEC] p-3 text-sm leading-relaxed text-[#B84D4D]"
+        >
+          {error}
+        </p>
+      )}
 
       {phase === 'before' && (
         <section className="space-y-3">
@@ -290,47 +437,43 @@ export function AdoptForm({
             1. 청소 전 사진
           </h3>
 
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setCamera('before')}
-            className="w-full rounded-xl bg-[#EAF6FF] p-3 text-xs font-bold text-[#3489DC]"
-          >
-            카메라로 촬영
-          </button>
-
-          <label className="block text-xs font-semibold text-[#24496B]">
-            또는 사진 선택
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              capture="environment"
-              disabled={busy}
-              onChange={(event) =>
-                setBeforePhoto(
-                  event.target.files?.[0] ?? null,
-                )
-              }
-              className="mt-2 w-full rounded-xl border border-[#DCE8F1] p-3 text-xs"
+          {beforePhoto ? (
+            <PhotoSubmitStatus
+              file={beforePhoto}
+              alt="청소 전 빗물받이"
+              busy={busy}
+              busyText={`AI가 사진을 확인하고 있어요. ${AI_WAIT_NOTE}`}
+              retryLabel="다시 판정받기"
+              onRetake={() => openCamera('before')}
+              onRetry={() => {
+                if (isPhotoStale(beforePhoto)) {
+                  setBeforePhoto(null)
+                  setError(STALE_PHOTO_MESSAGE)
+                  return
+                }
+                void submitBefore(beforePhoto, null, beforeBox)
+              }}
             />
-          </label>
-
-          {beforePhoto && (
-            <p className="text-xs text-[#607C99]">
-              선택한 사진: {beforePhoto.name}
-            </p>
+          ) : safetyConfirmed ? (
+            <button
+              type="button"
+              onClick={() => openCamera('before')}
+              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+            >
+              카메라로 촬영
+            </button>
+          ) : (
+            <SafetyStart
+              onStart={() => {
+                setSafetyConfirmed(true)
+                setCamera('before')
+              }}
+            />
           )}
 
-          <button
-            type="button"
-            onClick={() => void handleStartCleaning()}
-            disabled={!beforePhoto || busy}
-            className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white disabled:opacity-40"
-          >
-            {busy
-              ? 'AI 판정 중...'
-              : '사진 제출하고 청소 판정하기'}
-          </button>
+          <p className="text-xs leading-relaxed text-[#607C99]">
+            사진 인증에는 위치 권한이 필요해요.
+          </p>
         </section>
       )}
 
@@ -340,47 +483,32 @@ export function AdoptForm({
             2. 청소 후 사진 인증
           </h3>
 
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setCamera('after')}
-            className="w-full rounded-xl bg-[#EAF6FF] p-3 text-xs font-bold text-[#3489DC]"
-          >
-            청소 후 사진 촬영
-          </button>
-
-          <label className="block text-xs font-semibold text-[#24496B]">
-            또는 사진 선택
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              capture="environment"
-              disabled={busy}
-              onChange={(event) =>
-                setAfterPhoto(
-                  event.target.files?.[0] ?? null,
-                )
-              }
-              className="mt-2 w-full rounded-xl border border-[#DCE8F1] p-3 text-xs"
+          {afterPhoto ? (
+            <PhotoSubmitStatus
+              file={afterPhoto}
+              alt="청소 후 빗물받이"
+              busy={busy}
+              busyText={`청소가 잘 됐는지 AI가 확인하고 있어요. ${AI_WAIT_NOTE}`}
+              retryLabel="다시 인증받기"
+              onRetake={() => openCamera('after')}
+              onRetry={() => {
+                if (isPhotoStale(afterPhoto)) {
+                  setAfterPhoto(null)
+                  setError(STALE_PHOTO_MESSAGE)
+                  return
+                }
+                void submitAfter(afterPhoto, null)
+              }}
             />
-          </label>
-
-          {afterPhoto && (
-            <p className="text-xs text-[#607C99]">
-              선택한 사진: {afterPhoto.name}
-            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openCamera('after')}
+              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+            >
+              청소 후 사진 촬영
+            </button>
           )}
-
-          <button
-            type="button"
-            disabled={!afterPhoto || busy}
-            onClick={() => void handleVerifyCleaning()}
-            className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white disabled:opacity-40"
-          >
-            {busy
-              ? '청소 인증 중...'
-              : '청소 완료 인증하기'}
-          </button>
         </section>
       )}
 
@@ -409,35 +537,7 @@ export function AdoptForm({
             />
           </label>
 
-          <div className="space-y-3">
-            <p className="text-xs font-semibold">
-              안전수칙 확인
-            </p>
-
-            {SAFETY_RULES.map((rule, index) => (
-              <label
-                key={rule}
-                className="flex gap-2 text-xs leading-relaxed"
-              >
-                <input
-                  type="checkbox"
-                  checked={safety[index]}
-                  onChange={(event) =>
-                    setSafety((previous) =>
-                      previous.map((value, i) =>
-                        i === index
-                          ? event.target.checked
-                          : value,
-                      ),
-                    )
-                  }
-                />
-                {rule}
-              </label>
-            ))}
-          </div>
-
-          <label className="flex gap-2 text-xs">
+          <label className="flex gap-2 text-sm leading-relaxed text-[#24496B]">
             <input
               type="checkbox"
               checked={pledge}
@@ -451,31 +551,13 @@ export function AdoptForm({
           <button
             type="submit"
             disabled={!canRegister}
-            className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white disabled:opacity-40"
+            className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white disabled:opacity-40"
           >
             {busy
               ? '입양 등록 중...'
               : '입양 완료하기'}
           </button>
         </form>
-      )}
-
-      {notice && (
-        <p
-          role="status"
-          className="rounded-xl bg-[#EAF6FF] p-3 text-xs leading-relaxed text-[#447798]"
-        >
-          {notice}
-        </p>
-      )}
-
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl bg-[#FDECEC] p-3 text-xs text-[#C85858]"
-        >
-          {error}
-        </p>
       )}
     </div>
   )
