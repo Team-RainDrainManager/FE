@@ -574,7 +574,7 @@ export default function LiveCamera({
         )}
       </div>
 
-      {flash && <div className="absolute inset-0 bg-white/80" />}
+      {flash && <div className="absolute inset-0 bg-[#FFFFFF]/80" />}
 
       <div
         className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-3 pb-6"
@@ -630,7 +630,7 @@ export default function LiveCamera({
             <button
               type="button"
               onClick={retry}
-              className="h-12 rounded-xl bg-white text-base font-bold text-gray-900"
+              className="h-12 rounded-xl bg-[#FFFFFF] text-base font-bold text-gray-900"
             >
               카메라 다시 켜기
             </button>
@@ -691,7 +691,7 @@ export default function LiveCamera({
               onClick={shoot}
               disabled={!ready}
               aria-label="사진 찍기"
-              className="h-[76px] w-[76px] rounded-full border-[5px] border-white bg-white/25 active:bg-white/60 disabled:opacity-40"
+              className="h-[76px] w-[76px] rounded-full border-[5px] border-white bg-[#FFFFFF]/25 active:bg-[#FFFFFF]/60 disabled:opacity-40"
             />
           </div>
         </div>

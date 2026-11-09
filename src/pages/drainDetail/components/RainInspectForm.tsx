@@ -463,6 +463,11 @@ const refreshData = async () => {
       <CameraCapture
         title={camera === 'before' ? '점검 전 사진 촬영' : '청소 후 사진 촬영'}
         drainId={drainId}
+        boxNote={
+          camera === 'before'
+            ? '청소할 때는 흰 점선까지 치워 주세요.'
+            : '흰 점선 안쪽까지 깨끗한지 확인해 주세요.'
+        }
         reference={
           camera === 'after' && beforePhoto && beforeBox
             ? { file: beforePhoto, box: beforeBox }
@@ -484,6 +489,7 @@ const refreshData = async () => {
         {needsCleaning && (
           <p className="rounded-xl bg-[#FFF4DC] p-3 text-sm leading-relaxed text-[#7A5310]">
             {startResult.cleanNotice ?? 'AI 판정 결과 청소가 필요해요.'}
+            {' '}흰 점선 범위까지 치워 주세요.
           </p>
         )}
 

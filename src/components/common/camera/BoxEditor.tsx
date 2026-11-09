@@ -121,7 +121,7 @@ export default function BoxEditor({
                   )
                 }
               >
-                <div className="h-5 w-5 rounded-sm border-[3px] border-red-600 bg-white" />
+                <div className="h-5 w-5 rounded-sm border-[3px] border-red-600 bg-[#FFFFFF]" />
               </div>
             ))}
           </div>
