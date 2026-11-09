@@ -17,7 +17,7 @@ import {
   uploadAdoptionPhoto,
 } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
-import { apiClient } from '../../../apis/axios-instance'
+import { AI_REQUEST_TIMEOUT_MS, apiClient } from '../../../apis/axios-instance'
 import {
   createReport,
   getReportDetail,
@@ -68,6 +68,7 @@ async function assessPhoto(photoKey: string): Promise<PhotoAssessment> {
   const { data: response } = await apiClient.post<AssessmentApiResponse>(
     '/api/v1/drain/assessments',
     { photoKey },
+    { timeout: AI_REQUEST_TIMEOUT_MS },
   )
 
   if (!response.success || !response.data) {
