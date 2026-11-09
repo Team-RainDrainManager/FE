@@ -1,5 +1,5 @@
 
-import { apiClient } from './axios-instance'
+import { AI_REQUEST_TIMEOUT_MS, apiClient } from './axios-instance'
 
 import type {
   AdoptionStatus,
@@ -383,7 +383,7 @@ export async function createDrain(
 
   const { data: body } = await apiClient.post<
     ApiResponse<DrainCreateResponse | null>
-  >('/api/v1/drain', request)
+  >('/api/v1/drain', request, { timeout: AI_REQUEST_TIMEOUT_MS })
 
   if (!body.success || !body.data) {
     throw new Error(body.error?.message ?? '빗물받이 등록에 실패했어요.')

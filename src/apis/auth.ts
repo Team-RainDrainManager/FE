@@ -90,6 +90,10 @@ apiClient.interceptors.response.use(undefined, async (error: AxiosError) => {
 
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError<ApiEnvelope<unknown>>(error)) {
+    // 시간 초과는 앱이 기다리기를 멈춘 것이라 서버에서는 처리됐을 수 있습니다.
+    if (error.code === 'ECONNABORTED') {
+      return '응답이 늦어지고 있어요. 이미 처리됐을 수 있으니 지도나 기록에서 확인한 뒤 다시 시도해 주세요.'
+    }
     const detail = error.response?.data?.error
     if (detail?.fieldErrors?.length) {
       return detail.fieldErrors.map((item) => item.message).filter(Boolean).join('\n') || detail.message || detail.reason || '입력값을 확인해 주세요.'

@@ -1,5 +1,5 @@
 
-import { apiClient } from './axios-instance'
+import { AI_REQUEST_TIMEOUT_MS, apiClient } from './axios-instance'
 
 // 공통 API 응답
 type ApiResponse<T> = {
@@ -68,7 +68,7 @@ export async function startInspection(
 ): Promise<InspectionSubmitResponse> {
   const { data: body } = await apiClient.post<
     ApiResponse<InspectionSubmitResponse>
-  >('/api/v1/inspections', request)
+  >('/api/v1/inspections', request, { timeout: AI_REQUEST_TIMEOUT_MS })
 
   const result = unwrap(body)
 
@@ -104,6 +104,7 @@ export async function completeInspection(
   >(
     `/api/v1/inspections/${inspectionId}/complete`,
     request,
+    { timeout: AI_REQUEST_TIMEOUT_MS },
   )
 
   return unwrap(body)
