@@ -8,6 +8,7 @@ import {
 } from '../../../apis/adoption-inspections'
 import { getErrorMessage } from '../../../apis/auth'
 import { getInspectionDetail } from '../../../apis/inspections'
+import { gradeLabel } from '../../../utils/dirtGrade'
 
 type Props = {
   adoptionId: number
@@ -63,8 +64,8 @@ function InspectionDetailPanel({ inspectionId }: { inspectionId: number }) {
       <p>점검 일시: {new Date(data.createdAt).toLocaleString('ko-KR')}</p>
       <p>검토 상태: {getReviewLabel(data.review)}</p>
       {data.reviewReason && <p className="whitespace-pre-wrap break-words">검토 사유: {data.reviewReason}</p>}
-      <p>점검 전 등급: {data.beforeGrade ?? '정보 없음'}</p>
-      <p>점검 후 등급: {data.afterGrade ?? '정보 없음'}</p>
+      <p>점검 전 등급: {gradeLabel(data.beforeGrade)}</p>
+      <p>점검 후 등급: {gradeLabel(data.afterGrade)}</p>
       <p>청소 여부: {data.cleaned ? '청소함' : '청소하지 않음'}</p>
       <p>점검 위치 거리: {data.distanceM === null ? '정보 없음' : `${data.distanceM}m`}</p>
       <p>획득 경험치: {data.xp} XP</p>

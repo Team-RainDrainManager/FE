@@ -1,5 +1,6 @@
 
 import type { DrainDetailDto } from '../../../types/drainDetail'
+import { dirtLevelLabel } from '../../../utils/dirtGrade'
 
 export default function DrainPhoto({
   drain,
@@ -29,7 +30,7 @@ export default function DrainPhoto({
       <div className="mt-4 rounded-2xl bg-[#F4F7FC] p-3">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold text-[#53647E]">오염 등급</span>
-          <strong className={`rounded-full px-2.5 py-1 text-xs ${drain.dirtLevel >= 3 ? 'bg-[#FDECEC] text-[#C85D5D]' : drain.dirtLevel >= 2 ? 'bg-[#FFF2D6] text-[#A87420]' : 'bg-[#EAF7EF] text-[#32865A]'}`}>{drain.dirtLevel} / 3</strong>
+          <strong className={`rounded-full px-2.5 py-1 text-xs ${drain.dirtLevel >= 3 ? 'bg-[#FDECEC] text-[#C85D5D]' : drain.dirtLevel >= 2 ? 'bg-[#FFF2D6] text-[#A87420]' : 'bg-[#EAF7EF] text-[#32865A]'}`}>{dirtLevelLabel(drain.dirtLevel)}</strong>
         </div>
         <div className="mt-2 flex gap-1.5" aria-hidden="true">
           {[1, 2, 3].map((step) => <span key={step} className={`h-1.5 flex-1 rounded-full ${step <= drain.dirtLevel ? drain.dirtLevel >= 3 ? 'bg-[#E48787]' : drain.dirtLevel >= 2 ? 'bg-[#E9B34F]' : 'bg-[#70B89A]' : 'bg-[#E1E8F1]'}`} />)}
