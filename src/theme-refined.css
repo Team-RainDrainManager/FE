@@ -38,6 +38,23 @@ html[data-dd-theme='dark'] :where([class*='text-[#78899F]'], [class*='text-[#829
   color: var(--dd-muted) !important;
 }
 html[data-dd-theme='dark'] :where([class*='border-[#E'], [class*='border-[#D']) { border-color: var(--dd-line) !important; }
+/* 위 규칙에 빠져 밝은 배경에 밝은 글자가 되거나, 어두운 배경에 어두운 글자가 되던 색입니다. */
+html[data-dd-theme='dark'] :where([class*='bg-[#F4F7FB]'], [class*='bg-[#F4F6FB]'], [class*='bg-[#F4F6FA]'], [class*='bg-[#F4F8FF]'], [class*='bg-[#F5F7FF]'], [class*='bg-[#F3F5FB]'], [class*='bg-[#F3F6FA]'], [class*='bg-[#F5F9FC]'], [class*='bg-[#EAEFFA]']) {
+  background-color: var(--dd-subtle) !important;
+}
+html[data-dd-theme='dark'] :where([class*='text-[#2F5570]'], [class*='text-[#3E5670]'], [class*='text-[#304563]'], [class*='text-[#516A7D]'], [class*='text-[#7F8DA5]'], [class*='text-[#8A96AA]'], [class*='text-[#647C8E]']) {
+  color: var(--dd-muted) !important;
+}
+html[data-dd-theme='dark'] :where([class*='text-[#3855B8]'], [class*='text-[#637CE1]'], [class*='text-[#6384EF]'], [class*='text-[#3489DC]'], [class*='text-[#3981F7]']) {
+  color: var(--dd-blue) !important;
+}
+
+html[data-dd-theme='dark'] :where([class*='text-[#247A4B]']) { color: #8fe0b8 !important; }
+
+/* iOS는 16px보다 작은 입력칸을 누르면 화면을 확대한 채로 둡니다. 그 상태로 카메라에 들어가면 확대돼 보입니다. */
+@media (pointer: coarse) {
+  input, select, textarea { font-size: 16px !important; }
+}
 html[data-dd-theme='dark'] :where(input, select, textarea) {
   background-color: #101c2b;
   color: var(--dd-ink);
