@@ -1,5 +1,5 @@
 
-import { apiClient } from './axios-instance'
+import { AI_REQUEST_TIMEOUT_MS, apiClient } from './axios-instance'
 import type { DrainDetailDto } from '../types/drainDetail'
 import { getMyAdoptions } from './my-drains'
 
@@ -175,6 +175,7 @@ export async function startAdoptionCleaning(
   >(
     `/api/v1/drains/${drainId}/cleanings`,
     request,
+    { timeout: AI_REQUEST_TIMEOUT_MS },
   )
 
   return unwrap(body)
@@ -198,6 +199,7 @@ export async function verifyAdoptionCleaning(
   >(
     `/api/v1/cleanings/${cleaningId}/verify`,
     { photoKey },
+    { timeout: AI_REQUEST_TIMEOUT_MS },
   )
 
   return unwrap(body)

@@ -113,7 +113,8 @@ export function AdoptForm({
 
       setCleaningId(result.cleaningId)
 
-      if (result.blocked || result.needsReport) {
+      // 서버는 막힘이면서 신고가 필요할 때만 막고, 이때 제보도 자동으로 접수합니다.
+      if (result.blocked) {
         setPhase('blocked')
         return
       }
@@ -259,8 +260,8 @@ export function AdoptForm({
     return (
       <div className="space-y-4">
         <p className="rounded-xl bg-[#FFF4E3] p-4 text-xs leading-relaxed text-[#956222]">
-          현재 AI 판정 결과 추가 확인 또는 제보가
-          필요한 빗물받이예요.
+          덮개 안쪽까지 막혀 시민이 치우기 어려운 빗물받이예요.
+          지자체에서 확인하도록 제보를 자동으로 접수했어요.
           지금은 입양을 진행하지 않아요.
         </p>
 
