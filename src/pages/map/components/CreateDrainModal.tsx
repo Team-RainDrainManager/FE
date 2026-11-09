@@ -20,7 +20,11 @@ import {
   createDrain,
   type DrainCreateResponse,
 } from '../../../apis/drains'
-import CameraCapture from '../../../components/common/CameraCapture'
+import CameraCapture, { type CaptureMeta } from '../../../components/common/CameraCapture'
+import CapturedPreview from '../../../components/common/camera/CapturedPreview'
+import type { Coordinates } from '../../../components/common/camera/geo'
+import { requestMotionPermission } from '../../../components/common/camera/motion'
+import SafetyStart from '../../../components/common/camera/SafetyStart'
 import { dirtLevelLabel } from '../../../utils/dirtGrade'
 
 interface Props {
@@ -34,43 +38,11 @@ type SubmitStage =
   | 'upload'
   | 'create'
 
-const PHOTO_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-]
-
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024
-
 const INPUT =
   'w-full rounded-xl border border-[#DCE4EE] bg-white px-3 py-3 text-sm text-[#203451] outline-none focus:border-[#3981F7] focus:ring-2 focus:ring-[#EAF2FF] disabled:opacity-60'
 
 const LABEL =
   'mb-1.5 block text-sm font-semibold text-[#304563]'
-
-function PhotoPreview({ file }: { file: File }) {
-  const imageRef = useRef<HTMLImageElement>(null)
-
-  useEffect(() => {
-    const url = URL.createObjectURL(file)
-    const image = imageRef.current
-
-    if (image) image.src = url
-
-    return () => {
-      if (image) image.removeAttribute('src')
-      URL.revokeObjectURL(url)
-    }
-  }, [file])
-
-  return (
-    <img
-      ref={imageRef}
-      alt="등록할 빗물받이 사진"
-      className="max-h-48 w-full rounded-xl object-contain"
-    />
-  )
-}
 
 export default function CreateDrainModal({
   onClose,
@@ -86,6 +58,9 @@ export default function CreateDrainModal({
   const queryClient = useQueryClient()
 
   const [photo, setPhoto] = useState<File | null>(null)
+  const [photoCoordinates, setPhotoCoordinates] =
+    useState<Coordinates | null>(null)
+  const [safetyConfirmed, setSafetyConfirmed] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
   const [name, setName] = useState('')
   const [formError, setFormError] = useState('')
@@ -130,11 +105,11 @@ export default function CreateDrainModal({
         )
       }
 
-      // 1. 등록 버튼 클릭 시 GPS 조회
+      // 1. 찍을 때의 위치가 없으면 지금 GPS 조회
       setStage('location')
 
       const { latitude, longitude } =
-        await getCurrentCoordinates()
+        photoCoordinates ?? await getCurrentCoordinates()
 
       // 2. 사진 S3 업로드
       // 같은 사진으로 재시도하면 기존 키 재사용
@@ -190,23 +165,10 @@ export default function CreateDrainModal({
   const busy = mutation.isPending
   const result = mutation.data
 
-  const handlePhoto = (file: File | null) => {
-    if (!file) return
-
-    if (!PHOTO_TYPES.includes(file.type)) {
-      setFormError(
-        'JPG, PNG, WEBP 사진만 선택할 수 있어요.',
-      )
-      return
-    }
-
-    if (file.size > MAX_PHOTO_SIZE) {
-      setFormError('사진은 10MB 이하여야 해요.')
-      return
-    }
-
+  const handlePhoto = (file: File, meta: CaptureMeta) => {
     uploadedRef.current = null
     setPhoto(file)
+    setPhotoCoordinates(meta.coordinates)
     setCameraOpen(false)
     setFormError('')
     mutation.reset()
@@ -346,7 +308,7 @@ export default function CreateDrainModal({
           >
             <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
               {/* 사진 촬영 */}
-              {cameraOpen ? (
+              {cameraOpen && (
                 <CameraCapture
                   title="빗물받이 현장 촬영"
                   onCapture={handlePhoto}
@@ -354,42 +316,44 @@ export default function CreateDrainModal({
                     setCameraOpen(false)
                   }
                 />
-              ) : (
-                <div>
-                  <span className={LABEL}>
-                    빗물받이 사진 *
-                  </span>
-
-
-                  {photo && (
-                    <div className="mb-2 rounded-2xl bg-[#F4F7FB] p-3">
-                      <PhotoPreview file={photo} />
-
-                      <p className="mt-2 truncate text-xs text-[#8294A5]">
-                        {photo.name}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCameraOpen(true)
-                      }
-                      disabled={busy}
-                      className="min-h-10 rounded-xl border border-[#C5D8F2] bg-[#F4F8FF] px-2 text-sm font-semibold text-[#3981F7] disabled:opacity-50"
-                    >
-                      사진 촬영
-                    </button>
-
-                  </div>
-
-                  <p className="mt-1.5 text-xs text-[#8294A5]">
-                    현장에서 빗물받이를 촬영해 주세요. / 최대 10MB
-                  </p>
-                </div>
               )}
+
+              <div>
+                <span className={LABEL}>
+                  빗물받이 사진 *
+                </span>
+
+                {photo && (
+                  <div className="mb-2 rounded-2xl bg-[#F4F7FB] p-3">
+                    <CapturedPreview
+                      file={photo}
+                      alt="등록할 빗물받이 사진"
+                    />
+                  </div>
+                )}
+
+                {safetyConfirmed ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void requestMotionPermission()
+                      setCameraOpen(true)
+                    }}
+                    disabled={busy}
+                    className="min-h-11 w-full rounded-xl border border-[#C5D8F2] bg-[#F4F8FF] px-2 text-sm font-semibold text-[#3981F7] disabled:opacity-50"
+                  >
+                    {photo ? '사진 다시 찍기' : '사진 촬영'}
+                  </button>
+                ) : (
+                  <SafetyStart
+                    disabled={busy}
+                    onStart={() => {
+                      setSafetyConfirmed(true)
+                      setCameraOpen(true)
+                    }}
+                  />
+                )}
+              </div>
 
               {/* 이름 입력 */}
               <div>
@@ -417,10 +381,8 @@ export default function CreateDrainModal({
 
               {/* GPS 안내 */}
               <p className="rounded-xl bg-[#F4F7FB] p-3 text-xs leading-5 text-[#53647E]">
-                등록할 때 현재 GPS 위치를 자동으로
-                확인합니다. 위치 권한을 허용해 주세요.
-                현장에서 안전하게 촬영하고, 다른 사람이
-                식별되는 사진은 피해주세요.
+                사진을 찍은 곳의 GPS 위치로 등록해요.
+                위치 권한을 허용해 주세요.
               </p>
 
               {/* 오류 표시 */}

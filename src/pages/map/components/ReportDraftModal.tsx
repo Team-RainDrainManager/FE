@@ -18,6 +18,11 @@ import {
 } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
 import { AI_REQUEST_TIMEOUT_MS, apiClient } from '../../../apis/axios-instance'
+import CameraCapture, { type CaptureMeta } from '../../../components/common/CameraCapture'
+import CapturedPreview from '../../../components/common/camera/CapturedPreview'
+import type { Coordinates } from '../../../components/common/camera/geo'
+import { requestMotionPermission } from '../../../components/common/camera/motion'
+import SafetyStart from '../../../components/common/camera/SafetyStart'
 import {
   createReport,
   getReportDetail,
@@ -44,9 +49,6 @@ const REPORT_TYPES: { value: ReportType; label: string }[] = [
   { value: 'REMOVAL', label: '삭제 요청' },
   { value: 'ODOR', label: '악취 제보' },
 ]
-
-const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024
 
 type PhotoAssessment = {
   grade: number
@@ -138,36 +140,6 @@ function ReportOverlay({
   )
 }
 
-// 파일이 바뀌거나 컴포넌트가 사라지면 미리보기 URL을 해제해요.
-function PhotoPreview({ file }: { file: File }) {
-  const imageRef = useRef<HTMLImageElement>(null)
-
-  useEffect(() => {
-    const image = imageRef.current
-    const url = URL.createObjectURL(file)
-
-    if (image) {
-      image.src = url
-    }
-
-    return () => {
-      if (image) {
-        image.removeAttribute('src')
-      }
-
-      URL.revokeObjectURL(url)
-    }
-  }, [file])
-
-  return (
-    <img
-      ref={imageRef}
-      alt="첨부한 제보 사진"
-      className="max-h-44 w-full rounded-xl object-contain"
-    />
-  )
-}
-
 function CameraIcon() {
   return (
     <svg
@@ -192,13 +164,15 @@ export default function ReportDraftModal({
   onClose,
   onComplete,
 }: Props) {
-  const photoInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
   const [type, setType] = useState<ReportType>('BLOCKAGE')
   // 지도에서 선택한 빗물받이 ID만 사용하며 모달에서는 변경할 수 없습니다.
   const selectedDrain = drains.find((drain) => drain.id === initialDrainId)
   const selectedDrainName = selectedDrain?.nickname ?? selectedDrain?.name
   const [photo, setPhoto] = useState<File | null>(null)
+  const [photoCoordinates, setPhotoCoordinates] =
+    useState<Coordinates | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
   // 판독용(AFTER)과 실제 제보용(REPORT)은 업로드 키를 분리합니다.
   const uploadedPhotoRef = useRef<{
     file: File
@@ -262,12 +236,8 @@ export default function ReportDraftModal({
   }
 
   const assessmentMutation = useMutation({
-    mutationFn: async () => {
-      if (!photo) {
-        throw new Error('AI 판독할 사진을 먼저 첨부해 주세요.')
-      }
-
-      const photoKey = await getPhotoKey(photo, 'AFTER')
+    mutationFn: async (file: File) => {
+      const photoKey = await getPhotoKey(file, 'AFTER')
       return assessPhoto(photoKey)
     },
   })
@@ -291,7 +261,8 @@ export default function ReportDraftModal({
       }
 
       const description = note.trim()
-      const coordinates = await getCurrentCoordinates()
+      const coordinates =
+        photoCoordinates ?? await getCurrentCoordinates()
 
       const photoKey = await getPhotoKey(photo, 'REPORT')
 
@@ -320,26 +291,21 @@ export default function ReportDraftModal({
     },
   })
 
-  const handlePhotoChange = (file: File | null) => {
-    if (!file || mutation.isPending || assessmentMutation.isPending) return
+  const openCamera = () => {
+    if (mutation.isPending || assessmentMutation.isPending) return
+    void requestMotionPermission()
+    setCameraOpen(true)
+  }
 
+  // 찍으면 바로 AI 판독으로 넘어갑니다.
+  const handlePhotoChange = (file: File, meta: CaptureMeta) => {
+    setCameraOpen(false)
     setFormError('')
     mutation.reset()
-    assessmentMutation.reset()
     uploadedPhotoRef.current = null
-    setPhoto(null)
-
-    if (!PHOTO_TYPES.includes(file.type)) {
-      setFormError('JPG, PNG, WEBP 사진만 업로드할 수 있어요.')
-      return
-    }
-
-    if (file.size > MAX_PHOTO_SIZE) {
-      setFormError('사진은 10MB 이하여야 해요.')
-      return
-    }
-
     setPhoto(file)
+    setPhotoCoordinates(meta.coordinates)
+    assessmentMutation.mutate(file)
   }
 
   const removePhoto = () => {
@@ -347,12 +313,9 @@ export default function ReportDraftModal({
     uploadedPhotoRef.current = null
     assessmentMutation.reset()
     setPhoto(null)
+    setPhotoCoordinates(null)
     setFormError('')
     mutation.reset()
-
-    if (photoInputRef.current) {
-      photoInputRef.current.value = ''
-    }
   }
 
   const handleCurrentLocation = async () => {
@@ -390,7 +353,7 @@ export default function ReportDraftModal({
     }
 
     if (!photo) {
-      setFormError('AI 판독할 사진을 첨부해 주세요.')
+      setFormError('AI 판독할 사진을 찍어 주세요.')
       return
     }
 
@@ -398,7 +361,7 @@ export default function ReportDraftModal({
       setFormError(
         assessmentMutation.data?.needsReport === false
           ? 'AI 판독에서 제보가 필요하지 않다고 판단해 제출할 수 없어요.'
-          : '사진 AI 판독을 먼저 완료해 주세요.',
+          : 'AI 판독이 끝나면 제출할 수 있어요.',
       )
       return
     }
@@ -422,11 +385,6 @@ export default function ReportDraftModal({
         )
         return
       }
-    }
-
-    if (!safetyConfirmed) {
-      setFormError('안전 및 개인정보 확인이 필요해요.')
-      return
     }
 
     mutation.mutate()
@@ -665,52 +623,43 @@ export default function ReportDraftModal({
             )}
 
             <div>
-              <label
-                htmlFor="report-photo"
-                className={LABEL_CLASS}
-              >
+              <span className={LABEL_CLASS}>
                 제보 사진
-              </label>
+              </span>
 
-              <input
-                ref={photoInputRef}
-                id="report-photo"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                capture="environment"
-                disabled={mutation.isPending || assessmentMutation.isPending}
-                onChange={(event) => {
-                  handlePhotoChange(
-                    event.currentTarget.files?.[0] ?? null,
-                  )
-                  event.currentTarget.value = ''
-                }}
-                className="sr-only"
-                tabIndex={-1}
-              />
+              {cameraOpen && (
+                <CameraCapture
+                  title="제보 사진 촬영"
+                  drainId={
+                    // 위치 수정 제보는 등록된 위치와 멀리 있는 것이 정상입니다.
+                    isLocationFix ? undefined : initialDrainId ?? undefined
+                  }
+                  enforceDistance={false}
+                  onCapture={handlePhotoChange}
+                  onCancel={() => setCameraOpen(false)}
+                />
+              )}
 
               {photo ? (
                 <div className="overflow-hidden rounded-2xl border border-[#DCE4F8] bg-[#F5F7FF] p-3">
-                  <PhotoPreview file={photo} />
+                  <CapturedPreview file={photo} alt="찍은 제보 사진" />
 
                   <div className="mt-3 flex items-center justify-between border-t border-[#E2E8F6] pt-3">
                     <span
                       role="status"
                       className="text-xs font-medium text-[#637CE1]"
                     >
-                      사진 첨부 완료
+                      사진 촬영 완료
                     </span>
 
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         disabled={mutation.isPending || assessmentMutation.isPending}
-                        onClick={() =>
-                          photoInputRef.current?.click()
-                        }
+                        onClick={openCamera}
                         className="text-xs font-semibold text-[#637CE1] disabled:opacity-50"
                       >
-                        변경
+                        다시 찍기
                       </button>
                       <button
                         type="button"
@@ -723,39 +672,52 @@ export default function ReportDraftModal({
                     </div>
                   </div>
                 </div>
+              ) : !safetyConfirmed ? (
+                <SafetyStart
+                  disabled={mutation.isPending || assessmentMutation.isPending}
+                  onStart={() => {
+                    setSafetyConfirmed(true)
+                    setCameraOpen(true)
+                  }}
+                />
               ) : (
                 <button
                   type="button"
                   disabled={mutation.isPending || assessmentMutation.isPending}
-                  onClick={() => photoInputRef.current?.click()}
+                  onClick={openCamera}
                   className="flex min-h-[108px] w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#BAC8F4] bg-[#F5F7FF] px-3 py-4 text-center transition hover:bg-[#EAF0FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8CA2F5] disabled:opacity-50"
                 >
                   <CameraIcon />
                   <span className="text-sm font-semibold text-[#637CE1]">
-                    사진 촬영 또는 첨부
-                  </span>
-                  <span className="text-[10px] text-[#8592AC]">
-                    JPG · PNG · WEBP / 최대 10MB
+                    사진 촬영
                   </span>
                 </button>
               )}
 
               {/* 판독 결과가 needsReport: true일 때만 실제 제보를 허용 */}
-              <button
-                type="button"
-                onClick={() => assessmentMutation.mutate()}
-                disabled={!photo || mutation.isPending || assessmentMutation.isPending}
-                className="mt-3 min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-4 py-3 text-sm font-bold text-[#6384EF] transition hover:bg-[#F5F7FF] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {assessmentMutation.isPending
-                  ? 'AI 사진 판독 중...'
-                  : 'AI 사진 판독'}
-              </button>
-
-              {assessmentMutation.isError && (
-                <p role="alert" className="mt-2 rounded-xl bg-[#FFF1F1] p-3 text-xs text-[#B84D4D]">
-                  {getErrorMessage(assessmentMutation.error)}
+              {assessmentMutation.isPending && (
+                <p
+                  role="status"
+                  className="mt-3 animate-pulse rounded-xl bg-[#F5F7FF] p-3 text-center text-sm font-semibold text-[#3855B8]"
+                >
+                  AI가 사진을 확인하고 있어요. 길면 1분쯤 걸려요.
                 </p>
+              )}
+
+              {assessmentMutation.isError && photo && (
+                <>
+                  <p role="alert" className="mt-3 rounded-xl bg-[#FFF1F1] p-3 text-sm leading-relaxed text-[#B84D4D]">
+                    {getErrorMessage(assessmentMutation.error)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => assessmentMutation.mutate(photo)}
+                    disabled={mutation.isPending}
+                    className="mt-2 min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-4 py-3 text-sm font-bold text-[#6384EF] transition hover:bg-[#F5F7FF] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    AI 판독 다시 하기
+                  </button>
+                </>
               )}
 
               {assessmentMutation.data && (
@@ -811,22 +773,6 @@ export default function ReportDraftModal({
               />
             </div>
 
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-[#F3F5FB] p-3">
-              <input
-                type="checkbox"
-                checked={safetyConfirmed}
-                disabled={mutation.isPending || assessmentMutation.isPending}
-                onChange={(event) =>
-                  setSafetyConfirmed(event.target.checked)
-                }
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#6D83E7]"
-              />
-              <span className="text-xs leading-5 text-[#516A7D]">
-                안전한 장소에서 촬영했고 사진에 포함된
-                개인정보를 확인했습니다.
-              </span>
-            </label>
-
             {errorMessage && (
               <p
                 role="alert"
@@ -843,7 +789,7 @@ export default function ReportDraftModal({
               <p className="text-center text-xs text-[#8294A5]">
                 {assessmentMutation.data?.needsReport === false
                   ? 'AI가 제보 불필요로 판단하여 제출이 제한돼요.'
-                  : '사진을 첨부하고 AI 판독을 먼저 진행해 주세요.'}
+                  : '사진을 찍으면 AI가 바로 확인해요.'}
               </p>
             )}
             <button
