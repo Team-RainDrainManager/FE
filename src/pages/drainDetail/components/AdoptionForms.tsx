@@ -190,7 +190,7 @@ export function AdoptForm({
 
       const nextPhase = result.mustClean ? 'after' : 'register'
       const nextNotice = result.mustClean
-        ? '청소가 필요한 빗물받이예요. 안전하게 청소한 뒤 사진을 촬영해 주세요.'
+        ? '청소가 필요한 빗물받이예요. 흰 점선 범위까지 안전하게 청소한 뒤 사진을 찍어 주세요.'
         : '추가 청소가 필요하지 않은 것으로 판정됐어요. 입양 정보를 입력해 주세요.'
 
       // AI 판정을 기다리다 창을 닫았어도 청소 번호가 남도록 바로 저장합니다.
@@ -344,6 +344,11 @@ export function AdoptForm({
             : '청소 후 사진 촬영'
         }
         drainId={drainId}
+        boxNote={
+          camera === 'before'
+            ? '청소할 때는 흰 점선까지 치워 주세요.'
+            : '흰 점선 안쪽까지 깨끗한지 확인해 주세요.'
+        }
         reference={
           camera === 'after' && beforePhoto && beforeBox
             ? { file: beforePhoto, box: beforeBox }
