@@ -9,6 +9,7 @@ import {
   uploadAdoptionPhoto,
 } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
+import { gradeLabel } from '../../../utils/dirtGrade'
 import {
   completeInspection,
   getInspectionEligibility,
@@ -43,6 +44,16 @@ const IMAGE_TYPES = [
 ]
 
 
+// 서버 정책 location-mismatch-meters와 같은 값입니다.
+const LOCATION_LIMIT_M = 50
+
+function pendingReason(result: InspectionSubmitResponse) {
+  if (result.distanceM !== null && result.distanceM > LOCATION_LIMIT_M) {
+    return `빗물받이에서 ${result.distanceM}m 떨어진 곳에서 찍혔어요. ${LOCATION_LIMIT_M}m 안에서 다시 점검하면 바로 결과가 나와요.`
+  }
+  return 'AI 판정이 확실하지 않아 담당자 확인이 필요해요. 덮개가 잘 보이게 다시 찍어 점검할 수 있어요.'
+}
+
 function ResultMessage({
   result,
   onClose,
@@ -51,6 +62,8 @@ function ResultMessage({
   onClose: () => void
 }) {
   const isCompleted = result.status === 'COMPLETED'
+  const isPending = result.status === 'PENDING'
+  const aiGrade = result.afterGrade ?? result.beforeGrade
 
   const message = {
     COMPLETED: '점검이 완료됐어요!',
@@ -62,9 +75,16 @@ function ResultMessage({
   return (
     <div
       role="status"
-      className="space-y-3 rounded-xl bg-[#E8F7EF] p-5 text-center text-sm text-[#259B68]"
+      className={`space-y-3 rounded-xl p-5 text-center text-sm ${isPending ? 'bg-[#FFF4E3] text-[#956222]' : 'bg-[#E8F7EF] text-[#259B68]'}`}
     >
       <p className="font-bold">{message}</p>
+
+      {isPending && (
+        <>
+          <p className="text-xs leading-relaxed">{pendingReason(result)}</p>
+          {aiGrade !== null && <p className="text-xs font-bold">AI 판정: {gradeLabel(aiGrade)}</p>}
+        </>
+      )}
 
       {isCompleted && (
         <p className="text-base font-bold">
@@ -75,7 +95,7 @@ function ResultMessage({
       <button
         type="button"
         onClick={onClose}
-        className="mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold text-[#259B68]"
+        className={`mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold ${isPending ? 'text-[#956222]' : 'text-[#259B68]'}`}
       >
         확인
       </button>

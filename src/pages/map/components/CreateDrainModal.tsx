@@ -21,6 +21,7 @@ import {
   type DrainCreateResponse,
 } from '../../../apis/drains'
 import CameraCapture from '../../../components/common/CameraCapture'
+import { dirtLevelLabel } from '../../../utils/dirtGrade'
 
 interface Props {
   onClose: () => void
@@ -311,7 +312,7 @@ export default function CreateDrainModal({
               </p>
 
               <p>
-                오염도: {result.dirtLevel}
+                오염도: {dirtLevelLabel(result.dirtLevel)}
               </p>
 
               <p>

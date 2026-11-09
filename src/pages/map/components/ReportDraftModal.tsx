@@ -17,12 +17,13 @@ import {
   uploadAdoptionPhoto,
 } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
-import { apiClient } from '../../../apis/axios-instance'
+import { AI_REQUEST_TIMEOUT_MS, apiClient } from '../../../apis/axios-instance'
 import {
   createReport,
   getReportDetail,
   type ReportType,
 } from '../../../apis/reports'
+import { dirtLevelLabel, gradeLabel } from '../../../utils/dirtGrade'
 
 type ReportDrainOption = {
   id: number
@@ -67,6 +68,7 @@ async function assessPhoto(photoKey: string): Promise<PhotoAssessment> {
   const { data: response } = await apiClient.post<AssessmentApiResponse>(
     '/api/v1/drain/assessments',
     { photoKey },
+    { timeout: AI_REQUEST_TIMEOUT_MS },
   )
 
   if (!response.success || !response.data) {
@@ -759,8 +761,8 @@ export default function ReportDraftModal({
               {assessmentMutation.data && (
                 <div role="status" className="mt-3 space-y-2 rounded-xl border border-[#DCE4F8] bg-[#F5F7FF] p-3 text-sm text-[#304563]">
                   <p className="font-bold text-[#3855B8]">AI 사진 판독 결과</p>
-                  <p>등급 (grade): {assessmentMutation.data.grade}</p>
-                  <p>오염도 (dirtLevel): {assessmentMutation.data.dirtLevel}</p>
+                  <p>등급 (grade): {gradeLabel(assessmentMutation.data.grade)}</p>
+                  <p>오염도 (dirtLevel): {dirtLevelLabel(assessmentMutation.data.dirtLevel)}</p>
                   <p>위험 여부 (isRisk): {assessmentMutation.data.isRisk ? 'true' : 'false'}</p>
                   <p>제보 필요 (needsReport): {assessmentMutation.data.needsReport ? 'true' : 'false'}</p>
                   <p>신뢰도 (confidence): {assessmentMutation.data.confidence}</p>
