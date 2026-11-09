@@ -32,6 +32,8 @@ type Props = {
   enforceDistance?: boolean
   /** 청소 전 사진. 주면 반투명하게 겹쳐 같은 구도로 찍게 합니다. */
   reference?: CameraReference | null
+  /** 빨간 박스를 맞추는 화면에 보여 줄 흰 점선 안내 */
+  boxNote?: string
 }
 
 type Shot = {
@@ -69,6 +71,7 @@ export default function CameraCapture({
   drainId,
   enforceDistance = true,
   reference = null,
+  boxNote = '흰 점선 안쪽만 사진으로 저장돼요.',
 }: Props) {
   const account = useContext(AccountId)
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -104,6 +107,17 @@ export default function CameraCapture({
 
   useEffect(() => () => {
     if (shotUrlRef.current) URL.revokeObjectURL(shotUrlRef.current)
+  }, [])
+
+  // 페이지가 확대된 채로 들어와도 카메라는 원래 배율로 보여 주고, 카메라 안에서는 확대되지 않게 합니다.
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')
+    if (!meta) return
+    const original = meta.content
+    meta.content = `${original}, maximum-scale=1, user-scalable=no`
+    return () => {
+      meta.content = original
+    }
   }, [])
 
   const handleCaptured = async ({ canvas, takenAt, coordinates }: Captured) => {
@@ -171,6 +185,7 @@ export default function CameraCapture({
         else onCancel()
       }}
       className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden border-0 bg-black p-0 backdrop:bg-black"
+      style={{ touchAction: 'none' }}
     >
       <LiveCamera
         active={!shot}
@@ -191,10 +206,13 @@ export default function CameraCapture({
             style={{ paddingTop: 'max(env(safe-area-inset-top), 10px)' }}
           >
             <p className="text-[17px] font-bold leading-snug">
-              빨간 박스를 빗물받이 덮개 테두리에 맞춰 주세요
+              빨간 테두리에 빗물받이를 맞춰 주세요
             </p>
             <p className="mt-0.5 text-[15px] leading-snug text-[#3E5670]">
-              모서리를 끌면 크기, 가운데를 끌면 위치가 바뀌어요. 흰 점선 안쪽만 AI가 봐요.
+              모서리를 끌면 크기, 가운데를 끌면 위치가 바뀌어요.
+            </p>
+            <p className="mt-0.5 text-[15px] font-semibold leading-snug">
+              {boxNote}
             </p>
           </div>
 
