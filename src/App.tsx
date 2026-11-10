@@ -11,6 +11,7 @@ import LeaderboardPage from './pages/social/LeaderboardPage'
 import NotificationsPage from './pages/notifications/NotificationsPage'
 import LoginPage from './pages/login/LoginPage'
 import MyPage from './pages/profile/MyPage'
+import AdminPage from './pages/admin/AdminPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import SettingsPage from './pages/settings/SettingsPage'
 import { useQuery } from '@tanstack/react-query'
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/social/leaderboard" element={<LeaderboardPage />} />
         <Route path="/notifications"element={<NotificationsPage />} />
         <Route path="/profile/mypage" element={<MyPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/shop" element={<ShopPage />} />
