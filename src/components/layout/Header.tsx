@@ -12,13 +12,14 @@ const PAGE_TITLES: Record<string, string> = {
   '/social': '소셜',
   '/social/leaderboard': '리더보드',
   '/notifications': '알림',
+  '/profile/mypage': '마이페이지',
   '/profile': '프로필',
   '/settings': '설정',
   '/shop': '꾸미기 상점',
 }
 
 export default function Header() {
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
   const navigate = useNavigate()
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -37,7 +38,15 @@ export default function Header() {
     : PAGE_TITLES[pathname] ?? '또랑'
 
   // 뒤로 가기 버튼 표시 여부
-  const showBackButton = isSettingsPage || isDetailPage
+  const isMyPage = pathname === '/profile/mypage'
+  const showBackButton = isMyPage || isSettingsPage || isDetailPage
+
+  function goBack() {
+    if (isMyPage && state?.fromProfile) navigate(-1)
+    else if (isMyPage) navigate('/profile', { replace: true })
+    else if (isSettingsPage) navigate(pathname === '/shop' ? '/my-drains' : '/profile')
+    else navigate(-1)
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between border-b border-[#EDF1F6] bg-white px-5">
@@ -45,7 +54,7 @@ export default function Header() {
         {showBackButton && (
           <button
             type="button"
-            onClick={() => isSettingsPage ? navigate(pathname === '/shop' ? '/my-drains' : '/profile') : navigate(-1)}
+            onClick={goBack}
             aria-label="뒤로 가기"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] active:bg-[#EAF2FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
           >
