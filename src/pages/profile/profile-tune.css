@@ -52,3 +52,61 @@ html[data-dd-theme='dark'] .dd-profile-nickname-input:focus { border-color:#6aae
 html[data-dd-theme='dark'] .dd-profile-nickname-cancel { background:#273b52; border-color:#516780; color:#e2edf9; }
 html[data-dd-theme='dark'] .dd-profile-nickname-save { background:#327bcc; border-color:#5694dc; color:#fff; }
 html[data-dd-theme='dark'] .dd-profile-nickname-save:not(:disabled):hover { background:#3f8fe3; }
+
+.dd-profile {
+  color: var(--dd-ink);
+  background: var(--dd-canvas);
+  --profile-ok-bg: #e7f5ee;
+  --profile-ok-text: #246849;
+  --profile-due-bg: #fff2d7;
+  --profile-due-text: #805711;
+}
+html[data-dd-theme='dark'] .dd-profile {
+  --profile-ok-bg: #173a32;
+  --profile-ok-text: #9ce1c6;
+  --profile-due-bg: #42351f;
+  --profile-due-text: #ffda91;
+}
+.dd-profile-panel,
+.dd-profile > section {
+  padding: 12px 14px;
+  background: var(--dd-surface);
+  border: 1px solid var(--dd-line);
+  border-radius: 20px;
+}
+.dd-profile-wallet {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--dd-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dd-profile-wallet small { color: var(--dd-muted); font-size: 11px; }
+.dd-profile-wallet output { color: var(--dd-blue); overflow-wrap: anywhere; }
+.dd-profile-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dd-blue);
+}
+.dd-profile-stat, .dd-profile-note {
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--dd-subtle);
+}
+.dd-profile-note { margin-top: 8px; font-size: 13px; font-weight: 600; }
+.dd-profile [data-status='normal'] { background: var(--profile-ok-bg); color: var(--profile-ok-text); }
+.dd-profile [data-status='overdue'] { background: var(--profile-due-bg); color: var(--profile-due-text); }
+.dd-profile [data-status='paused'] { background: var(--dd-subtle); color: var(--dd-blue); }
+.dd-profile > section > div > button {
+  min-height: 36px;
+  color: var(--dd-blue);
+  font-size: 13px;
+}

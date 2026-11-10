@@ -45,7 +45,7 @@ export default function GrowthCatalog({
             <Character
               type="level"
               level={selected.level}
-              size={88}
+              size={101}
             />
 
             <div className="min-w-0 flex-1">
@@ -79,7 +79,7 @@ export default function GrowthCatalog({
               <Character
                 type="level"
                 level={level}
-                size={75}
+                size={86}
               />
 
               <strong className="mt-1 text-xs">
@@ -114,7 +114,7 @@ export function GrowthPreview({
         <Character
           type="level"
           level={level}
-          size={190}
+          size={218}
         />
       </div>
 

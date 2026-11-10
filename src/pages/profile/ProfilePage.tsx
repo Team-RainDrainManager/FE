@@ -6,7 +6,9 @@ import Character from '../../components/common/Character'
 import MySanctionsSection from '../../features/account/MySanctionsSection'
 import MyReportsSection from '../../features/account/MyReportsSection'
 import './profile-tune.css'
-import { useMyDrainsStore } from '../../store/useMyDrainsStore'
+import { useQuery } from '@tanstack/react-query'
+import { getMyAdoptions, toMyAdoptionsView } from '../../apis/my-drains'
+import { getPauseStatus } from '../../apis/profile-settings'
 import type { MyAdoptionDto } from '../../types/myDrains'
 import { getErrorMessage, getMe } from '../../apis/auth'
 import NicknameChangeDialog from '../../features/nickname/NicknameChangeDialog'
@@ -32,19 +34,15 @@ function saveToStorage(key: string, value: string) {
   }
 }
 
-const statusStyle = {
-  normal: { label: '관리 중', classes: 'bg-[#E8F7EE] text-[#258962]' },
-  overdue: { label: '점검 필요', classes: 'bg-[#FFF5DF] text-[#B17A18]' },
-  paused: { label: '점검 쉬는 중', classes: 'bg-[#EAF2FF] text-[#3878BF]' },
-} as const
+const statusLabel = { normal: '관리 중', overdue: '점검 필요', paused: '점검 쉬는 중' }
 
 function isValidDate(value: string) {
   const time = new Date(value).getTime()
   return Number.isFinite(time) ? time : null
 }
 
-function getCareStatus(adoption: MyAdoptionDto, now: number) {
-  const pausedUntil = adoption.pause_until ? isValidDate(adoption.pause_until) : null
+function getCareStatus(adoption: MyAdoptionDto, now: number, accountPause?: string | null) {
+  const pausedUntil = isValidDate(accountPause ?? adoption.pause_until ?? '')
   if (pausedUntil !== null && pausedUntil > now) return 'paused' as const
 
   const nextInspectionAt = isValidDate(adoption.next_inspection_at)
@@ -58,7 +56,7 @@ function getCareStatus(adoption: MyAdoptionDto, now: number) {
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const wallet = useWallet()
-  const [nickname, setNickname] = useState('')
+  const [nickname, setNickname] = useState<string | null>(null)
   const [photo, setPhoto] = useState(() => loadFromStorage(PHOTO_STORAGE_KEY))
   const [editing, setEditing] = useState(false)
   const [message, setMessage] = useState('')
@@ -71,11 +69,35 @@ export default function ProfilePage() {
       setNickname(serverName)
       // Existing social mock UI also reads this value; do not invent another name.
       saveToStorage(NAME_STORAGE_KEY, serverName)
-    }).catch((err: unknown) => { if (active) setMessage(getErrorMessage(err)) })
+    }).catch((err: unknown) => {
+      if (active) {
+        setNickname('')
+        setMessage(getErrorMessage(err))
+      }
+    })
     return () => { active = false }
   }, [])
 
-  const adoptions = useMyDrainsStore((state) => state.data.adoptions)
+  // MainLayout's CareWarningGate already observes these account-scoped queries.
+  const adoptionQuery = useQuery({
+    queryKey: ['my-adoptions', wallet.id],
+    queryFn: ({ signal }) => getMyAdoptions(signal),
+    enabled: wallet.id !== null,
+    select: toMyAdoptionsView,
+    staleTime: 30_000,
+  })
+  const pauseQuery = useQuery({
+    queryKey: ['pause-status', wallet.id],
+    queryFn: getPauseStatus,
+    enabled: wallet.id !== null,
+    staleTime: 30_000,
+  })
+  const adoptions = adoptionQuery.data?.adoptions ?? []
+  const listReady = adoptionQuery.isSuccess
+  const careReady = listReady && (adoptions.length === 0 || pauseQuery.isSuccess)
+  const listMessage = wallet.id === null || adoptionQuery.isError
+    ? '입양 정보를 불러오지 못했어요.'
+    : '입양 정보를 불러오는 중이에요.'
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
@@ -87,7 +109,7 @@ export default function ProfilePage() {
     const lastCareAt = isValidDate(adoption.last_care_at)
     return lastCareAt !== null && lastCareAt <= now && now - lastCareAt <= 14 * 24 * 60 * 60 * 1000
   }).length
-  const needsCare = adoptions.filter((adoption) => getCareStatus(adoption, now) === 'overdue')
+  const needsCare = adoptions.filter((adoption) => getCareStatus(adoption, now, pauseQuery.data?.activeUntil) === 'overdue')
 
   const changePhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -150,28 +172,21 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-[calc(100dvh-128px)] space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]">
-      {editing && <NicknameChangeDialog currentNickname={nickname} onClose={() => setEditing(false)} onChanged={value => { setNickname(value); setEditing(false); saveToStorage(NAME_STORAGE_KEY, value); setMessage('닉네임을 변경했습니다.') }} />}
-      <section className="rounded-[24px] bg-[#EAF5FF] px-5 pb-5 pt-6">
-        <div className="dd-profile-titlebar">
-          <p className="text-[20px] font-bold tracking-[0.09em] text-[#338CF0]">MY DDORANG</p>
-          <Link to="/shop" className="dd-profile-shop-mini">꾸미기 상점 <span aria-hidden="true">›</span></Link>
-        </div>
-        <h2 className="mt-1 text-[14px] font-extrabold tracking-[-0.04em]">{adoptedCount === 0 ? `${nickname || '회원'}님의 첫 또랑이가 깨끗해지고 있어요!` : '오늘도 우리 동네를 돌보는 중'}</h2>
-        <p className="mt-1 text-[10px] text-[#7C94AD]">나의 작은 활동이 동네를 더 안전하게 만들어요.</p>
-
-        <div className="mt-5 flex items-center gap-4 rounded-[20px] bg-white p-4">
+    <div className="dd-profile min-h-[calc(100dvh-128px)] space-y-2.5 px-4 py-3">
+      {editing && <NicknameChangeDialog currentNickname={nickname ?? ''} onClose={() => setEditing(false)} onChanged={value => { setNickname(value); setEditing(false); saveToStorage(NAME_STORAGE_KEY, value); setMessage('닉네임을 변경했습니다.') }} />}
+      <section className="dd-profile-panel">
+        <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               aria-label="프로필 사진 변경"
-              className="relative flex size-[78px] items-center justify-center overflow-hidden rounded-full border-2 border-[#DCECF9] bg-[#EEF8FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#338CF0]"
+              className="relative flex size-16 items-center justify-center overflow-hidden rounded-full border-2 border-[#DCECF9] bg-[#EEF8FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#338CF0]"
             >
               {photo ? (
                 <img src={photo} alt="내 프로필 사진" className="h-full w-full object-cover" />
               ) : (
-                <Character type="state" state="happy" size={67} />
+                <Character type="state" state="happy" size={64} />
               )}
             </button>
             <span aria-hidden="true" className="pointer-events-none absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border-2 border-white bg-[#338CF0] text-white">
@@ -183,66 +198,69 @@ export default function ProfilePage() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <>
-              <p className="truncate text-[18px] font-extrabold tracking-[-0.035em]">{nickname || '불러오는 중…'}</p>
-              <p className="mt-0.5 text-[11px] text-[#8399AD]">우리 동네 빗물받이 집사</p>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <button type="button" onClick={() => { setEditing(true); setMessage('') }} className="text-[11px] font-bold text-[#338CF0]">닉네임 수정</button>
-                {photo && <button type="button" onClick={removePhoto} className="text-[11px] font-medium text-[#8A9EB0]">사진 삭제</button>}
-              </div>
-            </>
+            <h2 className="break-words text-lg font-extrabold leading-tight tracking-tight">{nickname === null ? '불러오는 중…' : nickname || '회원'}</h2>
+            <div className="flex flex-wrap gap-x-3">
+              <button type="button" onClick={() => { setEditing(true); setMessage('') }} className="dd-profile-action">닉네임 수정</button>
+              {photo && <button type="button" onClick={removePhoto} className="dd-profile-action">사진 삭제</button>}
+            </div>
           </div>
-          <output className="dd-water" aria-label="보유한 빗물">{wallet.id === null ? "—" : drops(wallet.balance)}</output>
+          <Link to="/profile/mypage" state={{ fromProfile: true }} className="dd-profile-action shrink-0">마이페이지 <span aria-hidden="true">›</span></Link>
+        </div>
+        <div className="dd-profile-wallet">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span>보유한 빗물 <small>(로컬 시연)</small></span>
+            <output aria-label="보유한 빗물">{wallet.id === null ? '—' : drops(wallet.balance)}</output>
+          </div>
+          <Link to="/shop" className="dd-profile-action shrink-0">꾸미기 상점 <span aria-hidden="true">›</span></Link>
         </div>
         {message && <p role="status" className="mt-3 rounded-xl bg-white px-3 py-2 text-[11px] leading-5 text-[#3A78A9]">{message}</p>}
       </section>
 
-      <section className="rounded-[22px] border border-[#E5EEF7] bg-white p-5">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[15px] font-extrabold">나의 돌봄 기록</h3>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-[16px] bg-[#F2F8FF] p-4">
-            <p className="text-[11px] font-medium text-[#6C8CA8]">입양한 또랑이</p>
-            <p className="mt-2 text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[#338CF0]">{adoptedCount}<span className="ml-1 text-[12px] font-bold">개</span></p>
+      <section className="dd-profile-panel">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="dd-profile-stat">
+            <p className="text-xs font-semibold">입양한 또랑이</p>
+            <p className="mt-1 text-[24px] font-extrabold leading-none tracking-[-0.04em] text-[var(--dd-blue)]">{listReady ? adoptedCount : '—'}{listReady && <span className="ml-1 text-[12px] font-bold">개</span>}</p>
           </div>
-          <div className="rounded-[16px] bg-[#F2F8FF] p-4">
-            <p className="text-[11px] font-medium text-[#6C8CA8]">최근 14일 점검</p>
-            <p className="mt-2 text-[26px] font-extrabold leading-none tracking-[-0.04em] text-[#338CF0]">{recentlyCheckedCount}<span className="ml-1 text-[12px] font-bold">개</span></p>
+          <div className="dd-profile-stat">
+            <p className="text-xs font-semibold">최근 14일 점검</p>
+            <p className="mt-1 text-[24px] font-extrabold leading-none tracking-[-0.04em] text-[var(--dd-blue)]">{listReady ? recentlyCheckedCount : '—'}{listReady && <span className="ml-1 text-[12px] font-bold">개</span>}</p>
           </div>
         </div>
-        {needsCare.length > 0 ? (
-          <Link to="/my-drains" className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-[#FFF8E8] px-3.5 py-3 text-[12px] font-semibold text-[#956D25]">
+        {!careReady ? (
+          <p className="dd-profile-note" role="status">{!listReady ? listMessage : pauseQuery.isError ? '점검 상태를 불러오지 못했어요.' : '점검 상태를 확인하고 있어요.'}</p>
+        ) : needsCare.length > 0 ? (
+          <Link to="/my-drains" className="dd-profile-note flex items-center justify-between gap-2" data-status="overdue">
             <span>점검이 필요한 또랑이가 {needsCare.length}개 있어요.</span><span aria-hidden="true">›</span>
           </Link>
         ) : (
-          <p className="mt-4 rounded-xl bg-[#EAF8F2] p-3 text-[12px] font-semibold text-[#268466]">{adoptedCount === 0 ? '아직 돌봄 기록이 없어요. 첫 또랑이를 입양해 보세요.' : '현재 점검이 필요한 또랑이는 없어요.'}</p>
+          <p className="dd-profile-note" data-status="normal">{adoptedCount === 0 ? '아직 돌봄 기록이 없어요. 첫 또랑이를 입양해 보세요.' : '현재 점검이 필요한 또랑이는 없어요.'}</p>
         )}
       </section>
 
-      <section className="rounded-[22px] border border-[#E5EEF7] bg-white p-5">
+      <section className="dd-profile-panel">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-[15px] font-extrabold">내가 돌보는 또랑이</h3>
-          <Link to="/my-drains" className="text-[11px] font-bold text-[#338CF0]">전체 보기 <span aria-hidden="true">›</span></Link>
+          <Link to="/my-drains" className="dd-profile-action">전체 보기 <span aria-hidden="true">›</span></Link>
         </div>
-        <div className="mt-4 divide-y divide-[#EFF4F8]">
-          {adoptions.length ? adoptions.map((adoption) => {
-            const status = getCareStatus(adoption, now)
+        <div className="mt-1 divide-y divide-[var(--dd-line)]">
+          {!listReady ? null : adoptions.length ? adoptions.map((adoption) => {
+            const status = getCareStatus(adoption, now, pauseQuery.data?.activeUntil)
             return (
-              <Link to={`/drains/${adoption.drain.drain_id}`} key={adoption.adoption_id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="flex size-[58px] shrink-0 items-center justify-center rounded-2xl bg-[#F0F8FF]">
-                  <Character type="level" level={adoption.level} size={51} />
+              <Link to={`/drains/${adoption.drain.drain_id}`} key={adoption.adoption_id} className="flex items-center gap-3 py-2">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0F8FF]">
+                  <Character type="level" level={adoption.level} size={48} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-bold">{adoption.adoption_name}</p>
-                  <p className="mt-1 truncate text-[11px] text-[#8A9EB2]">Lv.{adoption.level} · {adoption.drain.name}</p>
+                  <p className="mt-1 truncate text-[11px] text-[var(--dd-muted)]">Lv.{adoption.level} · {adoption.drain.name}</p>
                 </div>
-                <span className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold ${statusStyle[status].classes}`}>
-                  {statusStyle[status].label}
-                </span>
+                {careReady && <span data-status={status} className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold">
+                  {statusLabel[status]}
+                </span>}
               </Link>
             )
-          }) : <p className="py-4 text-center text-[12px] text-[#8096AE]">아직 입양한 또랑이가 없어요.</p>}
+          }) : <p className="py-2 text-sm text-[var(--dd-muted)]">아직 입양한 또랑이가 없어요.</p>}
         </div>
       </section>
 

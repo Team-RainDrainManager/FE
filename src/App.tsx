@@ -10,6 +10,7 @@ import SocialPage from './pages/social/SocialPage'
 import LeaderboardPage from './pages/social/LeaderboardPage'
 import NotificationsPage from './pages/notifications/NotificationsPage'
 import LoginPage from './pages/login/LoginPage'
+import MyPage from './pages/profile/MyPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import SettingsPage from './pages/settings/SettingsPage'
 import { useMyDrainsStore } from './store/useMyDrainsStore'
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/social" element={<SocialPage />} />
         <Route path="/social/leaderboard" element={<LeaderboardPage />} />
         <Route path="/notifications"element={<NotificationsPage />} />
+        <Route path="/profile/mypage" element={<MyPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/shop" element={<ShopPage />} />

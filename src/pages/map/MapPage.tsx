@@ -158,6 +158,10 @@ function KakaoMapContent({
   })
 
   const mapRef = useRef<kakao.maps.Map | null>(null)
+  const [zoomLevel,setZoomLevel] = useState(DEFAULT_LEVEL)
+  const [nearby,setNearby] = useState<number[]>([])
+  const hintTimeout = useRef<number | undefined>(undefined)
+  useEffect(()=>()=>clearTimeout(hintTimeout.current),[])
   const searchAreaRef = useRef<HTMLElement | null>(null)
 
   const [bounds, setBounds] =
@@ -434,6 +438,17 @@ function KakaoMapContent({
       )
   }, [filteredDrains, bounds])
 
+  function hintNear(map:kakao.maps.Map, position:kakao.maps.LatLng) {
+    const projection=map.getProjection()
+    const center=projection.containerPointFromCoords(position)
+    setNearby(visibleDrains.filter(drain=>{
+      const point=projection.containerPointFromCoords(new kakao.maps.LatLng(drain.latitude,drain.longitude))
+      return Math.hypot(point.x-center.x,point.y-center.y)<=58
+    }).map(drain=>drain.id))
+    clearTimeout(hintTimeout.current)
+    hintTimeout.current=window.setTimeout(()=>setNearby([]),2000)
+  }
+
   // 상세 조회 후 좌표가 확인된 선택 마커
   const selectedOverlay =
     selectedDrain &&
@@ -611,15 +626,20 @@ const statusNotice = drainsError
             className="h-full w-full"
             onCreate={handleMapCreate}
             onIdle={updateBounds}
-            onClick={() => setSelectedSummary(null)}
+            onZoomChanged={map=>setZoomLevel(map.getLevel())}
+            onClick={(map,event)=>hintNear(map,event.latLng)}
           >
             {visibleDrains.map((drain) => (
               <DrainMarker
                 key={drain.id}
                 drain={drain}
                 outfit={outfitFor(drain.id)}
+                hint={zoomLevel<=3 || nearby.includes(drain.id)}
                 selected={selectedId === drain.id}
-                onSelect={handleSelectDrain}
+                onSelect={drain=>{
+                  if(mapRef.current && hasCoordinates(drain)) hintNear(mapRef.current,new kakao.maps.LatLng(drain.latitude,drain.longitude))
+                  handleSelectDrain(drain)
+                }}
               />
             ))}
 

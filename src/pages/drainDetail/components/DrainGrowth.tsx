@@ -47,7 +47,7 @@ export default function DrainGrowth({
           <Character
             type="level"
             level={level}
-            size={88}
+            size={101}
           />
 
           <div className="min-w-0 flex-1">
@@ -134,7 +134,7 @@ export default function DrainGrowth({
                   <Character
                     type="level"
                     level={itemLevel}
-                    size={75}
+                    size={86}
                   />
                   <strong className="mt-1 text-xs">
                     Lv.{itemLevel}
@@ -148,7 +148,7 @@ export default function DrainGrowth({
                 <Character
                   type="level"
                   level={previewLevel}
-                  size={190}
+                  size={218}
                 />
               </div>
 

@@ -21,7 +21,7 @@ export default function MissionButton() {
   }, [])
   return <>
     <button type="button" className="dd-mission-trigger" aria-label="미션 열기" onClick={() => { setWeekly(false); setOpen(true) }}>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="15" height="18" rx="3"/><path d="M3.5 7H7m-3.5 5H7m-3.5 5H7m3-7 1.5 1.5 3.5-4M11 16h5"/></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="3" width="15" height="18" rx="3"/><path d="M3.5 7H7m-3.5 5H7m-3.5 5H7m3-7 1.5 1.5 3.5-4M11 16h5"/></svg><small>미션</small>
     </button>
     {open && <Sheet title="미션" onClose={() => setOpen(false)}>
       <div className="rd-social-segment" aria-label="미션 종류">{['일일 미션','주간 미션'].map((tab, i) => <button key={tab} type="button" aria-pressed={weekly === !!i} className={weekly === !!i ? 'is-active' : ''} onClick={() => setWeekly(!!i)}>{tab}</button>)}</div>

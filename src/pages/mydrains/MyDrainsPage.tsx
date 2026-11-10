@@ -109,7 +109,7 @@ export default function MyDrainsPage() {
         <Character
           type="state"
           state="happy"
-          size={75}
+          size={86}
         />
 
         <p
@@ -164,7 +164,7 @@ export default function MyDrainsPage() {
         <Character
           type="state"
           state="happy"
-          size={60}
+          size={69}
         />
       </section>
 
@@ -206,7 +206,7 @@ export default function MyDrainsPage() {
             <Character
               type="level"
               level={0}
-              size={130}
+              size={150}
             />
           </div>
 
