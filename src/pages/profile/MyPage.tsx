@@ -2,7 +2,7 @@ import { useContext, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { getMe, getErrorMessage } from '../../apis/auth'
-import { getActivities, downloadCertificate, type ActivityFilter } from '../../apis/my-page'
+import { getActivities, downloadCertificate, registerCertificateName, CertificateNameRequired, type ActivityFilter } from '../../apis/my-page'
 import { getMyAdoptions } from '../../apis/my-drains'
 import { AccountId } from '../../features/missions/wallet'
 import MyReportsSection from '../../features/account/MyReportsSection'
@@ -43,6 +43,18 @@ export default function MyPage() {
       page.nextCursor && !cursors.includes(page.nextCursor) ? page.nextCursor : undefined,
   })
   const certificate = useMutation({ mutationFn: downloadCertificate })
+  const [name, setName] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const registration = useMutation({
+    mutationFn: registerCertificateName,
+    onSuccess: () => {
+      setName('')
+      setEditingName(false)
+      certificate.reset()
+      void me.refetch()
+    },
+  })
+  const showNameForm = editingName || certificate.error instanceof CertificateNameRequired
   const user = me.data
   const activities = history.data?.pages.flatMap(page => page.activities) ?? []
 
@@ -95,7 +107,19 @@ export default function MyPage() {
     <section className="mp-card">
       <h2>활동 확인서</h2>
       <p>실명 등록과 인정된 점검 기록 1건 이상이 필요합니다. 1365 자원봉사포털 등록 전에는 공식 봉사 실적으로 인정되지 않습니다.</p>
-      <button className="mp-download" disabled={certificate.isPending} onClick={() => certificate.mutate()}>
+      {showNameForm ? <form onSubmit={event => {
+        event.preventDefault()
+        if (name.trim() && !registration.isPending) registration.mutate(name.trim())
+      }}>
+        <label htmlFor="certificate-name" className="text-sm font-bold">확인서에 표시할 실명</label>
+        <input id="certificate-name" className="my-2 block w-full rounded-xl border border-[var(--dd-line)] px-3 py-2" autoComplete="name" maxLength={20} required value={name} onChange={event => setName(event.target.value)} />
+        <p>현재는 입력한 이름을 저장하는 시연 단계입니다.</p>
+        <button type="button" disabled={registration.isPending} onClick={() => { setEditingName(false); setName(''); registration.reset(); certificate.reset() }}>취소</button>
+        <button type="submit" className="mp-download" disabled={!name.trim() || registration.isPending}>{registration.isPending ? '저장 중…' : '실명 저장'}</button>
+        {registration.isError && <p role="alert">{getErrorMessage(registration.error)}</p>}
+      </form> : <button type="button" onClick={() => { registration.reset(); setEditingName(true) }}>확인서용 실명 등록</button>}
+      {registration.isSuccess && !showNameForm && <p role="status">실명을 등록했습니다. 확인서를 다시 요청해 주세요.</p>}
+      <button className="mp-download" disabled={certificate.isPending || showNameForm} onClick={() => certificate.mutate()}>
         {certificate.isPending ? 'PDF 준비 중…' : '확인서 PDF 다운로드'}
       </button>
       {certificate.isError && <p role="alert">{getErrorMessage(certificate.error)}</p>}

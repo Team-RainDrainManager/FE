@@ -29,6 +29,13 @@ export async function getActivities(type: ActivityFilter, cursor: string | undef
   return data.data
 }
 
+export async function registerCertificateName(realName: string) {
+  const { data } = await apiClient.post<ApiEnvelope<{ realName: string }>>('/api/v1/users/me/identity', { realName })
+  if (!data.success || !data.data?.realName) throw new Error(data.error?.message || '실명을 저장하지 못했습니다.')
+}
+
+export class CertificateNameRequired extends Error {}
+
 export async function downloadCertificate() {
   let pdf: Blob
   try {
@@ -40,6 +47,9 @@ export async function downloadCertificate() {
     if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
       const body = await error.response.data.text()
       const envelope = await new Response(body).json().catch(() => null)
+      if (envelope?.error?.code === 'IDENTITY_VERIFICATION_REQUIRED') {
+        throw new CertificateNameRequired(envelope.error.message || '실명을 등록해 주세요.', { cause: error })
+      }
       if (typeof envelope?.error?.message === 'string') throw new Error(envelope.error.message, { cause: error })
     }
     throw error
