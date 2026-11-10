@@ -191,8 +191,12 @@ export default function DrainActions({
             />
           )}
 
-          {activeAction === 'release' && (
-            <ReleaseForm />
+          {activeAction === 'release' && drain.adoption && (
+            <ReleaseForm
+              adoptionId={drain.adoption.adoptionId}
+              drainId={drain.id}
+              onCancel={closeModal}
+            />
           )}
 
           {activeAction === 'inspect' &&

@@ -15,6 +15,7 @@ import DrainGrowth from './components/DrainGrowth'
 import DrainActions from './components/DrainActions'
 import { getDrainGrowth } from '../../apis/growth'
 import InspectionHistory from './components/InspectionHistory'
+import AdoptionCare from './components/AdoptionCare'
 
 export default function DrainDetailPage() {
   const { drainId } = useParams()
@@ -187,6 +188,10 @@ const {
 )}
 
       </div>
+
+      {isMine && drain.adoption && (
+        <AdoptionCare adoptionId={drain.adoption.adoptionId} />
+      )}
 
       <DrainPhoto drain={drain} />
 

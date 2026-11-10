@@ -291,3 +291,40 @@ export async function createRegularManagementLog(
 
   return unwrap(body)
 }
+
+// 입양 상세. 다음 점검까지 남은 일수와 위험 빗물받이 여부를 함께 내려줍니다.
+export type AdoptionDetail = {
+  adoptionId: number
+  nickname: string
+  adoptedAt: string
+  level: number
+  score: number
+  lastManagedAt: string | null
+  nextManagementAt: string | null
+  /** 다음 점검 예정일까지 남은 날. 지났으면 음수 */
+  daysUntilNextManagement: number | null
+  releaseWarning: boolean
+  missedForecastCount: number
+  lonely: boolean
+  displayStatusLabel: string | null
+  drain: {
+    drainId: number
+    name: string | null
+    address: string | null
+    /** 다시 막히기 쉬운 위험 빗물받이인지 */
+    risk: boolean
+  } | null
+}
+
+// GET /api/v1/adoptions/{adoptionId} : 입양자 본인과 관리자만 볼 수 있습니다.
+export async function getAdoptionDetail(
+  adoptionId: number,
+  signal?: AbortSignal,
+): Promise<AdoptionDetail> {
+  const { data: body } = await apiClient.get<ApiResponse<AdoptionDetail>>(
+    `/api/v1/adoptions/${adoptionId}`,
+    { signal },
+  )
+
+  return unwrap(body)
+}
