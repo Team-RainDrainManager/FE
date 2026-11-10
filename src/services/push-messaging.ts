@@ -1,5 +1,5 @@
 import { deletePushToken, registerPushToken } from '../apis/push-tokens'
-import { getNotificationSettings } from '../apis/profile-settings'
+import { getNotificationSettings, updateNotificationSettings } from '../apis/profile-settings'
 import { useAuthStore } from '../store/useAuthStore'
 
 // 토큰은 서버에 전달하는 기기 식별값입니다. 브라우저 저장소·로그에 출력하지 않습니다.
@@ -19,7 +19,53 @@ function requirePushEnvironment(): string {
   return vapidKey
 }
 
-/** 사용자 조작(기존 알림 ON 스위치)에서만 호출하세요. 자동 권한 팝업은 금지합니다. */
+/**
+ * 이 기기에서 푸시를 받을 수 있는 상태입니다.
+ * - ask: 아직 묻지 않음 (버튼을 누르면 브라우저가 권한을 묻습니다)
+ * - granted: 허용됨
+ * - blocked: 사용자가 차단함 (브라우저 설정에서만 되돌릴 수 있습니다)
+ * - ios-install: 아이폰·아이패드는 홈 화면에 추가한 앱에서만 웹 푸시를 받습니다
+ * - in-app: 카카오톡 등 앱 안 브라우저라 알림 기능이 없습니다
+ * - unsupported: 브라우저가 지원하지 않거나 푸시 설정값이 없습니다
+ */
+export type PushDeviceState = 'ask' | 'granted' | 'blocked' | 'ios-install' | 'in-app' | 'unsupported'
+
+// 앱 안에서 링크를 열 때 쓰는 브라우저의 표시 이름입니다. (카카오톡, 네이버, 인스타그램, 페이스북, 라인, 다음, 에브리타임)
+const IN_APP_BROWSERS = ['KAKAOTALK', 'NAVER(inapp', 'Instagram', 'FBAN', 'FBAV', 'Line/', 'DaumApps', 'everytimeApp']
+
+export function detectPushDevice(): PushDeviceState {
+  if (typeof window === 'undefined' || !window.isSecureContext) return 'unsupported'
+  const agent = navigator.userAgent || ''
+  const isIOS = /iPhone|iPad|iPod/i.test(agent) ||
+    (/Macintosh/i.test(agent) && navigator.maxTouchPoints > 1)
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  const hasPush = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
+  if (!hasPush) {
+    if (IN_APP_BROWSERS.some((name) => agent.includes(name))) return 'in-app'
+    if (isIOS && !standalone) return 'ios-install'
+    return 'unsupported'
+  }
+  const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined
+  if (!vapidKey?.trim()) return 'unsupported'
+  if (Notification.permission === 'granted') return 'granted'
+  if (Notification.permission === 'denied') return 'blocked'
+  return 'ask'
+}
+
+/**
+ * '알림 받기' 버튼에서 호출합니다. 브라우저 권한을 묻고, 서버 알림 설정을 켜고, 이 기기를 등록합니다.
+ * 반드시 사용자가 버튼을 누른 순간에 호출해야 합니다. (자동 권한 팝업 금지)
+ */
+export async function enablePushOnThisDevice(): Promise<void> {
+  await requestPushPermission()
+  const settings = await getNotificationSettings()
+  if (!settings.notifications) await updateNotificationSettings({ notifications: true })
+  syncedForAccessToken = null
+  await syncPushTokenIfAllowed()
+}
+
+/** 사용자 조작(알림 스위치·알림 받기 버튼)에서만 호출하세요. 자동 권한 팝업은 금지합니다. */
 export async function requestPushPermission(): Promise<void> {
   requirePushEnvironment()
   const permission = Notification.permission === 'granted'

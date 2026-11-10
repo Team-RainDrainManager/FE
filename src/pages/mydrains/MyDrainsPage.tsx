@@ -21,6 +21,7 @@ import type {
 } from '../../types/myDrains'
 
 import DrainCard from './components/DrainCard'
+import PushOptInCard from '../../features/push/PushOptInCard'
 import DrainModal from './components/DrainModal'
 
 type ReleaseVariables = {
@@ -167,6 +168,8 @@ export default function MyDrainsPage() {
           size={60}
         />
       </section>
+
+      {data.adoptions.length > 0 && <PushOptInCard variant="banner" className="mt-5" />}
 
       <div className="mb-4 mt-6 flex justify-between px-1">
         <h3 className="text-base font-bold">

@@ -23,7 +23,9 @@
 .dd-auth-switch { margin: 22px 0 0; color: #8499ab; font-size: 12px; text-align: center; }
 .dd-auth-switch a { color: #338cf0; font-weight: 800; }
 .dd-auth-error { background: #fff3f0; border-radius: 10px; padding: 11px; white-space: pre-line; color: #b24636; font-size: 12px; line-height: 1.6; }
-.dd-auth-note { font-size: 11px; color: #8298b0; line-height: 1.7; margin: 11px 0; }
+.dd-auth-note { font-size: 12px; color: #6f869e; line-height: 1.7; margin: 11px 0; }
+.dd-auth-form .dd-auth-check { display: flex; align-items: center; gap: 8px; min-height: 32px; margin-top: 0; font-weight: 500; color: #5d7891; cursor: pointer; }
+.dd-auth-form .dd-auth-check input { width: 18px; height: 18px; padding: 0; flex-shrink: 0; accent-color: #348df0; }
 .dd-auth-retry { margin-left: 12px; border: none; background: #fff; color: #338cf0; cursor: pointer; }
 .dd-terms-all { padding: 18px 14px; border-radius: 14px; background: #eff7ff; }
 .dd-terms-all label, .dd-terms-row label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; }

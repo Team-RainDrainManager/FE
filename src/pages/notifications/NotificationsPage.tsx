@@ -20,6 +20,7 @@ import {
 import type { Coordinates } from '../../apis/requests'
 
 import InspectionRequestCard from './components/InspectionRequestCard'
+import PushOptInCard from '../../features/push/PushOptInCard'
 
 function formatNotificationDate(value: string) {
   return new Intl.DateTimeFormat('ko-KR', {
@@ -166,8 +167,8 @@ export default function NotificationsPage() {
         navigate('/my-drains')
         return
       case 'REPORT_RESULT':
-        // 내 제보 목록의 정확한 경로가 아직 전달되지 않았으므로 프로필로 이동
-        navigate('/profile')
+        // 프로필의 내 제보 내역을 바로 펼쳐 보여 줍니다.
+        navigate('/profile', { state: { openReports: true } })
         return
       case 'WELCOME':
         navigate('/my-drains')
@@ -218,15 +219,15 @@ export default function NotificationsPage() {
               className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${notification.read ? 'bg-transparent' : 'bg-[#3981F7]'}`}
             />
             <span className="min-w-0 flex-1">
-              <span className={`block text-[13px] font-semibold leading-5 ${notification.read ? 'text-[#8C9AB0]' : 'text-[#203451]'}`}>
+              <span className={`block text-[15px] font-semibold leading-5 ${notification.read ? 'text-[#637790]' : 'text-[#203451]'}`}>
                 {notification.title}
               </span>
-              <span className={`mt-1 block whitespace-pre-wrap break-words text-[12px] leading-5 ${notification.read ? 'text-[#A5B1C1]' : 'text-[#53647E]'}`}>
+              <span className={`mt-1 block whitespace-pre-wrap break-words text-[14px] leading-5 ${notification.read ? 'text-[#78899F]' : 'text-[#53647E]'}`}>
                 {notification.body}
               </span>
               <time
                 dateTime={notification.createdAt}
-                className="mt-2 block text-[10px] text-[#A5B1C1]"
+                className="mt-2 block text-[12px] text-[#78899F]"
               >
                 {formatNotificationDate(notification.createdAt)}
               </time>
@@ -243,7 +244,7 @@ export default function NotificationsPage() {
         type="button"
         onClick={() => void fetchNextPage()}
         disabled={isFetchingNextPage}
-        className="mt-3 min-h-10 w-full rounded-xl bg-[#F0F4F9] text-xs font-semibold text-[#3981F7] disabled:opacity-50"
+        className="mt-3 min-h-11 w-full rounded-xl bg-[#F0F4F9] text-[13px] font-semibold text-[#3981F7] disabled:opacity-50"
       >
         {isFetchingNextPage ? '알림 불러오는 중...' : '알림 더 보기'}
       </button>
@@ -276,6 +277,7 @@ export default function NotificationsPage() {
 
   return (
     <main className="min-h-[calc(100dvh-128px)] bg-white px-[18px] pb-8 pt-2">
+      <PushOptInCard className="mb-4" />
       <div role="tablist" aria-label="알림 종류" className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-[#F0F4F9] p-1">
         {([
           { id: 'requests', label: '점검 요청', count: requests.length },
@@ -296,20 +298,20 @@ export default function NotificationsPage() {
                   document.getElementById(`notification-tab-${target}`)?.focus()
                 }
               }}
-              className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[#3981F7] ${active ? 'border-[#C6DCFF] bg-white text-[#3981F7]' : 'border-transparent text-[#78899F]'}`}>
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border text-[15px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[#3981F7] ${active ? 'border-[#C6DCFF] bg-white text-[#3981F7]' : 'border-transparent text-[#78899F]'}`}>
               {tab.label}
-              <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] ${active ? 'bg-[#3981F7] text-white' : 'bg-[#E0E7F0] text-[#78899F]'}`} aria-label={`${tab.count}개 미확인`}>{tab.count}</span>
+              <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[13px] ${active ? 'bg-[#3981F7] text-white' : 'bg-[#EAF2FF] text-[#53647E]'}`} aria-label={`${tab.count}개 미확인`}>{tab.count}</span>
             </button>
           )
         })}
       </div>
       {summaryFailed && activeTab === 'activity' && (
-        <p role="alert" className="mb-3 text-xs text-[#B84D4D]">
+        <p role="alert" className="mb-3 text-[13px] text-[#B84D4D]">
           알림 미확인 수를 불러오지 못했어요: {getErrorMessage(summaryError)}
         </p>
       )}
       {notificationMessage && (
-        <p role="status" className="mb-3 text-xs text-[#637790]">
+        <p role="status" className="mb-3 text-[13px] text-[#637790]">
           {notificationMessage}
         </p>
       )}
@@ -320,26 +322,27 @@ export default function NotificationsPage() {
             type="button"
             onClick={() => void showNearbyAtMyLocation()}
             disabled={locationPending}
-            className="min-h-9 rounded-xl bg-[#EAF2FF] px-3 text-xs font-semibold text-[#3981F7] disabled:opacity-50"
+            className="min-h-11 rounded-xl bg-[#EAF2FF] px-3 text-[13px] font-semibold text-[#3981F7] disabled:opacity-50"
           >
             {locationPending ? '위치 확인 중...' : '내 위치 주변 요청 보기'}
           </button>
         </div>
-        {coordinates && requests.length > 0 && (<p className="mb-2 text-[11px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>)}
-        {locationError && <p role="alert" className="mb-3 text-xs text-[#B84D4D]">{locationError}</p>}
-        {requestMessage && <p role="status" className="mb-3 text-xs leading-5 text-[#637790]">{requestMessage}</p>}
+        {coordinates && requests.length > 0 && (<p className="mb-2 text-[13px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>)}
+        {locationError && <p role="alert" className="mb-3 text-[13px] text-[#B84D4D]">{locationError}</p>}
+        {requestMessage && <p role="status" className="mb-3 text-[13px] leading-5 text-[#637790]">{requestMessage}</p>}
         {requestsPending ? (
-          <p role="status" className="py-6 text-xs text-[#8C9AB0]">점검 요청을 불러오는 중이에요.</p>
+          <p role="status" className="py-6 text-[13px] text-[#637790]">점검 요청을 불러오는 중이에요.</p>
         ) : requestsFailed ? (
-          <div role="alert" className="py-6 text-xs text-[#B84D4D]">
+          <div role="alert" className="py-6 text-[13px] text-[#B84D4D]">
             <p>{getErrorMessage(requestsError)}</p>
-            <button type="button" onClick={() => void refetchRequests()} className="mt-3 min-h-9 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
+            <button type="button" onClick={() => void refetchRequests()} className="mt-3 min-h-11 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
           </div>
         ) : requests.length === 0 ? (
           <div className="flex min-h-[45dvh] items-center justify-center">
-            <p className="text-center text-sm text-[#8C9AB0]">
-              아직 점검 요청이 없어요.
-            </p>
+            <div className="text-center">
+              <p className="text-[15px] font-bold text-[#203451]">아직 점검 요청이 없어요.</p>
+              <p className="mt-1.5 text-[14px] leading-6 text-[#637790]">비 예보가 있으면 여기에 점검 요청이 와요.<br />이웃 또랑이의 대신 점검 요청도 여기서 볼 수 있어요.</p>
+            </div>
           </div>
         ) : (
           <div>
@@ -361,22 +364,22 @@ export default function NotificationsPage() {
 
       <section id="notification-panel-activity" role="tabpanel" aria-labelledby="notification-tab-activity" hidden={activeTab !== 'activity'} tabIndex={0}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 id="activity-notifications-title" className="text-sm font-bold text-[#203451]">활동 알림</h2>
-          <span className="text-xs text-[#8C9AB0]" aria-live="polite">{totalUnreadCount}개 미확인</span>
+          <h2 id="activity-notifications-title" className="text-[15px] font-bold text-[#203451]">활동 알림</h2>
+          <span className="text-[13px] text-[#637790]" aria-live="polite">{totalUnreadCount}개 미확인</span>
         </div>
         {notificationsPending ? (
-          <p role="status" className="py-6 text-xs text-[#8C9AB0]">활동 알림을 불러오는 중이에요.</p>
+          <p role="status" className="py-6 text-[13px] text-[#637790]">활동 알림을 불러오는 중이에요.</p>
         ) : notificationsFailed ? (
-          <div role="alert" className="py-6 text-xs text-[#B84D4D]">
+          <div role="alert" className="py-6 text-[13px] text-[#B84D4D]">
             <p>{getErrorMessage(notificationsError)}</p>
-            <button type="button" onClick={() => void refetchNotifications()} className="mt-3 min-h-9 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
+            <button type="button" onClick={() => void refetchNotifications()} className="mt-3 min-h-11 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
           </div>
         ) : (
           <>
             {notifications.length > 0 ? (
               renderNotificationList(notifications)
             ) : (
-              <p className="py-6 text-xs text-[#8C9AB0]">아직 알림이 없어요.</p>
+              <p className="py-6 text-[14px] leading-6 text-[#637790]">아직 알림이 없어요. 입양·점검·제보 결과가 여기에 쌓여요.</p>
             )}
             {renderNotificationLoadMore()}
           </>
@@ -386,7 +389,7 @@ export default function NotificationsPage() {
             type="button"
             onClick={() => void handleMarkAllRead()}
             disabled={readAllMutation.isPending || readOneMutation.isPending}
-            className="mt-3 min-h-10 text-xs font-semibold text-[#3981F7] disabled:text-[#A5B1C1]"
+            className="mt-3 min-h-11 text-[13px] font-semibold text-[#3981F7] disabled:text-[#A5B1C1]"
           >
             {readAllMutation.isPending ? '읽음 처리 중...' : '모든 알림 읽음 처리'}
           </button>

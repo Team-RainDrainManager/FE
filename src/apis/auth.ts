@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { apiClient } from './axios-instance'
-import { useAuthStore, type AuthTokens } from '../store/useAuthStore'
+import { readStoredTokens, useAuthStore, type AuthTokens } from '../store/useAuthStore'
 
 export type ApiEnvelope<T> = {
   success: boolean
@@ -46,20 +46,53 @@ const publicClient = axios.create({ baseURL: apiClient.defaults.baseURL, timeout
 // Refresh token rotation: 동시에 두 요청이 실패해도 새로고침은 한 번만 수행합니다.
 let refreshPromise: Promise<AuthTokens> | null = null
 
+/** 다른 탭이 먼저 토큰을 바꿔 두었으면 그 값을 그대로 씁니다. */
+function tokensRotatedElsewhere(usedRefreshToken: string): AuthTokens | null {
+  const stored = readStoredTokens()
+  return stored && stored.refreshToken !== usedRefreshToken ? stored : null
+}
+
+async function refreshOnce(): Promise<AuthTokens> {
+  const refreshToken = useAuthStore.getState().refreshToken
+  if (!refreshToken) throw new Error('로그인이 필요합니다.')
+  // 로그인을 기기에 저장하므로 여러 탭이 같은 토큰을 씁니다. 리프레시 토큰은 한 번 쓰면
+  // 바뀌기 때문에, 다른 탭이 이미 갱신했다면 서버에 다시 요청하지 않습니다.
+  const already = tokensRotatedElsewhere(refreshToken)
+  if (already) {
+    useAuthStore.setState({ accessToken: already.accessToken, refreshToken: already.refreshToken })
+    return already
+  }
+  try {
+    const tokens = unwrap<AuthTokens>(await publicClient.post('/api/v1/auth/refresh', { refreshToken }))
+    // 로그아웃 도중 완료된 리프레시 요청으로 세션이 다시 살아나는 것을 방지합니다.
+    if (useAuthStore.getState().refreshToken !== refreshToken) {
+      throw new Error('로그인 세션이 종료되었습니다.')
+    }
+    useAuthStore.getState().setTokens(tokens)
+    return tokens
+  } catch (error: unknown) {
+    // 같은 순간 다른 탭이 갱신에 성공했다면 로그아웃시키지 않고 그 토큰으로 이어 갑니다.
+    const rescued = useAuthStore.getState().refreshToken === refreshToken ? tokensRotatedElsewhere(refreshToken) : null
+    if (rescued) {
+      useAuthStore.setState({ accessToken: rescued.accessToken, refreshToken: rescued.refreshToken })
+      return rescued
+    }
+    throw error
+  }
+}
+
 export async function refreshSession(): Promise<AuthTokens> {
   if (!refreshPromise) {
-    refreshPromise = (async () => {
-      const refreshToken = useAuthStore.getState().refreshToken
-      if (!refreshToken) throw new Error('로그인이 필요합니다.')
-      const tokens = unwrap<AuthTokens>(await publicClient.post('/api/v1/auth/refresh', { refreshToken }))
-      // 로그아웃 도중 완료된 리프레시 요청으로 세션이 다시 살아나는 것을 방지합니다.
-      if (useAuthStore.getState().refreshToken !== refreshToken) {
-        throw new Error('로그인 세션이 종료되었습니다.')
-      }
-      useAuthStore.getState().setTokens(tokens)
-      return tokens
-    })().catch((error: unknown) => {
-      useAuthStore.getState().clear()
+    // 지원하는 브라우저에서는 탭끼리 순서를 정해 한 번에 한 탭만 갱신합니다.
+    const run = typeof navigator !== 'undefined' && navigator.locks
+      ? navigator.locks.request('ddorang:auth-refresh', () => refreshOnce())
+      : refreshOnce()
+    refreshPromise = Promise.resolve(run).catch((error: unknown) => {
+      // 인터넷이 잠깐 끊겼거나 서버가 배포 중이라 응답하지 못한 경우에는 로그인을 지우지 않습니다.
+      // 서버가 토큰을 거절했을 때만 로그아웃합니다.
+      const temporary = axios.isAxiosError(error) &&
+        (!error.response || error.response.status >= 500 || error.response.status === 429)
+      if (!temporary) useAuthStore.getState().clear()
       throw error
     }).finally(() => { refreshPromise = null })
   }
