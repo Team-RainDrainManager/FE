@@ -28,7 +28,7 @@ import {
   getReportDetail,
   type ReportType,
 } from '../../../apis/reports'
-import { dirtLevelLabel, gradeLabel } from '../../../utils/dirtGrade'
+import { gradeLabel } from '../../../utils/dirtGrade'
 
 type ReportDrainOption = {
   id: number
@@ -65,7 +65,13 @@ type AssessmentApiResponse = {
   error: { code: string; message: string } | null
 }
 
-// 테스트 전용: 사진 키만 전달해 AI 결과를 조회하며 제보는 등록하지 않음
+// 서버가 막힘 제보에 쓰는 '청소 불가' 기준과 같습니다. (BE ReportService: 막힘 등급 또는 신고 필요)
+const GRADE_BLOCKED = 3
+function isUncleanable(assessment: PhotoAssessment): boolean {
+  return assessment.needsReport || assessment.grade >= GRADE_BLOCKED
+}
+
+// 사진 키만 전달해 AI 판독 결과를 미리 확인합니다. 이 요청만으로는 제보가 등록되지 않습니다.
 async function assessPhoto(photoKey: string): Promise<PhotoAssessment> {
   const { data: response } = await apiClient.post<AssessmentApiResponse>(
     '/api/v1/drain/assessments',
@@ -187,6 +193,8 @@ export default function ReportDraftModal({
     useState<number | null>(null)
 
   const isLocationFix = type === 'LOCATION_FIX'
+  // AI 판독이 필요한 것은 막힘 제보뿐입니다. 위치 수정 · 삭제 요청 · 악취 제보는 사진만 있으면 접수됩니다.
+  const isBlockage = type === 'BLOCKAGE'
 
   const {
     data: reportDetail,
@@ -242,17 +250,15 @@ export default function ReportDraftModal({
     },
   })
 
-  // 판독 완료 + needsReport: true 인 경우에만 제보를 허용합니다.
-  const canSubmitReport = Boolean(
-    photo &&
-    assessmentMutation.isSuccess &&
-    assessmentMutation.data?.needsReport === true,
-  )
+  const assessment = isBlockage ? assessmentMutation.data : undefined
+  const uncleanable = assessment ? isUncleanable(assessment) : false
+  // 서버 접수 규칙과 같은 조건으로 제출을 엽니다.
+  const canSubmitReport = Boolean(photo) && (!isBlockage || uncleanable)
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!canSubmitReport || !photo) {
-        throw new Error('AI 판독에서 제보가 필요하다고 확인된 사진만 제출할 수 있어요.')
+        throw new Error('사진을 확인한 뒤 제출할 수 있어요.')
       }
 
       const drainId = initialDrainId
@@ -305,7 +311,8 @@ export default function ReportDraftModal({
     uploadedPhotoRef.current = null
     setPhoto(file)
     setPhotoCoordinates(meta.coordinates)
-    assessmentMutation.mutate(file)
+    assessmentMutation.reset()
+    if (isBlockage) assessmentMutation.mutate(file)
   }
 
   const removePhoto = () => {
@@ -353,15 +360,15 @@ export default function ReportDraftModal({
     }
 
     if (!photo) {
-      setFormError('AI 판독할 사진을 찍어 주세요.')
+      setFormError('현장 사진을 찍어 주세요.')
       return
     }
 
     if (!canSubmitReport) {
       setFormError(
-        assessmentMutation.data?.needsReport === false
-          ? 'AI 판독에서 제보가 필요하지 않다고 판단해 제출할 수 없어요.'
-          : 'AI 판독이 끝나면 제출할 수 있어요.',
+        assessment
+          ? '직접 치울 수 있는 상태로 보여 막힘 제보로는 접수되지 않아요.'
+          : 'AI 확인이 끝나면 제출할 수 있어요.',
       )
       return
     }
@@ -381,7 +388,7 @@ export default function ReportDraftModal({
         longitude > 180
       ) {
         setFormError(
-          '수정할 위치의 올바른 위도와 경도를 입력해 주세요.',
+          '빗물받이 앞에 서서 새 위치를 먼저 정해 주세요.',
         )
         return
       }
@@ -548,9 +555,13 @@ export default function ReportDraftModal({
                 value={type}
                 disabled={mutation.isPending || assessmentMutation.isPending}
                 onChange={(event) => {
-                  setType(event.target.value as ReportType)
+                  const nextType = event.target.value as ReportType
+                  setType(nextType)
                   setFormError('')
                   mutation.reset()
+                  if (nextType === 'BLOCKAGE' && photo && assessmentMutation.isIdle) {
+                    assessmentMutation.mutate(photo)
+                  }
                 }}
                 className={FIELD_CLASS}
               >
@@ -576,49 +587,28 @@ export default function ReportDraftModal({
             </div>
 
             {isLocationFix && (
-              <div className="space-y-3 rounded-xl bg-[#F4F6FB] p-3">
-                <p className="text-xs font-bold text-[#304563]">
-                  수정할 빗물받이 위치
+              <div className="space-y-2 rounded-xl bg-[#F4F6FB] p-3">
+                <p className="text-sm font-bold text-[#304563]">
+                  빗물받이의 실제 위치
                 </p>
-
-                <label className="block text-xs text-[#516A7D]">
-                  새 위도
-                  <input
-                    type="number"
-                    step="any"
-                    value={newLatitude}
-                    disabled={mutation.isPending || assessmentMutation.isPending}
-                    onChange={(event) =>
-                      setNewLatitude(event.target.value)
-                    }
-                    placeholder="예: 37.4884"
-                    className={`mt-1 ${FIELD_CLASS}`}
-                  />
-                </label>
-
-                <label className="block text-xs text-[#516A7D]">
-                  새 경도
-                  <input
-                    type="number"
-                    step="any"
-                    value={newLongitude}
-                    disabled={mutation.isPending || assessmentMutation.isPending}
-                    onChange={(event) =>
-                      setNewLongitude(event.target.value)
-                    }
-                    placeholder="예: 126.8042"
-                    className={`mt-1 ${FIELD_CLASS}`}
-                  />
-                </label>
+                <p className="text-[13px] leading-5 text-[#516A7D]">
+                  빗물받이 바로 앞에 서서 아래 버튼을 눌러 주세요. 지금 서 있는 곳이 새 위치로 접수돼요.
+                </p>
 
                 <button
                   type="button"
                   disabled={mutation.isPending || assessmentMutation.isPending}
                   onClick={() => void handleCurrentLocation()}
-                  className="text-xs font-semibold text-[#6384EF] disabled:opacity-50"
+                  className="min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-3 text-sm font-bold text-[#6384EF] disabled:opacity-50"
                 >
-                  현재 위치 좌표 사용
+                  {newLatitude && newLongitude ? '지금 위치로 다시 정하기' : '지금 서 있는 곳을 새 위치로 정하기'}
                 </button>
+
+                {newLatitude && newLongitude && (
+                  <p role="status" className="text-[13px] font-semibold leading-5 text-[#247A4B]">
+                    새 위치를 정했어요. (위도 {Number(newLatitude).toFixed(5)}, 경도 {Number(newLongitude).toFixed(5)})
+                  </p>
+                )}
               </div>
             )}
 
@@ -644,7 +634,7 @@ export default function ReportDraftModal({
                 <div className="overflow-hidden rounded-2xl border border-[#DCE4F8] bg-[#F5F7FF] p-3">
                   <CapturedPreview file={photo} alt="찍은 제보 사진" />
 
-                  <div className="mt-3 flex items-center justify-between border-t border-[#E2E8F6] pt-3">
+                  <div className="mt-3 flex items-center justify-between border-t border-[#E2E8F6] pt-1">
                     <span
                       role="status"
                       className="text-xs font-medium text-[#637CE1]"
@@ -652,12 +642,12 @@ export default function ReportDraftModal({
                       사진 촬영 완료
                     </span>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         disabled={mutation.isPending || assessmentMutation.isPending}
                         onClick={openCamera}
-                        className="text-xs font-semibold text-[#637CE1] disabled:opacity-50"
+                        className="min-h-11 px-2 text-[13px] font-semibold text-[#637CE1] disabled:opacity-50"
                       >
                         다시 찍기
                       </button>
@@ -665,7 +655,7 @@ export default function ReportDraftModal({
                         type="button"
                         disabled={mutation.isPending || assessmentMutation.isPending}
                         onClick={removePhoto}
-                        className="text-xs font-medium text-[#8A96AA] disabled:opacity-50"
+                        className="min-h-11 px-2 text-[13px] font-medium text-[#516A7D] disabled:opacity-50"
                       >
                         삭제
                       </button>
@@ -694,8 +684,8 @@ export default function ReportDraftModal({
                 </button>
               )}
 
-              {/* 판독 결과가 needsReport: true일 때만 실제 제보를 허용 */}
-              {assessmentMutation.isPending && (
+              {/* 막힘 제보만 AI가 '직접 치우기 어려운 막힘'으로 확인해야 접수됩니다. (서버 규칙과 같음) */}
+              {isBlockage && assessmentMutation.isPending && (
                 <p
                   role="status"
                   className="mt-3 animate-pulse rounded-xl bg-[#F5F7FF] p-3 text-center text-sm font-semibold text-[#3855B8]"
@@ -704,7 +694,7 @@ export default function ReportDraftModal({
                 </p>
               )}
 
-              {assessmentMutation.isError && photo && (
+              {isBlockage && assessmentMutation.isError && photo && (
                 <>
                   <p role="alert" className="mt-3 rounded-xl bg-[#FFF1F1] p-3 text-sm leading-relaxed text-[#B84D4D]">
                     {getErrorMessage(assessmentMutation.error)}
@@ -715,40 +705,35 @@ export default function ReportDraftModal({
                     disabled={mutation.isPending}
                     className="mt-2 min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-4 py-3 text-sm font-bold text-[#6384EF] transition hover:bg-[#F5F7FF] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    AI 판독 다시 하기
+                    AI 확인 다시 하기
                   </button>
                 </>
               )}
 
-              {assessmentMutation.data && (
-                <div role="status" className="mt-3 space-y-2 rounded-xl border border-[#DCE4F8] bg-[#F5F7FF] p-3 text-sm text-[#304563]">
-                  <p className="font-bold text-[#3855B8]">AI 사진 판독 결과</p>
-                  <p>등급 (grade): {gradeLabel(assessmentMutation.data.grade)}</p>
-                  <p>오염도 (dirtLevel): {dirtLevelLabel(assessmentMutation.data.dirtLevel)}</p>
-                  <p>위험 여부 (isRisk): {assessmentMutation.data.isRisk ? 'true' : 'false'}</p>
-                  <p>제보 필요 (needsReport): {assessmentMutation.data.needsReport ? 'true' : 'false'}</p>
-                  <p>신뢰도 (confidence): {assessmentMutation.data.confidence}</p>
-                  <p className="whitespace-pre-wrap break-words">판정 이유 (reason): {assessmentMutation.data.reason}</p>
-                  <details className="pt-1 text-xs">
-                    <summary className="cursor-pointer font-semibold text-[#6384EF]">원본 JSON 보기</summary>
-                    <pre className="mt-2 max-h-44 overflow-auto rounded-lg bg-white p-2 text-[11px] leading-5">
-                      {JSON.stringify(assessmentMutation.data, null, 2)}
-                    </pre>
-                  </details>
+              {assessment && (
+                <div role="status" className="mt-3 space-y-2 rounded-xl border border-[#DCE4F8] bg-[#F5F7FF] p-3 text-sm leading-6 text-[#304563]">
+                  <p className="font-bold text-[#3855B8]">
+                    AI 확인 결과: {gradeLabel(assessment.grade)}
+                  </p>
+                  {assessment.reason?.trim() && (
+                    <p className="whitespace-pre-wrap break-words">{assessment.reason}</p>
+                  )}
                   <p
-                    className={`rounded-lg p-2 text-xs font-semibold ${
-                      assessmentMutation.data.needsReport
+                    className={`rounded-lg p-2.5 text-[13px] font-semibold leading-5 ${
+                      uncleanable
                         ? 'bg-[#EAF7EF] text-[#247A4B]'
-                        : 'bg-[#FFF1F1] text-[#B84D4D]'
+                        : 'bg-[#FFF4DC] text-[#8A6510]'
                     }`}
                   >
-                    {assessmentMutation.data.needsReport
-                      ? 'AI가 제보가 필요하다고 판단했어요. 이제 제보를 제출할 수 있어요.'
-                      : 'AI가 제보가 필요하지 않다고 판단했어요. 이 사진으로는 제보할 수 없어요.'}
+                    {uncleanable
+                      ? '직접 치우기 어려운 막힘으로 확인됐어요. 아래에서 제보를 제출해 주세요.'
+                      : '직접 치울 수 있는 상태로 보여요. 막힘 제보는 덮개 틈 안쪽까지 막혀 치울 수 없을 때만 접수돼요. 치울 수 있다면 입양하거나 점검으로 기록해 주세요.'}
                   </p>
-                  <p className="text-xs text-[#8294A5]">
-                    사진 판독만 완료되었으며, 제보 제출 버튼을 눌러야 접수됩니다.
-                  </p>
+                  {!uncleanable && (
+                    <p className="text-[13px] leading-5 text-[#516A7D]">
+                      사진이 잘못 찍혔다면 다시 찍어 주세요. 악취나 위치 문제는 제보 종류를 바꿔 접수할 수 있어요.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -786,10 +771,14 @@ export default function ReportDraftModal({
           <div className="shrink-0 space-y-3 border-t border-[#EDF1F5] bg-white px-5 pb-5 pt-3">
             
             {!canSubmitReport && !assessmentMutation.isPending && (
-              <p className="text-center text-xs text-[#8294A5]">
-                {assessmentMutation.data?.needsReport === false
-                  ? 'AI가 제보 불필요로 판단하여 제출이 제한돼요.'
-                  : '사진을 찍으면 AI가 바로 확인해요.'}
+              <p className="text-center text-[13px] leading-5 text-[#516A7D]">
+                {!photo
+                  ? isBlockage
+                    ? '사진을 찍으면 AI가 바로 확인해요.'
+                    : '현장 사진을 찍으면 제출할 수 있어요.'
+                  : assessment
+                    ? '이 사진은 막힘 제보로 접수되지 않아요.'
+                    : 'AI 확인이 끝나면 제출할 수 있어요.'}
               </p>
             )}
             <button
