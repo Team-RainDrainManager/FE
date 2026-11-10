@@ -4,19 +4,22 @@
 
 > 우리 동네 빗물받이를 함께 관리하고, 주민 참여를 통해 도시 침수를 예방하는 빗물받이 관리 플랫폼입니다.
 
-- **기간** : 추후 기재
+- **기간** : 2026.10 ~ 2026.11
+- **배포 주소** : https://ddorang.vercel.app
 - **팀** : Team RainDrainManager
 - **Frontend 인원** : 2명
 - **목적** : 주민들이 빗물받이를 직접 입양하고 관리하는 참여형 서비스를 통해 빗물받이 관리의 지속성을 높이고 도시 침수 예방에 기여하는 것
 - **주요 기능**
-  - 카카오 소셜 로그인
-  - 지도 기반 빗물받이 위치 및 상태 확인
+  - 카카오 소셜 로그인 · 이메일 로그인
+  - 지도 기반 빗물받이 위치 및 상태 확인, 비 예보 배너
   - 빗물받이 입양 및 관리
-  - 사진 인증 및 점검 기록
+  - 사진 인증 및 점검 기록 (AI 사진 판정)
+  - 비 예보 점검 요청과 대신 점검
   - 빗물받이별 10단계 캐릭터 성장
-  - 빗물받이 막힘 및 오염 신고
-  - 날씨 및 점검 알림
-  - 마이페이지 및 활동 내역 관리
+  - 빗물받이 막힘 · 악취 · 위치 수정 제보
+  - 점검 알림과 웹 푸시
+  - 마이페이지 및 활동 내역 관리, 활동 확인서
+  - 관리자 화면 (제보 처리, 사진 검토)
 
 ## 👩‍💻 팀원 및 역할
 
@@ -31,13 +34,14 @@
 - **빌드 툴** : Vite
 - **패키지 매니저** : pnpm
 - **코드 검사** : ESLint
-- **스타일링** : Tailwind CSS (예정)
-- **라우팅** : React Router (예정)
-- **상태관리** : Zustand (예정)
-- **데이터 캐싱** : TanStack Query (예정)
-- **API 통신** : Axios (예정)
-- **지도** : 네이버 지도 API (예정)
-- **배포** : Vercel (예정)
+- **스타일링** : Tailwind CSS v4
+- **라우팅** : React Router v7
+- **상태관리** : Zustand
+- **데이터 캐싱** : TanStack Query
+- **API 통신** : Axios
+- **지도** : 카카오맵 (react-kakao-maps-sdk)
+- **푸시 알림** : Firebase Cloud Messaging (웹 푸시)
+- **배포** : Vercel (`main` 브랜치)
 
 ## 📕 브랜치 정의
 
@@ -94,6 +98,7 @@
  ┃ ┣ 📂ISSUE_TEMPLATE
  ┃ ┣ 📂workflows
  ┃ ┗ 📜PULL_REQUEST_TEMPLATE.md
+ ┣ 📂docs
  ┣ 📂public
  ┃ ┗ 📂characters
  ┣ 📂src
@@ -103,10 +108,13 @@
  ┃ ┃ ┣ 📂icons
  ┃ ┃ ┗ 📂images
  ┃ ┣ 📂components
+ ┃ ┣ 📂config
  ┃ ┣ 📂constants
+ ┃ ┣ 📂features
  ┃ ┣ 📂layouts
  ┃ ┣ 📂mocks
  ┃ ┣ 📂pages
+ ┃ ┣ 📂services
  ┃ ┣ 📂store
  ┃ ┣ 📂types
  ┃ ┣ 📂utils
@@ -142,17 +150,31 @@ git checkout develop
 pnpm install
 ```
 
-### 3. 개발 서버 실행
+### 3. 환경 변수 설정
+
+`.env.example`을 `.env.local`로 복사한 뒤 값을 채웁니다.
+
+| 이름 | 설명 |
+| --- | --- |
+| `VITE_API_BASE_URL` | 서버 주소 (비우면 운영 서버) |
+| `VITE_KAKAO_MAP_KEY` | 카카오맵 JavaScript 키 |
+| `VITE_FIREBASE_*` | 웹 푸시용 Firebase 설정 |
+
+### 4. 개발 서버 실행
 
 ```bash
 pnpm dev
 ```
 
-### 4. 빌드
+### 5. 빌드
 
 ```bash
 pnpm build
 ```
+
+## 🔌 API 연결 현황
+
+서버 API가 앱의 어느 화면과 코드에 연결되어 있는지는 [`docs/api-connection.md`](docs/api-connection.md)에 정리했습니다.
 
 ## 🔗 Repository
 
