@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type PointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useLocation } from 'react-router'
 import { getMyReports, type ReportStatus, type ReportSummary, type ReportType } from '../../apis/reports'
 import './sanctions-warning.css'
 import './report-history.css'
@@ -35,7 +36,9 @@ function newestReportTime(reports: ReportSummary[]): string | null {
 }
 
 export default function MyReportsSection() {
-  const [open, setOpen] = useState(false)
+  // 제보 결과 알림을 눌러 들어오면 내역을 바로 펼칩니다.
+  const location = useLocation()
+  const [open, setOpen] = useState(() => (location.state as { openReports?: boolean } | null)?.openReports === true)
   const [showExample, setShowExample] = useState(false)
   const [drag, setDrag] = useState(0)
   const [dragging, setDragging] = useState(false)
