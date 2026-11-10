@@ -27,6 +27,12 @@ export type TermsItem = {
 export type TermsContent = Omit<TermsItem, 'hasContent' | 'displayOrder'> & { content: string | null }
 export type Agreement = { termsId: number; agreed: boolean }
 export type MeResponse = {
+  level: number
+  point: number
+  participationScore: number
+  adoptionCount: number
+  inspectionCount: number
+  volunteerMinutes: number
   id: number
   nickname: string
   email: string | null
