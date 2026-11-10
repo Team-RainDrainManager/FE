@@ -38,6 +38,8 @@ html[data-dd-theme='dark'] :where([class*='text-[#78899F]'], [class*='text-[#829
   color: var(--dd-muted) !important;
 }
 html[data-dd-theme='dark'] :where([class*='border-[#E'], [class*='border-[#D']) { border-color: var(--dd-line) !important; }
+/* 목록 사이 구분선(divide-*)도 다크 모드에서 흰 줄로 남지 않게 합니다. */
+html[data-dd-theme='dark'] :where([class*='divide-[#E'], [class*='divide-[#D']) > * { border-color: var(--dd-line) !important; }
 /* 위 규칙에 빠져 밝은 배경에 밝은 글자가 되거나, 어두운 배경에 어두운 글자가 되던 색입니다. */
 html[data-dd-theme='dark'] :where([class*='bg-[#F4F7FB]'], [class*='bg-[#F4F6FB]'], [class*='bg-[#F4F6FA]'], [class*='bg-[#F4F8FF]'], [class*='bg-[#F5F7FF]'], [class*='bg-[#F3F5FB]'], [class*='bg-[#F3F6FA]'], [class*='bg-[#F5F9FC]'], [class*='bg-[#EAEFFA]']) {
   background-color: var(--dd-subtle) !important;

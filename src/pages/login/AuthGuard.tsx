@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { getErrorMessage, type OnboardingStatus } from '../../apis/auth'
 import { useAuthStore } from '../../store/useAuthStore'
-import { nextAfterCompletedOnboarding, needsNickname } from './auth-flow'
+import { nextAfterCompletedOnboarding, needsNickname, rememberReturnTo } from './auth-flow'
 import { syncPushTokenIfAllowed } from '../../services/push-messaging'
 import {
   clearOnboardingStatusCache,
@@ -13,10 +13,16 @@ import {
 type Check = { token: string; status: OnboardingStatus } | { token: string; error: string }
 
 export default function AuthGuard({ children, mode }: { children: ReactNode; mode: 'main' | 'onboarding' }) {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const accessToken = useAuthStore((state) => state.accessToken)
   const [check, setCheck] = useState<Check | null>(null)
   const [retry, setRetry] = useState(0)
+  // 로그인 없이 들어온 경우에만 보려던 화면을 기억합니다. (로그아웃으로 나가는 경우는 제외)
+  const [arrivedLoggedOut] = useState(() => !accessToken)
+
+  useEffect(() => {
+    if (!accessToken && arrivedLoggedOut && mode === 'main') rememberReturnTo(pathname + search)
+  }, [accessToken, arrivedLoggedOut, mode, pathname, search])
 
   useEffect(() => {
     if (!accessToken) return

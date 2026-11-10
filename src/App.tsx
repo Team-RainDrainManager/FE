@@ -13,7 +13,8 @@ import LoginPage from './pages/login/LoginPage'
 import MyPage from './pages/profile/MyPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import SettingsPage from './pages/settings/SettingsPage'
-import { useMyDrainsStore } from './store/useMyDrainsStore'
+import { useQuery } from '@tanstack/react-query'
+import { getMyAdoptions } from './apis/my-drains'
 import AuthGuard from './pages/login/AuthGuard'
 import KakaoCallbackPage from './pages/login/KakaoCallbackPage'
 import EmailLoginPage from './pages/login/EmailLoginPage'
@@ -31,9 +32,15 @@ function GuestOnly({ children }: { children: ReactNode }) {
 }
 
 function HomeRedirect() {
-  // 현재 입양 목록을 기준으로 첫 탭을 결정합니다.
-  const hasAdoption = useMyDrainsStore((state) => state.data.adoptions.length > 0)
-  return <Navigate to={hasAdoption ? '/my-drains' : '/map'} replace />
+  // 입양한 또랑이가 있으면 내 또랑이로, 없으면 지도로 보냅니다.
+  const { data, isPending } = useQuery({
+    queryKey: ['my-adoptions'],
+    queryFn: ({ signal }) => getMyAdoptions(signal),
+    staleTime: 30_000,
+    retry: false,
+  })
+  if (isPending) return <div className="dd-auth-loading" role="status">또랑이를 불러오고 있어요…</div>
+  return <Navigate to={data && data.adoptions.length > 0 ? '/my-drains' : '/map'} replace />
 }
 
 export default function App() {

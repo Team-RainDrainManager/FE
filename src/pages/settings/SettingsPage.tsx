@@ -13,6 +13,7 @@ import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstR
 import { useDecorationStore } from '../../store/useDecorationStore'
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
 import { requestPushPermission, syncPushTokenIfAllowed, unregisterPushDevice } from '../../services/push-messaging'
+import PushOptInCard from '../../features/push/PushOptInCard'
 
 const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] = [
   {id:'light',title:'라이트',description:'항상 밝은 화면',symbol:'☀'},
@@ -75,8 +76,7 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     setNotificationError('')
     const enablingPush = key === 'notifications' && !notificationSettings.notifications
     try {
-      // 사용자가 기존 스위치를 직접 켤 때만 브라우저 알림 권한을 요청합니다.
-      // 새 버튼·카드·추가 문구는 만들지 않습니다.
+      // 브라우저 알림 권한은 사용자가 스위치나 알림 받기 버튼을 직접 누를 때만 요청합니다.
       let permissionError: unknown = null
       if (enablingPush) {
         try { await requestPushPermission() }
@@ -85,6 +85,7 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
       // 기기 권한 오류와 서버의 사용자 알림 선호 설정은 서로 독립적으로 처리합니다.
       const next = await updateNotificationSettings({ [key]: !notificationSettings[key] })
       setNotificationSettings(next)
+      void queryClient.invalidateQueries({ queryKey: ['notification-settings'] })
       setNotificationMessage(key === 'notifications'
         ? (next.notifications ? '활동 알림을 켰습니다.' : '활동 알림을 껐습니다.')
         : (next.nightConsent ? '야간 푸시를 켰습니다.' : '야간 푸시를 껐습니다.'))
@@ -258,6 +259,8 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
             disabled={notificationBusy} className="dd-settings-feature-switch"
             onClick={() => { void changeNotificationSetting('nightConsent') }}><span aria-hidden="true" /></button>
         </div>
+        {/* 서버 설정이 켜져 있어도 이 기기가 허용하지 않았으면 푸시가 오지 않으므로 따로 안내합니다. */}
+        <PushOptInCard className="mt-3" onEnabled={() => setNotificationReload(value => value + 1)} />
       </> : null}
       {notificationError && <div role="alert" className="mt-3 text-xs text-[#C65A62]">
         {notificationError}

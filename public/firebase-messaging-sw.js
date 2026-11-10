@@ -15,7 +15,7 @@ self.addEventListener('push', (event) => {
       const candidate = new URL(String(rawTarget), self.location.origin)
       if (candidate.origin === self.location.origin) url = candidate.pathname + candidate.search + candidate.hash
     } catch { /* 외부 주소는 사용하지 않습니다. */ }
-    await self.registration.showNotification(title, { body, data: { url } })
+    await self.registration.showNotification(title, { body, icon: '/icon-192.png', data: { url } })
   })())
 })
 
