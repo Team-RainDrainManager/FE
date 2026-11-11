@@ -26,6 +26,8 @@ import SafetyStart from '../../../components/common/camera/SafetyStart'
 import {
   createReport,
   getReportDetail,
+  type CreateReportRequest,
+  type ReportStatus,
   type ReportType,
 } from '../../../apis/reports'
 import { gradeLabel } from '../../../utils/dirtGrade'
@@ -50,6 +52,13 @@ const REPORT_TYPES: { value: ReportType; label: string }[] = [
   { value: 'REMOVAL', label: '삭제 요청' },
   { value: 'ODOR', label: '악취 제보' },
 ]
+
+const RESULT_STATUS_LABELS: Record<ReportStatus, string> = {
+  PENDING: '검토 대기',
+  APPROVED: '승인 완료',
+  REJECTED: '반려',
+  CLEARED: '차단 해제',
+}
 
 type PhotoAssessment = {
   grade: number
@@ -194,8 +203,9 @@ export default function ReportDraftModal({
     useState<number | null>(null)
 
   const isLocationFix = type === 'LOCATION_FIX'
-  // AI 판독이 필요한 것은 막힘 제보뿐입니다. 위치 수정 · 삭제 요청 · 악취 제보는 사진만 있으면 접수됩니다.
   const isBlockage = type === 'BLOCKAGE'
+  const isOdor = type === 'ODOR'
+  const description = note.trim()
 
   const {
     data: reportDetail,
@@ -253,13 +263,23 @@ export default function ReportDraftModal({
 
   const assessment = isBlockage ? assessmentMutation.data : undefined
   const uncleanable = assessment ? isUncleanable(assessment) : false
-  // 서버 접수 규칙과 같은 조건으로 제출을 엽니다.
-  const canSubmitReport = Boolean(photo) && (!isBlockage || uncleanable)
+  let submissionBlock = ''
+  if (isOdor) {
+    if (!photo && !description) {
+      submissionBlock = '악취 사진을 찍거나 상세 내용을 입력해 주세요.'
+    }
+  } else if (!photo) {
+    submissionBlock = '현장 사진을 찍어 주세요.'
+  } else if (isBlockage && !uncleanable) {
+    submissionBlock = assessment
+      ? '직접 치울 수 있는 상태로 보여 막힘 제보로는 접수되지 않아요.'
+      : 'AI 확인이 끝나면 제출할 수 있어요.'
+  }
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!canSubmitReport || !photo) {
-        throw new Error('사진을 확인한 뒤 제출할 수 있어요.')
+      if (submissionBlock) {
+        throw new Error(submissionBlock)
       }
 
       const drainId = initialDrainId
@@ -267,26 +287,25 @@ export default function ReportDraftModal({
         throw new Error('선택한 빗물받이 ID를 확인할 수 없어요.')
       }
 
-      const description = note.trim()
-      const coordinates =
-        photoCoordinates ?? await getCurrentCoordinates()
-
-      const photoKey = await getPhotoKey(photo, 'REPORT')
-
-      return createReport({
+      const request: CreateReportRequest = {
         drainId,
         type,
-        photoKey,
         ...(description ? { description } : {}),
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
-        ...(isLocationFix
-          ? {
-              newLatitude: Number(newLatitude),
-              newLongitude: Number(newLongitude),
-            }
-          : {}),
-      })
+      }
+
+      if (photo) {
+        const coordinates = photoCoordinates ?? await getCurrentCoordinates()
+        request.photoKey = await getPhotoKey(photo, 'REPORT')
+        request.latitude = coordinates.latitude
+        request.longitude = coordinates.longitude
+      }
+
+      if (isLocationFix) {
+        request.newLatitude = Number(newLatitude)
+        request.newLongitude = Number(newLongitude)
+      }
+
+      return createReport(request)
     },
     onSuccess: async (result) => {
       setSubmittedReportId(result.reportId)
@@ -294,6 +313,7 @@ export default function ReportDraftModal({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
         queryClient.invalidateQueries({ queryKey: ['drain-detail'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports', 'me'] }),
       ])
     },
   })
@@ -355,22 +375,13 @@ export default function ReportDraftModal({
       return
     }
 
-    if (type === 'REMOVAL' && !note.trim()) {
+    if (type === 'REMOVAL' && !description) {
       setFormError('삭제 요청에는 사유가 필요해요.')
       return
     }
 
-    if (!photo) {
-      setFormError('현장 사진을 찍어 주세요.')
-      return
-    }
-
-    if (!canSubmitReport) {
-      setFormError(
-        assessment
-          ? '직접 치울 수 있는 상태로 보여 막힘 제보로는 접수되지 않아요.'
-          : 'AI 확인이 끝나면 제출할 수 있어요.',
-      )
+    if (submissionBlock) {
+      setFormError(submissionBlock)
       return
     }
 
@@ -454,11 +465,7 @@ export default function ReportDraftModal({
                 <p>제보 번호: #{reportDetail.reportId}</p>
                 <p>
                   접수 상태:{' '}
-                  {reportDetail.status === 'PENDING'
-                    ? '검토 대기'
-                    : reportDetail.status === 'APPROVED'
-                      ? '승인 완료'
-                      : '반려'}
+                  {RESULT_STATUS_LABELS[reportDetail.status] ?? '상태 확인 필요'}
                 </p>
                 <p>
                   접수 일시:{' '}
@@ -533,7 +540,9 @@ export default function ReportDraftModal({
               빗물받이 제보
             </h2>
             <p className="mt-1 text-xs leading-5 text-[#7F8DA5]">
-              현장 사진과 함께 상태를 알려주세요.
+              {isOdor
+                ? '사진 또는 설명으로 악취를 제보할 수 있어요.'
+                : '현장 사진과 함께 상태를 알려주세요.'}
             </p>
           </div>
 
@@ -624,7 +633,7 @@ export default function ReportDraftModal({
 
             <div>
               <span className={LABEL_CLASS}>
-                제보 사진
+                {isOdor ? '제보 사진 (선택)' : '제보 사진'}
               </span>
 
               {cameraOpen && (
@@ -758,6 +767,7 @@ export default function ReportDraftModal({
               <textarea
                 id="report-note"
                 rows={3}
+                maxLength={1000}
                 value={note}
                 disabled={mutation.isPending || assessmentMutation.isPending}
                 onChange={(event) =>
@@ -780,20 +790,14 @@ export default function ReportDraftModal({
 
           <div className="shrink-0 space-y-3 border-t border-[#EDF1F5] bg-white px-5 pb-5 pt-3">
             
-            {!canSubmitReport && !assessmentMutation.isPending && (
+            {submissionBlock && !assessmentMutation.isPending && (
               <p className="text-center text-[13px] leading-5 text-[#516A7D]">
-                {!photo
-                  ? isBlockage
-                    ? '사진을 찍으면 AI가 바로 확인해요.'
-                    : '현장 사진을 찍으면 제출할 수 있어요.'
-                  : assessment
-                    ? '이 사진은 막힘 제보로 접수되지 않아요.'
-                    : 'AI 확인이 끝나면 제출할 수 있어요.'}
+                {submissionBlock}
               </p>
             )}
             <button
               type="submit"
-              disabled={!canSubmitReport || mutation.isPending || assessmentMutation.isPending}
+              disabled={Boolean(submissionBlock) || mutation.isPending || assessmentMutation.isPending}
               className={BUTTON_CLASS}
             >
               {mutation.isPending
