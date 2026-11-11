@@ -29,6 +29,7 @@ import {
   type ReportType,
 } from '../../../apis/reports'
 import { gradeLabel } from '../../../utils/dirtGrade'
+import SafetyReportLink from './SafetyReportLink'
 
 type ReportDrainOption = {
   id: number
@@ -487,7 +488,16 @@ export default function ReportDraftModal({
                 />
               )}
 
-              <p className="text-center text-xs text-[#8294A5]">
+              {reportDetail.type === 'BLOCKAGE' && (
+                <SafetyReportLink
+                  reportId={reportDetail.reportId}
+                  latitude={reportDetail.latitude}
+                  longitude={reportDetail.longitude}
+                  description={reportDetail.description}
+                />
+              )}
+
+              <p className="text-center text-[13px] text-[#516A7D]">
                 관리자 승인 후 경험치가 지급돼요.
               </p>
             </div>
