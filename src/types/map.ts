@@ -10,10 +10,17 @@ export type DrainMapFilter =
   | 'all'
   | 'unadopted'
   | 'normal'
-  | 'overdue'
+  | 'inspection-needed'
   | 'blocked'
 
 export type AdoptionStatus = 'AVAILABLE' | 'ADOPTED'
+
+export type RainRequestStatus = 'NEEDS_HELP' | 'IN_PROGRESS' | 'DONE'
+
+export interface RainRequestSummary {
+  requestId: number
+  status: RainRequestStatus
+}
 
 
 export interface DrainMapItem {
@@ -29,6 +36,7 @@ export interface DrainMapItem {
   isRisk: boolean | null
 
   status: DrainMapStatus
+  rainRequest: RainRequestSummary | null
 
   // 새 백엔드 응답
   displayStatus?: string | null
@@ -53,6 +61,10 @@ export interface MapBoundsParams {
   maxLatitude: number
   minLongitude: number
   maxLongitude: number
+}
+
+export function needsInspection(drain: DrainMapItem): boolean {
+  return drain.status === 'overdue' || drain.rainRequest?.status === 'NEEDS_HELP'
 }
 
 export function hasCoordinates(

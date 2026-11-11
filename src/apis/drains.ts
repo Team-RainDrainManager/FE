@@ -6,6 +6,7 @@ import type {
   DrainMapItem,
   DrainMapStatus,
   MapBoundsParams,
+  RainRequestSummary,
 } from '../types/map'
 
 interface ApiResponse<T> {
@@ -40,6 +41,7 @@ interface DrainListDto {
   xp?: number | null
   score?: number | null
   nickname?: string | null
+  rainRequest?: RainRequestSummary | null
 }
 
 // GET /api/v1/drain/{drainId} 응답
@@ -65,6 +67,7 @@ export interface DrainDetailDto {
   xp?: number | null
   nextLevelScore?: number | null
   progressPercent?: number | null
+  rainRequest?: RainRequestSummary | null
 
   adoption: {
     adoptionId: number
@@ -128,6 +131,7 @@ function resolveMapStatus({
 
     case 'OVERDUE':
     case 'INSPECTION_OVERDUE':
+    case 'MANAGEMENT_DELAYED':
       return 'overdue'
 
     case 'AVAILABLE':
@@ -178,6 +182,7 @@ function toMapItem(dto: DrainListDto): DrainMapItem {
       risk: isRisk,
     }),
 
+    rainRequest: dto.rainRequest ?? null,
     displayStatus: dto.displayStatus ?? null,
     displayStatusLabel: dto.displayStatusLabel ?? null,
     dirtLevel: dto.dirtLevel ?? null,
@@ -282,6 +287,9 @@ export function mergeDrainDetail(
     displayStatusLabel:
       detail.displayStatusLabel ??
       drain.displayStatusLabel,
+
+    rainRequest:
+      detail.rainRequest === undefined ? drain.rainRequest : detail.rainRequest,
 
     status: resolveMapStatus({
       // 상세 응답에 별도 표시 상태가 있으면
