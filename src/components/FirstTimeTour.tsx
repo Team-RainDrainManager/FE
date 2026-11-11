@@ -36,8 +36,8 @@ const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     path: '/social', target: 'social', label: '소셜',
-    title: '친구 소식과 리그를 확인해요',
-    description: '친구 요청을 보내고 수락하면 서로 연결돼요. 친구 피드에 공감하고 트로피 버튼에서 리그를 살펴보세요. 친구와 리그 화면은 현재 시연 기능이에요.',
+    title: '친구를 초대하고 주간 순위를 확인해요',
+    description: '친구에게 또랑 링크를 공유하고, 내 주간 기록과 전체 TOP 10을 확인할 수 있어요.',
   },
   {
     path: '/profile', target: 'profile', label: '프로필',

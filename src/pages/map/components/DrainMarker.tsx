@@ -6,10 +6,11 @@ import Avatar from '../../shop/Avatar'
 import { greet } from '../../shop/greet'
 
 import { CustomOverlayMap } from 'react-kakao-maps-sdk'
-import type { PositionedDrainMapItem } from '../../../types/map'
+import type { DrainMapFilter, PositionedDrainMapItem } from '../../../types/map'
 
 interface DrainMarkerProps {
   drain: PositionedDrainMapItem
+  filter: DrainMapFilter
   hint?: boolean
   outfit?: string | null
   selected: boolean
@@ -34,13 +35,30 @@ const STATUS_NAMES = {
   unknown: '상태 미확인',
 }
 
+const INSPECTION_BADGES = {
+  NEEDS_HELP: { label: '도움 필요', className: 'bg-[#FFEDC4] text-[#80490B]' },
+  IN_PROGRESS: { label: '진행 중', className: 'bg-[#E4EEFF] text-[#264DAD]' },
+  DONE: { label: '완료', className: 'bg-[#DCF5E8] text-[#216747]' },
+  overdue: { label: '점검 지연', className: 'bg-[#FFF2D3] text-[#805719]' },
+}
+
+function getInspectionBadge(drain: PositionedDrainMapItem, filter: DrainMapFilter) {
+  const rainStatus = drain.rainRequest?.status
+  if (filter === 'all') return rainStatus ? INSPECTION_BADGES[rainStatus] : null
+  if (filter !== 'inspection-needed') return null
+  if (rainStatus === 'NEEDS_HELP') return INSPECTION_BADGES.NEEDS_HELP
+  return drain.status === 'overdue' ? INSPECTION_BADGES.overdue : null
+}
+
 export default function DrainMarker({
   drain,
+  filter,
   selected,
   outfit,
   hint = false,
   onSelect,
 }: DrainMarkerProps) {
+  const inspectionBadge = getInspectionBadge(drain, filter)
   const available =
     drain.adoptionStatus === 'AVAILABLE' || drain.status === 'unadopted'
   const [tick, setTick] = useState(0)
@@ -60,7 +78,7 @@ export default function DrainMarker({
       clickable
       xAnchor={0.5}
       yAnchor={0.9}
-      zIndex={selected ? 20 : 2}
+      zIndex={selected ? 20 : inspectionBadge ? 3 : 2}
     >
       <button
         type="button"
@@ -76,13 +94,24 @@ export default function DrainMarker({
 
         aria-label={`${drain.nickname ?? drain.name}, ${
           drain.level !== null ? `레벨 ${drain.level}, ` : ''
-        }${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}`}
+        }${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`}
 
         aria-pressed={selected}
         className="relative flex cursor-pointer flex-col items-center"
       >
+        {inspectionBadge && (
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-full border border-white px-1.5 py-0.5 text-[10px] font-bold leading-tight shadow-sm ${inspectionBadge.className}`}
+          >
+            {inspectionBadge.label}
+          </span>
+        )}
         {available && ((hint && !selected) || (selected && playing)) && (
-          <span className="drain-whisper">
+          <span
+            className="drain-whisper"
+            style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
+          >
             {selected ? reaction.text : '저를 입양해 주세요!'}
           </span>
         )}

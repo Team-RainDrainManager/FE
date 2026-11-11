@@ -1,12 +1,15 @@
 
+import { useContext, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   getAdoptionDrainDetail,
   getMyAdoptionList,
 } from '../../apis/adoptions'
 import { getMyRainRequests } from '../../apis/requests'
+import { getPauseStatus } from '../../apis/profile-settings'
+import { AccountId } from '../../features/missions/wallet'
 import { useAuthStore } from '../../store/useAuthStore'
 
 import DrainInfo from './components/DrainInfo'
@@ -18,6 +21,9 @@ import InspectionHistory from './components/InspectionHistory'
 import AdoptionCare from './components/AdoptionCare'
 
 export default function DrainDetailPage() {
+  const queryClient = useQueryClient()
+  const accountId = useContext(AccountId)
+  const [now, setNow] = useState(() => Date.now())
   const { drainId } = useParams()
   const id = Number(drainId)
   const validId = Number.isInteger(id) && id > 0
@@ -89,12 +95,40 @@ export default function DrainDetailPage() {
       ),
   )
 
+  const adoptionId = drain?.adoption?.adoptionId
   const isMine =
-    drain?.adoption != null &&
+    adoptionId !== undefined &&
     (myAdoptions?.adoptions.some(
-      (item) =>
-        item.adoptionId === drain.adoption?.adoptionId,
+      (item) => item.adoptionId === adoptionId,
     ) ?? false)
+
+  const { data: pauseStatus } = useQuery({
+    queryKey: ['pause-status', accountId],
+    queryFn: getPauseStatus,
+    enabled: isMine && accountId !== null,
+    staleTime: 30_000,
+  })
+  const pauseUntil =
+    isMine && accountId !== null ? pauseStatus?.activeUntil ?? null : null
+  const pauseEndTime = pauseUntil ? new Date(pauseUntil).getTime() : 0
+  const activePauseUntil = pauseEndTime > now ? pauseUntil : null
+
+  useEffect(() => {
+    if (!(pauseEndTime > now)) return
+
+    const delay = Math.min(60_000, Math.max(0, pauseEndTime - Date.now()))
+    const timer = window.setTimeout(() => {
+      const currentTime = Date.now()
+      setNow(currentTime)
+
+      if (currentTime >= pauseEndTime) {
+        void queryClient.invalidateQueries({ queryKey: ['drain-detail', id], exact: true })
+        void queryClient.invalidateQueries({ queryKey: ['adoption-detail', adoptionId], exact: true })
+      }
+    }, delay)
+
+    return () => window.clearTimeout(timer)
+  }, [adoptionId, id, now, pauseEndTime, queryClient])
 
 
 // 빗물받이 성장 정보 조회
@@ -190,7 +224,10 @@ const {
       </div>
 
       {isMine && drain.adoption && (
-        <AdoptionCare adoptionId={drain.adoption.adoptionId} />
+        <AdoptionCare
+          adoptionId={drain.adoption.adoptionId}
+          isPaused={activePauseUntil !== null}
+        />
       )}
 
       <DrainPhoto drain={drain} />
@@ -212,6 +249,7 @@ const {
 <DrainActions
   drain={drain}
   isMine={isMine}
+  activePauseUntil={activePauseUntil}
   rainRequest={rainRequest}
 />
 

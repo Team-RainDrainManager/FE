@@ -1,6 +1,4 @@
-import MissionButton from '../../features/missions/MissionButton'
-
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
@@ -10,9 +8,10 @@ import {
   getMyAdoptions,
   toMyAdoptionsView,
 } from '../../apis/my-drains'
+import { getPauseStatus } from '../../apis/profile-settings'
 
 import Character from '../../components/common/Character'
-import { useMyDrainsStore } from '../../store/useMyDrainsStore'
+import { AccountId } from '../../features/missions/wallet'
 
 import type {
   DrainModalType,
@@ -32,10 +31,13 @@ type ReleaseVariables = {
 
 export default function MyDrainsPage() {
   const queryClient = useQueryClient()
-  // 점검 쉬기는 기존 상태 유지 (별도 API 연동 예정)
-  const pauseStatus = useMyDrainsStore(
-    (state) => state.pauseStatus,
-  )
+  const accountId = useContext(AccountId)
+  const pauseQuery = useQuery({
+    queryKey: ['pause-status', accountId],
+    queryFn: getPauseStatus,
+    enabled: accountId !== null,
+    staleTime: 30_000,
+  })
 
   const [modal, setModal] = useState<PageModal>(null)
   const [feedback, setFeedback] = useState('')
@@ -106,7 +108,6 @@ export default function MyDrainsPage() {
   if (isPending) {
     return (
       <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] bg-[#F4F7FC] px-4 py-16 text-center">
-        <MissionButton />
         <Character
           type="state"
           state="happy"
@@ -161,7 +162,6 @@ export default function MyDrainsPage() {
           </p>
         </div>
 
-        <MissionButton />
         <Character
           type="state"
           state="happy"
@@ -196,9 +196,7 @@ export default function MyDrainsPage() {
             <DrainCard
               key={adoption.adoption_id}
               adoption={adoption}
-              accountPauseUntil={
-                pauseStatus.active_until
-              }
+              accountPauseUntil={pauseQuery.data?.activeUntil ?? null}
               onOpen={openModal}
             />
           ))}

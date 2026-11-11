@@ -24,7 +24,7 @@ import {
   mergeDrainDetail,
   type DrainSearchItem,
 } from '../../apis/drains'
-import { hasCoordinates } from '../../types/map'
+import { hasCoordinates, needsInspection } from '../../types/map'
 import type {
   DrainMapFilter,
   DrainMapItem,
@@ -53,7 +53,7 @@ const FILTERS: {
   { value: 'all', label: '전체' },
   { value: 'unadopted', label: '미입양' },
   { value: 'normal', label: '정상' },
-  { value: 'overdue', label: '점검 지연' },
+  { value: 'inspection-needed', label: '점검 필요' },
   { value: 'blocked', label: '막힘 제보' },
 ]
 
@@ -61,7 +61,7 @@ const FILTER_DOTS: Record<DrainMapFilter, string> = {
   all: 'bg-[#6FAEFF]',
   unadopted: 'bg-[#98A2B3]',
   normal: 'bg-[#4FBAA1]',
-  overdue: 'bg-[#F5B84B]',
+  'inspection-needed': 'bg-[#F5B84B]',
   blocked: 'bg-[#EF7272]',
 }
 
@@ -74,8 +74,8 @@ const FILTER_ACTIVE_STYLES: Record<
     'border-[#B4BDC8] bg-[#B4BDC8] text-white',
   normal:
     'border-[#62C19C] bg-[#62C19C] text-white',
-  overdue:
-    'border-[#F0C24F] bg-[#F0C24F] text-white',
+  'inspection-needed':
+    'border-[#6FAEFF] bg-[#6FAEFF] text-white',
   blocked:
     'border-[#E97C7C] bg-[#E97C7C] text-white',
 }
@@ -94,7 +94,6 @@ const STATUS_LABELS = {
 const SEARCH_STATUSES: Partial<Record<DrainMapFilter, string>> = {
   unadopted: 'AVAILABLE',
   normal: 'NORMAL',
-  overdue: 'MANAGEMENT_DELAYED',
   blocked: 'BLOCKAGE_REPORTED',
 }
 
@@ -252,7 +251,8 @@ function KakaoMapContent({
     return () => window.clearTimeout(timer)
   }, [query])
 
-  // 검색창은 지도 영역과 무관하게 전체 빗물받이 목록 API 사용
+  // 이름·주소 검색은 전체 빗물받이 목록 API를 사용합니다.
+  const searchStatus = SEARCH_STATUSES[filter]
   const {
     data: searchResults,
     isPending: searchPending,
@@ -260,12 +260,12 @@ function KakaoMapContent({
     error: searchQueryError,
     refetch: refetchSearch,
   } = useQuery({
-    queryKey: ['drain-search', debouncedQuery, filter, searchPage],
+    queryKey: ['drain-search', debouncedQuery, searchStatus, searchPage],
     queryFn: ({ signal }) => getDrainPage({
       q: debouncedQuery,
       page: searchPage,
       size: SEARCH_PAGE_SIZE,
-      status: SEARCH_STATUSES[filter],
+      status: searchStatus,
     }, signal),
     enabled: debouncedQuery.length > 0,
     staleTime: 30_000,
@@ -305,6 +305,7 @@ function KakaoMapContent({
       selectedDetail,
     )
   }, [selectedSummary, selectedDetail])
+  const selectedRainRequest = selectedDrain?.rainRequest
 
   // 서버 주소가 없을 때만 선택한 빗물받이의 좌표를 주소로 변환합니다.
   // 카카오맵 services 라이브러리의 역지오코딩을 사용합니다.
@@ -423,9 +424,9 @@ function KakaoMapContent({
 
   // 지도 마커·목록은 기존 지도 영역 API만 사용
   const filteredDrains = useMemo(() => {
-    return drains.filter((drain) =>
-      filter === 'all' || drain.status === filter,
-    )
+    if (filter === 'all') return drains
+    if (filter === 'inspection-needed') return drains.filter(needsInspection)
+    return drains.filter((drain) => drain.status === filter)
   }, [drains, filter])
 
   // 좌표가 있는 빗물받이만 마커 표시
@@ -458,6 +459,7 @@ function KakaoMapContent({
   const selectedOverlay =
     selectedDrain &&
     hasCoordinates(selectedDrain) &&
+    (filter !== 'inspection-needed' || needsInspection(selectedDrain)) &&
     !visibleDrains.some(
       (drain) => drain.id === selectedDrain.id,
     )
@@ -482,6 +484,9 @@ function KakaoMapContent({
   // /list 검색 결과 선택: 현재 지도에 없는 빗물받이도 상세 API로 찾음
   const handleSelectSearchResult = (item: DrainSearchItem) => {
     const existing = drains.find((drain) => drain.id === item.id)
+    if (filter === 'inspection-needed' && (!existing || !needsInspection(existing))) {
+      setFilter('all')
+    }
     if (existing) {
       handleSelectDrain(existing)
       return
@@ -497,6 +502,7 @@ function KakaoMapContent({
       adoptionStatus: null,
       isRisk: null,
       status: 'unknown',
+      rainRequest: null,
       displayStatus: null,
       displayStatusLabel: null,
       dirtLevel: null,
@@ -510,6 +516,17 @@ function KakaoMapContent({
     setSearchOpen(false)
     setListOpen(false)
     setNotice('')
+  }
+
+  const openHelpRequest = (requestId: number) => {
+    navigate(`/notifications?requestId=${requestId}`, {
+      state: {
+        mapRequestCoordinates: currentPosition && {
+          latitude: currentPosition.lat,
+          longitude: currentPosition.lng,
+        },
+      },
+    })
   }
 
   // 내 위치 이동
@@ -638,6 +655,7 @@ const statusNotice = drainsError
               <DrainMarker
                 key={drain.id}
                 drain={drain}
+                filter={filter}
                 outfit={outfitFor(drain.id)}
                 hint={zoomLevel<=3 || nearby.includes(drain.id)}
                 selected={selectedId === drain.id}
@@ -651,6 +669,7 @@ const statusNotice = drainsError
             {selectedOverlay && (
               <DrainMarker
                 drain={selectedOverlay}
+                filter={filter}
                 outfit={outfitFor(selectedOverlay.id)}
                 selected
                 onSelect={handleSelectDrain}
@@ -905,6 +924,11 @@ const statusNotice = drainsError
                       {selectedDrain.displayStatusLabel ??
                         STATUS_LABELS[selectedDrain.status]}
                     </span>
+                    {selectedRainRequest?.status === 'NEEDS_HELP' && (
+                      <span className="rounded-full bg-[#FFEDC4] px-2 py-1 text-xs font-bold text-[#80490B]">
+                        도움 필요
+                      </span>
+                    )}
                   </div>
 
                   <h2 className="mt-2 text-base font-bold tracking-tight text-[#203451]">
@@ -950,6 +974,15 @@ const statusNotice = drainsError
               )}
 
               <div className="mt-4 grid grid-cols-2 gap-2">
+                {selectedRainRequest?.status === 'NEEDS_HELP' && (
+                  <button
+                    type="button"
+                    onClick={() => openHelpRequest(selectedRainRequest.requestId)}
+                    className="col-span-2 min-h-11 rounded-2xl bg-[#6384EF] px-2 py-3 text-xs font-bold text-white transition hover:bg-[#5476E3]"
+                  >
+                    도움 요청 보기
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setReportOpen(true)}
@@ -1022,6 +1055,7 @@ const statusNotice = drainsError
                     aria-pressed={active}
                     onClick={() => {
                       setFilter(option.value)
+                      setSearchPage(0)
                       setSelectedSummary(null)
                     }}
                     className={`flex h-9 min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-1 text-[11px] font-bold transition min-[360px]:text-[12px] ${

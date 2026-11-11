@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type RefObject } from 'react'
+import { useContext, useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router'
 import { logout, getErrorMessage } from '../../apis/auth'
@@ -13,6 +13,7 @@ import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstR
 import { useDecorationStore } from '../../store/useDecorationStore'
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
 import { requestPushPermission, syncPushTokenIfAllowed, unregisterPushDevice } from '../../services/push-messaging'
+import { AccountId } from '../../features/missions/wallet'
 import PushOptInCard from '../../features/push/PushOptInCard'
 
 const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] = [
@@ -24,6 +25,7 @@ const card = 'dd-settings-card rounded-[22px] border border-[#E5EEF7] bg-white p
 
 export default function SettingsPage({ embedded = false, reportButtonRef }: { embedded?: boolean; reportButtonRef?: RefObject<HTMLButtonElement | null> }) {
   const navigate = useNavigate()
+  const accountId = useContext(AccountId)
   const clearAuth = useAuthStore(s => s.clear)
   const clearOnboarding = useOnboardingStore(s => s.clear)
   const clearMyDrains = useMyDrainsStore(s => s.reset)
@@ -126,8 +128,25 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     try {
       await requestPause()
       setPauseMessage('점검 쉬기 신청이 완료됐습니다.')
-      try { setPauseStatus(await getPauseStatus()) }
-      catch { setPauseStatus(null); setPauseError('신청은 완료됐지만 최신 상태를 불러오지 못했습니다. 다시 열어 확인해 주세요.') }
+      void queryClient.invalidateQueries({ queryKey: ['my-adoptions'] })
+
+      try {
+        if (accountId === null) {
+          void queryClient.invalidateQueries({ queryKey: ['pause-status'], refetchType: 'none' })
+          setPauseStatus(await getPauseStatus())
+        } else {
+          const queryKey = ['pause-status', accountId]
+          await queryClient.cancelQueries({ queryKey, exact: true })
+          setPauseStatus(await queryClient.fetchQuery({
+            queryKey,
+            queryFn: getPauseStatus,
+            staleTime: 0,
+          }))
+        }
+      } catch {
+        setPauseStatus(null)
+        setPauseError('신청은 완료됐지만 최신 상태를 불러오지 못했습니다. 다시 열어 확인해 주세요.')
+      }
     } catch (error: unknown) {
       setPauseError(getErrorMessage(error))
     } finally {

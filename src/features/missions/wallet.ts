@@ -2,17 +2,10 @@ import { currentId, tryOn, wornItems, type StudioItem } from '../../pages/shop/c
 import { createContext, useContext, useSyncExternalStore } from 'react'
 
 export const AccountId = createContext<number | null>(null)
-export const missions = [
-  { id: 'photo', title: '빗물받이 사진 1장 찍기', reward: 1 },
-  { id: 'substitute', title: '빗물받이 대신점검 1회 하기', reward: 3 },
-  { id: 'clean', title: '빗물받이 개인점검 청소 하기', reward: 5 },
-] as const
-type Mission = typeof missions[number]['id']
-type Wallet = { balance: number; owned: string[]; outfit: string | null; day: string; done: Mission[] }
-const empty: Wallet = { balance: 0, owned: [], outfit: null, day: '', done: [] }
-const formatDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' })
-export const today = () => formatDay.format(new Date())
+type Wallet = { balance: number; owned: string[]; outfit: string | null }
+const empty: Wallet = { balance: 0, owned: [], outfit: null }
 export const drops = (n: number) => '💧' + String(n).replace(/\d/g, d => String.fromCodePoint(0x1d7ce + Number(d)))
+// 기존 빗물 잔액과 보유 아이템을 읽기 위해 저장 키를 유지합니다.
 const key = (id: number) => 'ddorang:mission-wallet:v1:' + id
 function snapshot(id: number | null) {
   try { return id === null ? null : localStorage.getItem(key(id)) } catch { return null }
@@ -44,16 +37,6 @@ async function change(id: number | null, update: (s: Wallet) => Wallet) {
     localStorage.setItem(key(id), JSON.stringify(next))
     window.dispatchEvent(new Event('wallet-change'))
     return true
-  })
-}
-export function award(id: number | null, mission: Mission) {
-  const day = today()
-  const reward = missions.find(m => m.id === mission)!.reward
-  return change(id, state => {
-    const done = state.day === day ? state.done : []
-    return done.includes(mission) ? state : {
-      ...state, day, done: [...done, mission], balance: state.balance + reward,
-    }
   })
 }
 export function buyItem(id: number | null, item: StudioItem, level: number) {

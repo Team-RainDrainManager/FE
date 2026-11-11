@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 
 import { getCurrentCoordinates } from '../../apis/adoptions'
 import { getErrorMessage } from '../../apis/auth'
@@ -35,10 +35,16 @@ function formatNotificationDate(value: string) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
+  const { search, state } = useLocation()
   const queryClient = useQueryClient()
+  const requestId = Number(new URLSearchParams(search).get('requestId'))
+  const focusedRequestId = Number.isSafeInteger(requestId) && requestId > 0 ? requestId : null
   const [requestMessage, setRequestMessage] = useState('')
   const [activeTab, setActiveTab] = useState<'requests' | 'activity'>('requests')
-  const [coordinates, setCoordinates] = useState<Coordinates | null>(null)
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(() => {
+    const mapState = state as { mapRequestCoordinates?: Coordinates | null } | null
+    return focusedRequestId === null ? null : mapState?.mapRequestCoordinates ?? null
+  })
   const [locationPending, setLocationPending] = useState(false)
   const [locationError, setLocationError] = useState('')
   const [notificationMessage, setNotificationMessage] = useState('')
@@ -46,6 +52,7 @@ export default function NotificationsPage() {
   const {
     data: requests = [],
     isPending: requestsPending,
+    isFetching: requestsFetching,
     isError: requestsFailed,
     error: requestsError,
     refetch: refetchRequests,
@@ -56,7 +63,12 @@ export default function NotificationsPage() {
     refetchInterval: 60_000,
   })
 
-  type RequestMutationInput = { requestId: number; action: RequestAction }
+  const focusedRequest = requests.find((request) => request.requestId === focusedRequestId)
+  const displayedRequests = focusedRequest
+    ? [focusedRequest, ...requests.filter((request) => request.requestId !== focusedRequestId)]
+    : requests
+
+  type RequestMutationInput = { requestId: number; drainId: number; action: RequestAction }
   const respondMutation = useMutation({
     mutationFn: async ({ requestId, action }: RequestMutationInput) => {
       if (action === 'claim') {
@@ -66,8 +78,14 @@ export default function NotificationsPage() {
       }
       return replyRainRequest(requestId, action === 'accept' ? 'ACCEPT' : 'DECLINE')
     },
-    onSuccess: async (_result, { action }) => {
-      await queryClient.invalidateQueries({ queryKey: ['rain-requests'] })
+    onSuccess: async (_result, { requestId, drainId, action }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['rain-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
+        queryClient.invalidateQueries({ queryKey: ['rain-notice'] }),
+        queryClient.invalidateQueries({ queryKey: ['drain-detail', drainId] }),
+        queryClient.invalidateQueries({ queryKey: ['rain-inspection-context', requestId] }),
+      ])
       setRequestMessage(
         action === 'claim'
           ? '대신 점검을 맡았어요. 입양권은 이동하지 않아요.'
@@ -264,7 +282,7 @@ export default function NotificationsPage() {
     const requiredAction = action === 'claim' ? 'CLAIM' : 'REPLY'
     if (!target?.availableActions.includes(requiredAction)) return
     setRequestMessage('')
-    respondMutation.mutate({ requestId, action })
+    respondMutation.mutate({ requestId, drainId: target.drain.drainId, action })
   }
 
   const showNearbyAtMyLocation = async () => {
@@ -337,6 +355,13 @@ export default function NotificationsPage() {
         {coordinates && requests.length > 0 && (<p className="mb-2 text-[13px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>)}
         {locationError && <p role="alert" className="mb-3 text-[13px] text-[#B84D4D]">{locationError}</p>}
         {requestMessage && <p role="status" className="mb-3 text-[13px] leading-5 text-[#637790]">{requestMessage}</p>}
+        {focusedRequestId !== null && !focusedRequest && !requestsPending && !requestsFetching && !requestsFailed && !locationPending && (
+          <p role="status" className="mb-3 text-[13px] leading-5 text-[#637790]">
+            {coordinates
+              ? '지도에서 고른 점검 요청이 현재 목록에 없어요.'
+              : '지도에서 고른 요청을 찾으려면 내 위치 주변 요청을 확인해 주세요.'}
+          </p>
+        )}
         {requestsPending ? (
           <p role="status" className="py-6 text-[13px] text-[#637790]">점검 요청을 불러오는 중이에요.</p>
         ) : requestsFailed ? (
@@ -353,7 +378,7 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div>
-            {requests.map((request) => (
+            {displayedRequests.map((request) => (
               <InspectionRequestCard
                 key={request.requestId}
                 request={request}

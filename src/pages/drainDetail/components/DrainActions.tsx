@@ -7,6 +7,7 @@ import type { InspectionRequest } from '../../../types/notifications'
 
 import { AdoptForm, ReleaseForm } from './AdoptionForms'
 import { InspectForm } from '../../mydrains/components/ActionForms'
+import { formatCareDate } from '../../mydrains/utils'
 import RainInspectForm from './RainInspectForm'
 
 type Action =
@@ -18,6 +19,7 @@ type Action =
 type Props = {
   drain: DrainDetailDto
   isMine: boolean
+  activePauseUntil: string | null
   rainRequest?: InspectionRequest
 }
 
@@ -31,6 +33,7 @@ const TITLES: Record<Action, string> = {
 export default function DrainActions({
   drain,
   isMine,
+  activePauseUntil,
   rainRequest,
 }: Props) {
   const [action, setAction] =
@@ -47,6 +50,8 @@ export default function DrainActions({
   const isMyAdoption =
     drain.adoptionStatus === 'ADOPTED' &&
     isMine
+
+  const pauseUntil = isMyAdoption ? activePauseUntil : null
 
   const canUseRainRequest =
     Boolean(rainRequest) &&
@@ -108,12 +113,12 @@ export default function DrainActions({
             </p>
 
             <p className="font-bold text-[#203451]">
-              다음 점검:{' '}
-              {drain.adoption.nextManagementAt
-                ? new Date(
-                    drain.adoption.nextManagementAt,
-                  ).toLocaleDateString('ko-KR')
-                : '미정'}
+              {pauseUntil ? '점검 쉬기 종료' : '다음 점검'}:{' '}
+              {pauseUntil
+                ? formatCareDate(pauseUntil)
+                : drain.adoption.nextManagementAt
+                  ? new Date(drain.adoption.nextManagementAt).toLocaleDateString('ko-KR')
+                  : '미정'}
             </p>
           </div>
         ) : (
