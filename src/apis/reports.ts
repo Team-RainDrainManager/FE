@@ -34,6 +34,7 @@ export type ReportStatus =
   | 'PENDING'
   | 'APPROVED'
   | 'REJECTED'
+  | 'CLEARED'
 
 // 1. 제보 생성 요청
 export type CreateReportRequest = {
@@ -41,8 +42,8 @@ export type CreateReportRequest = {
   type: ReportType
   photoKey?: string
   description?: string
-  latitude: number
-  longitude: number
+  latitude?: number
+  longitude?: number
   newLatitude?: number
   newLongitude?: number
 }
@@ -80,6 +81,7 @@ export type ReportDetail = {
   status: ReportStatus
   adminComment: string | null
   resolvedAt: string | null
+  clearedAt: string | null
   createdAt: string
 }
 
