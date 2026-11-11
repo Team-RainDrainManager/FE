@@ -7,7 +7,6 @@ import MyDrainsPage from './pages/mydrains/MyDrainsPage'
 import DrainDetailPage from './pages/drainDetail/DrainDetailPage'
 import MapPage from './pages/map/MapPage'
 import SocialPage from './pages/social/SocialPage'
-import LeaderboardPage from './pages/social/LeaderboardPage'
 import NotificationsPage from './pages/notifications/NotificationsPage'
 import LoginPage from './pages/login/LoginPage'
 import MyPage from './pages/profile/MyPage'
@@ -61,7 +60,6 @@ export default function App() {
         <Route path="/drains/:drainId" element={<DrainDetailPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/social" element={<SocialPage />} />
-        <Route path="/social/leaderboard" element={<LeaderboardPage />} />
         <Route path="/notifications"element={<NotificationsPage />} />
         <Route path="/profile/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />
