@@ -1,9 +1,8 @@
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 
 import { getAdoptionDrainDetail } from '../../apis/adoptions'
-import { AccountId, award } from '../../features/missions/wallet'
 import BoxEditor from './camera/BoxEditor'
 import { cropWithBox, type Box } from './camera/box'
 import { CAMERA } from './camera/config'
@@ -73,7 +72,6 @@ export default function CameraCapture({
   reference = null,
   boxNote = '흰 점선 안쪽만 사진으로 저장돼요.',
 }: Props) {
-  const account = useContext(AccountId)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const shotUrlRef = useRef<string | null>(null)
   const startBox = reference?.box ?? CAMERA.guide
@@ -153,7 +151,7 @@ export default function CameraCapture({
     try {
       const cropped = cropWithBox(shot.canvas, shot.canvas.width, shot.canvas.height, box)
       const blob = await canvasToJpeg(cropped)
-      void award(account, 'photo').catch(console.error)
+      
       onCapture(
         new File([blob], `drain-${shot.takenAt}.jpg`, {
           type: 'image/jpeg',

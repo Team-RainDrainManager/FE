@@ -20,4 +20,3 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 )
-import './features/missions/missions.css'
