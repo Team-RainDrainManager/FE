@@ -16,7 +16,13 @@ function nextCheckText(days: number | null): string {
  * 내가 입양한 빗물받이의 돌봄 정보 (GET /api/v1/adoptions/{adoptionId}).
  * 다음 점검까지 남은 날, 함께한 날, 놓친 비 예보 점검을 한눈에 보여 줍니다.
  */
-export default function AdoptionCare({ adoptionId }: { adoptionId: number }) {
+export default function AdoptionCare({
+  adoptionId,
+  isPaused,
+}: {
+  adoptionId: number
+  isPaused: boolean
+}) {
   const [now] = useState(() => Date.now())
   const { data, isError } = useQuery({
     queryKey: ['adoption-detail', adoptionId],
@@ -37,7 +43,7 @@ export default function AdoptionCare({ adoptionId }: { adoptionId: number }) {
   const days = typeof data.daysUntilNextManagement === 'number' ? data.daysUntilNextManagement : null
   const adoptedAt = new Date(data.adoptedAt).getTime()
   const together = Number.isFinite(adoptedAt) ? Math.max(1, Math.floor((now - adoptedAt) / DAY_MS) + 1) : null
-  const overdue = days !== null && days < 0
+  const overdue = !isPaused && days !== null && days < 0
 
   return (
     <section
@@ -48,7 +54,7 @@ export default function AdoptionCare({ adoptionId }: { adoptionId: number }) {
       <p className={`mt-2 rounded-xl px-3 py-2.5 text-[15px] font-bold leading-6 ${
         overdue ? 'bg-[#FFF4DC] text-[#8A6510]' : 'bg-[#EAF2FF] text-[#3981F7]'
       }`}>
-        {nextCheckText(days)}
+        {isPaused ? '점검 쉬는 중' : nextCheckText(days)}
       </p>
 
       <dl className="mt-2 grid grid-cols-2 gap-2 text-[13px]">
@@ -62,7 +68,7 @@ export default function AdoptionCare({ adoptionId }: { adoptionId: number }) {
         </div>
       </dl>
 
-      {data.releaseWarning && (
+      {!isPaused && data.releaseWarning && (
         <p className="mt-2 text-[13px] leading-5 text-[#B84D4D]">점검이 오래 밀려 있어요. 계속 밀리면 입양이 해제될 수 있어요.</p>
       )}
       {data.lonely && (
