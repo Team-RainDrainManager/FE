@@ -10,7 +10,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/my-drains': '또랑이',
   '/map': '지도',
   '/social': '소셜',
-  '/social/leaderboard': '리더보드',
   '/notifications': '알림',
   '/profile/mypage': '마이페이지',
   '/profile': '프로필',

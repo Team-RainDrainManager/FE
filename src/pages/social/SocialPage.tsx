@@ -1,548 +1,294 @@
-import { rankStyle } from '../shop/catalog'
-import { useTopRanks, useWeeklyScore } from '../../apis/leaderboard'
-import Avatar from '../shop/Avatar'
-import { greet } from '../shop/greet'
-import { useWallet } from '../../features/missions/wallet'
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { useContext, useEffect, useRef, useState } from 'react'
+import { useMyWeeklyRank, useTopRanks, type Rank } from '../../apis/leaderboard'
+import happyCharacter from '../../assets/characters/states/happy.svg'
+import { AccountId } from '../../features/missions/wallet'
 
-import {
-  CURRENT_SOCIAL_USER_ID,
-  MOCK_SOCIAL_FEED,
-  MOCK_SOCIAL_USERS,
-} from '../../mocks/social'
-import type { SocialUser } from '../../types/social'
-import FriendInviteDialog from './components/FriendInviteDialog'
-import ReportableNickname from '../../features/moderation/ReportableNickname'
-import { storeDemoReport } from '../../features/moderation/nickname-report-store'
-import './social-home.css'
+const numbers = new Intl.NumberFormat('ko-KR')
+const weekDate = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  month: 'long',
+  day: 'numeric',
+})
 
-type View = 'feed' | 'add' | 'list'
-type LeagueView = 'mine' | 'top'
+const avatarColors = [
+  'bg-[#e6f1fd] text-[#255d8a]',
+  'bg-[#e2f4ec] text-[#236653]',
+  'bg-[#eee8f9] text-[#684e9a]',
+  'bg-[#f7eddf] text-[#815638]',
+  'bg-[#fae8ef] text-[#924563]',
+]
 
-const FRIENDS_KEY = 'ddorang:demo-friends'
-const LIKES_KEY = 'ddorang:demo-feed-likes'
-const PENDING_KEY = 'ddorang:demo-friend-requests-outgoing'
-const INCOMING_KEY = 'ddorang:demo-friend-requests-incoming'
-const LEAGUE_ART = ['🌳', '🪨', '⚙️', '🥉', '🥈', '🥇', '💠', '💎'] as const
-const LEAGUE_LABELS = ['나무', '돌', '철', '청동', '은', '금', '백금', '다이아'] as const
+const rankColors = [
+  'bg-[#fff0c8] text-[#875704]',
+  'bg-[#eaf0f7] text-[#425b79]',
+  'bg-[#fae9db] text-[#874f2a]',
+]
 
-const LEAGUE_STEPS = [
-  { name: 'WOOD', min: 0 },
-  { name: 'STONE', min: 150 },
-  { name: 'IRON', min: 300 },
-  { name: 'BRONZE', min: 450 },
-  { name: 'SILVER', min: 600 },
-  { name: 'GOLD', min: 750 },
-  { name: 'PLATINUM', min: 900 },
-  { name: 'DIAMOND', min: 1050 },
-] as const
+function formatWeekStart(periodStart: string | null) {
+  if (!periodStart) return null
 
+  // 서버의 오프셋 없는 주간 시작 시각은 한국 시각으로 해석합니다.
+  const hasOffset = /(?:Z|[+-]\d{2}:\d{2})$/i.test(periodStart)
+  const start = new Date(hasOffset ? periodStart : periodStart + '+09:00')
+  return Number.isFinite(start.getTime()) ? weekDate.format(start) + '부터' : null
+}
 
-function readIds(key: string, fallback: number[]): number[] {
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    || (window.matchMedia('(pointer: coarse)').matches && window.innerWidth <= 1024)
+}
+
+async function copyInviteLink(url: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(url)
+      return
+    } catch {
+      // 클립보드 권한이 제한된 환경에서는 선택 복사를 시도합니다.
+    }
+  }
+
+  const previousFocus = document.activeElement
+  const field = document.createElement('textarea')
+  field.value = url
+  field.readOnly = true
+  field.style.position = 'fixed'
+  field.style.opacity = '0'
+  field.style.pointerEvents = 'none'
+  document.body.appendChild(field)
+
   try {
-    const stored = window.localStorage.getItem(key)
-    if (stored === null) return fallback
-    const value: unknown = JSON.parse(stored)
-    return Array.isArray(value)
-      ? value.filter((id): id is number => typeof id === 'number' && Number.isInteger(id))
-      : fallback
-  } catch {
-    return fallback
+    field.select()
+    if (!document.execCommand('copy')) throw new Error('링크 복사 실패')
+  } finally {
+    field.remove()
+    if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true })
   }
 }
 
-function saveIds(key: string, ids: number[]) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(ids))
-  } catch {
-    // 스토리지가 제한돼도 현재 화면에서는 정상적으로 동작합니다.
-  }
-}
-
-function ownNickname(): string {
-  try {
-    const name = window.localStorage.getItem('ddorang:demo-profile-name')?.trim()
-    if (name) return name
-  } catch {
-    // 브라우저 스토리지 접근이 제한된 경우 기본 닉네임 사용
-  }
-  return MOCK_SOCIAL_USERS.find(user => user.id === CURRENT_SOCIAL_USER_ID)?.nickname ?? '나'
-}
-
-function leagueIndex(score: number) {
-  for (let i = LEAGUE_STEPS.length - 1; i >= 0; i--) {
-    if (score >= LEAGUE_STEPS[i].min) return i
-  }
-  return 0
-}
-
-function FriendAvatar({ user }: { user?: SocialUser }) {
-  const wallet = useWallet()
-  return <button className="rd-social-avatar dd-social-face" type="button" aria-label={`${user?.nickname ?? '친구'}의 또랑이와 인사하기`} onClick={greet}>
-    <Avatar outfit={user?.isMe ? wallet.outfit : user?.outfit} />
-  </button>
-}
-
-function TrophyIcon() {
+function WeekMetric({ label, value, unit }: {
+  label: string
+  value: number | null
+  unit: string
+}) {
   return (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
-      <path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 13v5m-4 2h8m-6-2h4" />
-    </svg>
+    <div className="min-w-0 rounded-2xl border border-white/20 bg-[#ffffff]/10 px-3 py-2.5">
+      <dt className="text-xs font-semibold text-[#edf5ff]">{label}</dt>
+      <dd className="mt-0.5 font-extrabold break-words tabular-nums">
+        {value === null ? (
+          <span className="text-[17px] leading-[35px]">순위 미집계</span>
+        ) : (
+          <>
+            <span className="text-[27px] leading-[35px] tracking-[-0.04em]">{numbers.format(value)}</span>
+            <span className="ml-0.5 text-[13px] text-[#edf5ff]">{unit}</span>
+          </>
+        )}
+      </dd>
+    </div>
   )
 }
 
-function HeartIcon({ filled }: { filled: boolean }) {
+function RankingNotice({ message, onRetry }: {
+  message: string
+  onRetry?: () => void
+}) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20.8 4.6a5.6 5.6 0 0 0-7.9 0l-.9.9-.9-.9a5.6 5.6 0 1 0-7.9 7.9L12 21l8.8-8.5a5.6 5.6 0 0 0 0-7.9Z" />
-    </svg>
+    <div className="px-1 py-3">
+      <p role="status" className="text-[13px] leading-6">{message}</p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-1 min-h-11 rounded-xl bg-[#edf5ff] px-3 text-xs font-bold text-[#1b5aa9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6099e8]"
+        >
+          다시 시도
+        </button>
+      )}
+    </div>
   )
 }
 
-function LeaguePanel({ onClose }: { onClose: () => void }) {
-  const [view, setView] = useState<LeagueView>('mine')
-  const sheetRef = useRef<HTMLElement | null>(null)
-  const sheetDragRef = useRef<{ pointerId: number; startY: number; moved: number } | null>(null)
-  const scrollRef = useRef<HTMLDivElement | null>(null)
-  const scrollDragRef = useRef<{ pointerId: number; startY: number; scrollTop: number } | null>(null)
+function RankingRow({ entry }: { entry: Rank }) {
+  const [failedPhoto, setFailedPhoto] = useState<string | null>(null)
+  const photo = entry.profileImage
+  const avatarColor = avatarColors[entry.userId % avatarColors.length]
+  const rankColor = rankColors[entry.rank - 1] ?? 'text-[#5a728e] [html[data-dd-theme=dark]_&]:text-[#b4c7de]'
 
-  const me = MOCK_SOCIAL_USERS.find(user => user.id === CURRENT_SOCIAL_USER_ID)
-  const wallet = useWallet()
-  const top = useTopRanks(wallet.id, view === 'top')
-  const weekly = useWeeklyScore(wallet.id)
-  const myScore = weekly.data ?? me?.weeklyScore ?? 0
-  const currentLeague = leagueIndex(myScore)
-  const members = MOCK_SOCIAL_USERS.map(user => user.isMe ? {...user, weeklyScore:myScore} : user)
-    .filter(user => leagueIndex(user.weeklyScore) === currentLeague)
-    .sort((a, b) => b.weeklyScore - a.weeklyScore)
-  const movement = members.length >= 3 ? Math.max(1, Math.floor(members.length * 0.25)) : 0
-  const ranked = members.map((user, index) => ({ user, rank: index + 1 }))
-  const zones = [
-    { kind: 'up', title: '↗ 승급 예정', rows: ranked.slice(0, movement) },
-    { kind: 'hold', title: '유지 예정', rows: ranked.slice(movement, members.length - movement) },
-    { kind: 'down', title: '↙ 하락 예정', rows: ranked.slice(members.length - movement) },
-  ].filter(zone => zone.rows.length > 0)
-  useEffect(() => {
-    function onEscape(event: KeyboardEvent) { if (event.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onEscape)
-    return () => window.removeEventListener('keydown', onEscape)
-  }, [onClose])
-
-  function startSheetDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return
-    sheetDragRef.current = { pointerId: event.pointerId, startY: event.clientY, moved: 0 }
-    sheetRef.current?.classList.add('is-dragging')
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-  function moveSheetDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    const drag = sheetDragRef.current
-    if (!drag || drag.pointerId !== event.pointerId) return
-    drag.moved = Math.max(0, event.clientY - drag.startY)
-    sheetRef.current?.style.setProperty('--rd-sheet-drag', `${drag.moved}px`)
-  }
-  function endSheetDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    const drag = sheetDragRef.current
-    if (!drag || drag.pointerId !== event.pointerId) return
-    sheetDragRef.current = null
-    sheetRef.current?.classList.remove('is-dragging')
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-    if (drag.moved > 85) onClose()
-    else sheetRef.current?.style.setProperty('--rd-sheet-drag', '0px')
-  }
-  function startScrollDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.pointerType !== 'mouse' || event.button !== 0 || !scrollRef.current) return
-    if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea')) return
-    scrollDragRef.current = { pointerId: event.pointerId, startY: event.clientY, scrollTop: scrollRef.current.scrollTop }
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-  function moveScrollDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    const drag = scrollDragRef.current
-    if (!drag || drag.pointerId !== event.pointerId || !scrollRef.current) return
-    scrollRef.current.scrollTop = drag.scrollTop - (event.clientY - drag.startY)
-  }
-  function endScrollDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (scrollDragRef.current?.pointerId !== event.pointerId) return
-    scrollDragRef.current = null
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
-  return createPortal(
-    <div className="rd-social-overlay" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
-      <section ref={sheetRef} className="rd-social-league" role="dialog" aria-modal="true" aria-labelledby="rd-league-title">
-        <div className="rd-social-league-head" onPointerDown={startSheetDrag} onPointerMove={moveSheetDrag} onPointerUp={endSheetDrag} onPointerCancel={endSheetDrag} aria-label="아래로 끌어 리그 닫기">
-          <span className="rd-social-sheet-grab" aria-hidden="true" />
-          <div><p className="rd-social-eyebrow">MY DDORANG</p><h2 id="rd-league-title"><TrophyIcon /> 리그</h2></div>
-        </div>
-        <div ref={scrollRef} className="rd-social-league-body" onPointerDown={startScrollDrag} onPointerMove={moveScrollDrag} onPointerUp={endScrollDrag} onPointerCancel={endScrollDrag}>
-          <div className="rd-social-segment" role="tablist" aria-label="리그 순위 보기">
-            <button type="button" role="tab" aria-selected={view === 'mine'} className={view === 'mine' ? 'is-active' : ''} onClick={() => setView('mine')}>내 리그</button>
-            <button type="button" role="tab" aria-selected={view === 'top'} className={view === 'top' ? 'is-active' : ''} onClick={() => setView('top')}>전체 TOP 10</button>
-          </div>
-          {view === 'mine' ? (
-            <>
-              <div className="rd-social-growth">
-                <span>나의 리그 성장</span>
-                <div className="rd-social-growth-rail" aria-label="8단계 리그 성장 경로">
-                  {LEAGUE_STEPS.map((step, idx) => {
-                    const locked = idx > currentLeague
-                    return (
-                      <span key={step.name} className="rd-social-growth-step">
-                        <span title={step.name} aria-label={`${step.name}${locked ? ' 잠김' : idx === currentLeague ? ' 현재 리그' : ' 달성'}`} className={`rd-social-growth-badge${locked ? ' is-locked' : ''}${idx === currentLeague ? ' is-current' : ''}`}>
-                          {locked ? '?' : LEAGUE_ART[idx]}
-                        </span>
-                        {idx < LEAGUE_STEPS.length - 1 && <span className="rd-social-growth-arrow" aria-hidden="true">›</span>}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-              <div className={`rd-social-league-summary rd-social-league-summary-${LEAGUE_STEPS[currentLeague].name.toLowerCase()}`}>
-                <div className="rd-social-summary-info">
-                  <span className="rd-social-summary-kicker">MY LEAGUE · {LEAGUE_LABELS[currentLeague]}</span>
-                  <h3>{LEAGUE_STEPS[currentLeague].name}</h3>
-                  <span className="rd-social-summary-score">이번 주 {myScore.toLocaleString('ko-KR')}점</span>
-                </div>
-                <span className="rd-social-league-motif" aria-hidden="true">{LEAGUE_ART[currentLeague]}</span>
-                <div className="rd-social-rank-pill">{members.findIndex(u => u.id === CURRENT_SOCIAL_USER_ID) + 1} / {members.length}위</div>
-              </div>
-              <p className="rd-social-unlock-note">리그를 하나씩 해금할수록 또랑이를 더 다양하게 꾸밀 수 있어요.</p>
-              <div className="rd-social-section-title"><div><h3>내 리그 순위</h3><p>이번 주 활동 점수 · 관리 현황</p></div></div>
-              <div className="rd-social-rank-zones">
-                {zones.map(zone => (
-                  <section key={zone.kind} className={`rd-social-rank-zone is-${zone.kind}`} aria-label={zone.title}>
-                    <div className="rd-social-zone-label"><strong>{zone.title}</strong></div>
-                    <div className="rd-social-rank-list">
-                      {zone.rows.map(({ user, rank }) => (
-                        <div key={user.id} className={`rd-social-rank-row${user.id === CURRENT_SOCIAL_USER_ID ? ' is-me' : ''}`}>
-                          <span className="rd-social-rank-num">{rank}</span><FriendAvatar user={user} />
-                          <div className="rd-social-rank-person"><strong><ReportableNickname nickname={user.nickname} targetId={String(user.id)} isMe={user.id === CURRENT_SOCIAL_USER_ID}/>{user.id === CURRENT_SOCIAL_USER_ID && <span className="rd-social-me">나</span>}</strong><small>또랑이 {user.drains.length}개 관리{user.drains[0] ? ` · ${user.drains[0].name}` : ''}</small></div>
-                          <div className="rd-social-rank-end"><strong>{user.weeklyScore.toLocaleString('ko-KR')}점</strong></div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-              <p className="rd-social-disclaimer">시연용 리그입니다. 점수 구간과 승급·유지·하락 예정은 실제 운영 기준이 아닙니다.</p>
-            </>
-          ) : (
-            <>
-              <div className="rd-social-section-title"><div><h3>전체 상위 10명</h3><p>이번 주 참여 점수 기준</p></div></div>
-              <div className="rd-social-rank-list">
-                {(top.data ?? []).map(user => (
-                  <div key={user.userId} className={`rd-social-rank-row${user.isMe ? ' is-me' : ''}`}>
-                    <span className="rd-social-rank-num">{user.rank}</span>
-                    <button type="button" className="dd-social-face" aria-label={user.nickname+'의 또랑이와 인사하기'} onClick={greet}><Avatar outfit={user.isMe && wallet.outfit ? wallet.outfit : rankStyle(user.rank)}/></button>
-                    <div className="rd-social-rank-person"><strong><ReportableNickname nickname={user.nickname} targetId={String(user.userId)} isMe={user.isMe}/>{user.isMe && <span className="rd-social-me">나</span>}</strong></div>
-                    <div className="rd-social-rank-end"><strong>{user.score.toLocaleString('ko-KR')}점</strong></div>
-                  </div>
-                ))}
-              </div>
-              <p className="rd-social-disclaimer">{top.isError ? <button onClick={()=>void top.refetch()}>순위를 불러오지 못했어요. 다시 시도</button> : top.isPending ? '순위를 확인하고 있어요.' : !top.data.length ? '이번 주에 집계된 순위가 없어요.' : '다른 집사의 또랑이에는 랭커 전용 코디가 표시돼요.'}</p>
-            </>
-          )}
-        </div>
-      </section>
-    </div>, document.body,
+  return (
+    <li
+      className={
+        'grid min-h-[58px] grid-cols-[29px_36px_minmax(0,1fr)_auto] items-center gap-2.5 border-t px-2 py-1.5 max-[350px]:gap-1.5 ' +
+        (entry.isMe
+          ? 'rounded-xl border-transparent bg-[#edf5ff] [html[data-dd-theme=dark]_&]:bg-[#263c56]'
+          : 'border-[#edf2f8] [html[data-dd-theme=dark]_&]:border-[#31465e]')
+      }
+    >
+      <span className={'grid size-7 place-items-center rounded-[9px] text-[13px] font-extrabold tabular-nums ' + rankColor}>
+        {entry.rank}
+      </span>
+      <span
+        aria-hidden="true"
+        className={'grid size-9 place-items-center overflow-hidden rounded-xl text-sm font-extrabold ' + avatarColor}
+      >
+        {photo && photo !== failedPhoto ? (
+          <img
+            src={photo}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover"
+            onError={() => setFailedPhoto(photo)}
+          />
+        ) : (
+          Array.from(entry.nickname)[0] ?? '또'
+        )}
+      </span>
+      <span className="flex min-w-0 items-center gap-1.5">
+        <span className="truncate text-sm font-bold">{entry.nickname}</span>
+        {entry.isMe && (
+          <span className="shrink-0 text-[11px] font-extrabold text-[#1a5fbf] [html[data-dd-theme=dark]_&]:text-[#9bcaff]">
+            나
+          </span>
+        )}
+      </span>
+      <span className="text-right text-sm font-extrabold whitespace-nowrap text-[#274966] tabular-nums [html[data-dd-theme=dark]_&]:text-[#edf5ff]">
+        {numbers.format(entry.score)}
+        <small className="ml-0.5 text-[11px] font-semibold text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">점</small>
+      </span>
+    </li>
   )
 }
 
 export default function SocialPage() {
-  const [friendIds, setFriendIds] = useState<number[]>(() => readIds(FRIENDS_KEY, []))
-  const [likedIds, setLikedIds] = useState<number[]>(() => readIds(LIKES_KEY, []))
-  const [pendingIds, setPendingIds] = useState<number[]>(() => readIds(PENDING_KEY, []))
-  const [incomingIds, setIncomingIds] = useState<number[]>(() => readIds(INCOMING_KEY, []))
-  const [editingFriends, setEditingFriends] = useState(false)
-  const [view, setView] = useState<View>(() => readIds(FRIENDS_KEY, []).length ? 'feed' : 'add')
-  const [selectedFriend, setSelectedFriend] = useState<SocialUser | null>(null)
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [pokedIds, setPokedIds] = useState<number[]>([])
-  const [cheeredIds, setCheeredIds] = useState<number[]>([])
-  const [leagueOpen, setLeagueOpen] = useState(false)
-  const [reportTarget, setReportTarget] = useState<SocialUser | null>(null)
-  const [pressedReportId, setPressedReportId] = useState<number | null>(null)
-  const [pressedRequestId, setPressedRequestId] = useState<number | null>(null)
+  const accountId = useContext(AccountId)
+  const weekly = useMyWeeklyRank(accountId)
+  const leaderboard = useTopRanks(accountId)
+  const inviting = useRef(false)
   const [notice, setNotice] = useState('')
-  const nickname = ownNickname()
 
-  const friends = MOCK_SOCIAL_USERS.filter(user => user.id !== CURRENT_SOCIAL_USER_ID && friendIds.includes(user.id))
-  const recommendations = MOCK_SOCIAL_USERS.filter(user => user.id !== CURRENT_SOCIAL_USER_ID && !friendIds.includes(user.id) && !pendingIds.includes(user.id) && !incomingIds.includes(user.id))
-  const outgoing = MOCK_SOCIAL_USERS.filter(user => pendingIds.includes(user.id))
-  const incoming = MOCK_SOCIAL_USERS.filter(user => incomingIds.includes(user.id))
-  const friendFeed = MOCK_SOCIAL_FEED.filter(feed => friendIds.includes(feed.userId))
-  const effectiveView = friends.length === 0 ? 'add' : view
-
-  useEffect(() => {
-    const open = () => setLeagueOpen(true)
-    window.addEventListener('ddorang:social-league-open', open)
-    return () => window.removeEventListener('ddorang:social-league-open', open)
-  }, [])
   useEffect(() => {
     if (!notice) return
     const timer = window.setTimeout(() => setNotice(''), 2300)
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  function requestFriend(user: SocialUser) {
-    if (friendIds.includes(user.id) || pendingIds.includes(user.id)) return
-    const next = [...pendingIds, user.id]
-    setPendingIds(next)
-    saveIds(PENDING_KEY, next)
-    setNotice(`${user.nickname}님께 친구 요청을 보냈습니다. (시연용 · 실제 알림 미전송)`)
+  async function shareInvite() {
+    if (inviting.current) return
+    inviting.current = true
+
+    try {
+      const url = new URL('/social', window.location.origin).href
+      if (isMobileDevice() && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({
+            title: '또랑 친구 초대',
+            text: '또랑에서 함께 물길을 돌봐요!',
+            url,
+          })
+          return
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'AbortError') return
+        }
+      }
+
+      await copyInviteLink(url)
+      setNotice('초대 링크가 복사됐어요.')
+    } catch {
+      setNotice('링크 복사에 실패했어요. 주소창의 링크를 복사해 주세요.')
+    } finally {
+      inviting.current = false
+    }
   }
 
-  function handleRequestFriendClick(user: SocialUser) {
-    setPressedRequestId(user.id)
-    window.setTimeout(() => {
-      setPressedRequestId(current => current === user.id ? null : current)
-      requestFriend(user)
-    }, 130)
-  }
-
-  function handleReportClick(user: SocialUser) {
-    setPressedReportId(user.id)
-    window.setTimeout(() => {
-      setPressedReportId(current => current === user.id ? null : current)
-      setReportTarget(user)
-    }, 130)
-  }
-
-  // 서버 연동 전 테스트를 위한 수락 시연입니다. 실제 상대방이 누르는 동작은 아닙니다.
-  function demoAcceptSent(user: SocialUser) {
-    const remaining = pendingIds.filter(id => id !== user.id)
-    setPendingIds(remaining)
-    saveIds(PENDING_KEY, remaining)
-    const next = [...new Set([...friendIds, user.id])]
-    setFriendIds(next)
-    saveIds(FRIENDS_KEY, next)
-    setView('feed')
-    setNotice(`수락 시연: ${user.nickname}님과 친구가 되었습니다.`)
-  }
-
-  function simulateIncoming() {
-    const user = recommendations[0]
-    if (!user) return
-    const next = [...incomingIds, user.id]
-    setIncomingIds(next)
-    saveIds(INCOMING_KEY, next)
-    setNotice(`${user.nickname}님의 친구 요청을 시연으로 받았습니다. (실제 알림 아님)`)
-  }
-
-  function answerIncoming(user: SocialUser, accepted: boolean) {
-    const nextIncoming = incomingIds.filter(id => id !== user.id)
-    setIncomingIds(nextIncoming)
-    saveIds(INCOMING_KEY, nextIncoming)
-    if (accepted) {
-      const nextFriends = [...new Set([...friendIds, user.id])]
-      setFriendIds(nextFriends)
-      saveIds(FRIENDS_KEY, nextFriends)
-      setView('feed')
-      setNotice(`${user.nickname}님과 친구가 되었습니다. (시연)`)
-    } else setNotice(`${user.nickname}님의 친구 요청을 거절했습니다. (시연)`)
-  }
-
-  function cancelRequest(user: SocialUser) {
-    const next = pendingIds.filter(id => id !== user.id)
-    setPendingIds(next)
-    saveIds(PENDING_KEY, next)
-    setNotice(`${user.nickname}님께 보낸 요청을 취소했습니다.`)
-  }
-
-  function removeFriend(user: SocialUser) {
-    const next = friendIds.filter(id => id !== user.id)
-    setFriendIds(next)
-    saveIds(FRIENDS_KEY, next)
-    setSelectedFriend(null)
-    setEditingFriends(false)
-    setView(next.length ? 'list' : 'add')
-    setNotice(`${user.nickname}님을 친구 목록에서 제외했습니다.`)
-  }
-
-  function toggleLike(id: number) {
-    const wasLiked = likedIds.includes(id)
-    const next = wasLiked ? likedIds.filter(value => value !== id) : [...likedIds, id]
-    setLikedIds(next)
-    saveIds(LIKES_KEY, next)
-    setNotice(wasLiked ? '좋아요를 취소했습니다.' : `${nickname}님이 좋아합니다`)
-  }
+  const weekStart = formatWeekStart(weekly.data?.periodStart ?? null)
+  const totalParticipants = leaderboard.data?.totalParticipants
 
   return (
-    <div className="rd-social">
-      <div className="rd-social-top">
-        {effectiveView !== 'feed' && friends.length > 0 ? (
-          <button type="button" className="rd-social-back" onClick={() => setView('feed')} aria-label="친구 피드로 돌아가기">‹ <span>친구 소식</span></button>
+    <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] space-y-4 bg-[#f4f8fe] bg-[radial-gradient(ellipse_at_82%_0%,#e6f2ff,transparent_32rem)] px-[18px] pt-[17px] pb-8 text-[#193454] [html[data-dd-theme=dark]_&]:bg-[#101c2b] [html[data-dd-theme=dark]_&]:bg-none [html[data-dd-theme=dark]_&]:text-[#edf5ff]">
+      <button
+        type="button"
+        onClick={() => void shareInvite()}
+        className="flex w-full cursor-pointer items-center gap-3.5 rounded-[21px] border border-[#dfe9f4] bg-white px-4 py-3.5 text-left shadow-[0_5px_16px_#315d9310] transition-colors hover:border-[#b6d3f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#246fce] [html[data-dd-theme=dark]_&]:border-[#354962]"
+      >
+        <span className="grid size-12 shrink-0 place-items-center rounded-[15px] bg-[#eaf3ff] text-[#2068cd] [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#9bcaff]">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="9" cy="7" r="3" />
+            <path d="M3 20v-1.5a5.5 5.5 0 0 1 5.5-5.5h1a5.5 5.5 0 0 1 5.5 5.5V20M18.5 8v6m-3-3h6" />
+          </svg>
+        </span>
+        <span className="grid min-w-0 flex-1 gap-0.5">
+          <strong className="text-base font-extrabold tracking-tight">친구 초대하기</strong>
+          <small className="text-xs leading-relaxed text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">또랑 링크를 친구에게 보내요.</small>
+        </span>
+        <svg className="shrink-0 text-[#286dc4] [html[data-dd-theme=dark]_&]:text-[#9bcaff]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m9 5 7 7-7 7" />
+        </svg>
+      </button>
+
+      <section
+        aria-labelledby="social-weekly-title"
+        aria-busy={weekly.isFetching}
+        className="relative isolate min-h-[210px] overflow-hidden rounded-3xl border border-[#245eba] bg-[#1b50b3] bg-[radial-gradient(circle_at_96%_10%,#4388e3,transparent_58%),linear-gradient(138deg,#1b50b3,#276ed4)] p-5 text-white shadow-[0_9px_21px_#1e57b526] max-[350px]:px-4"
+      >
+        <div aria-hidden="true" className="pointer-events-none absolute -top-[83px] -right-12 -z-10 size-[245px] rounded-full border border-white/20 shadow-[0_0_0_21px_#ffffff0b,0_0_0_44px_#ffffff0a]" />
+        <img src={happyCharacter} alt="" width={129} height={129} draggable={false} className="pointer-events-none absolute top-0.5 right-3.5 -z-10 size-[129px] drop-shadow-md max-[350px]:right-1.5 max-[350px]:size-[110px]" />
+        <div className="min-h-[90px] pr-[108px] pt-1 pl-0.5 max-[350px]:pr-[84px]">
+          <h2 id="social-weekly-title" className="text-[22px] font-extrabold tracking-tight">내 주간 기록</h2>
+          {weekStart && <p className="mt-1.5 text-[13px] text-[#e0edff]">{weekStart}</p>}
+        </div>
+
+        {weekly.data ? (
+          <dl className="grid grid-cols-2 gap-2">
+            <WeekMetric label="이번 주 점수" value={weekly.data.score} unit="점" />
+            <WeekMetric label="전체 순위" value={weekly.data.rank} unit="위" />
+          </dl>
+        ) : accountId === null ? (
+          <RankingNotice message="계정 정보를 확인하지 못했어요." />
+        ) : weekly.isError ? (
+          <RankingNotice message="내 주간 기록을 불러오지 못했어요." onRetry={() => void weekly.refetch()} />
         ) : (
-          <div><p className="rd-social-eyebrow">FRIENDS</p><h2>친구 소식</h2></div>
+          <RankingNotice message="내 주간 기록을 불러오는 중이에요." />
         )}
-        <button type="button" className="rd-social-count rd-social-league-link" aria-label="리그 열기" onClick={event => {
-          const button = event.currentTarget
-          button.classList.remove('is-sparkling')
-          button.classList.add('is-sparkling')
-          setLeagueOpen(true)
-          window.setTimeout(() => button.classList.remove('is-sparkling'), 120)
-        }}><TrophyIcon /><span>리그</span></button>
-      </div>
+      </section>
 
-      {effectiveView === 'feed' && (
-        <>
-          <div className="rd-social-actions">
-            <button type="button" onClick={() => setView('list')}><span aria-hidden="true">☷</span> 친구 {friends.length}명</button>
-            <button type="button" className="rd-social-action-primary" onClick={() => setView('add')}><span aria-hidden="true">＋</span> 친구 추가</button>
+      <section
+        aria-labelledby="social-top-title"
+        aria-busy={leaderboard.isFetching}
+        className="rounded-3xl border border-[#dfe9f4] bg-white px-3.5 pt-[18px] pb-2.5 shadow-[0_6px_18px_#315d9310] [html[data-dd-theme=dark]_&]:border-[#354962]"
+      >
+        <div className="flex items-center justify-between gap-2.5 px-1.5 pb-3">
+          <div>
+            <h2 id="social-top-title" className="text-xl font-extrabold tracking-tight">전체 TOP 10</h2>
+            <p className="mt-0.5 text-xs text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">이번 주 참여 점수 기준</p>
           </div>
-          <div className="rd-social-feed-heading"><h3>새로운 돌봄 소식</h3><p>친구들이 돌보는 물길을 확인해 보세요.</p></div>
-          {friendFeed.length ? (
-            <div className="rd-social-feed-list">
-              {friendFeed.map(feed => {
-                const user = MOCK_SOCIAL_USERS.find(item => item.id === feed.userId)
-                const liked = likedIds.includes(feed.id)
-                return (
-                  <article key={feed.id} className="rd-social-post">
-                    <div className="rd-social-post-author">
-                      <FriendAvatar user={user} />
-                      <div><strong>{user ? <ReportableNickname targetId={String(user.id)} nickname={user.nickname} /> : '동네 친구'}</strong><small>{feed.dateLabel}</small></div>
-                      <span className="rd-social-post-type">{feed.type === 'growth' ? '성장 기록' : '점검 완료'}</span>
-                    </div>
-                    <div className="rd-social-post-content">
-                      <h3>{feed.drainName}</h3>
-                      <p>{feed.description}</p>
-                    </div>
-                    <div className="rd-social-post-footer">
-                      <button type="button" aria-label={`${feed.drainName} 좋아요`} aria-pressed={liked} className={liked ? 'is-liked' : ''} onClick={() => toggleLike(feed.id)}><HeartIcon filled={liked} /> <span>좋아요</span></button>
-                      <span>{feed.likes + (liked ? 1 : 0)}명 공감</span>
-                    </div>
-                    {liked && <p className="rd-social-liked-by">{nickname}님이 좋아합니다</p>}
-                  </article>
-                )
-              })}
-            </div>
+          {totalParticipants != null && (
+            <span className="shrink-0 rounded-[9px] bg-[#eef5ff] px-2.5 py-1.5 text-xs font-bold text-[#365d8d] [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#b9d9ff]">
+              집계 {numbers.format(totalParticipants)}명
+            </span>
+          )}
+        </div>
+
+        {leaderboard.data ? (
+          leaderboard.data.rankings.length ? (
+            <ol role="list" aria-label="주간 상위 순위">
+              {leaderboard.data.rankings.map(entry => <RankingRow key={entry.userId} entry={entry} />)}
+            </ol>
           ) : (
-            <div className="rd-social-empty"><div className="rd-social-empty-icon">♡</div><h3>아직 친구 소식이 없어요</h3><p>친구가 새로운 돌봄 활동을 하면 여기에 표시됩니다.</p><button type="button" onClick={() => setView('add')}>친구 더 찾기</button></div>
-          )}
-        </>
-      )}
+            <RankingNotice message="이번 주에 집계된 순위가 없어요." />
+          )
+        ) : accountId === null ? (
+          <RankingNotice message="계정 정보를 확인하지 못했어요." />
+        ) : leaderboard.isError ? (
+          <RankingNotice message="주간 순위를 불러오지 못했어요." onRetry={() => void leaderboard.refetch()} />
+        ) : (
+          <RankingNotice message="주간 순위를 불러오는 중이에요." />
+        )}
+      </section>
 
-      {effectiveView === 'add' && (
-        <>
-          <div className="rd-social-intro"><h3>{friends.length ? '새 친구 찾기' : '함께할 친구를 찾아보세요'}</h3><p>추천 친구를 추가하거나 초대 링크를 공유할 수 있어요.</p></div>
-          <button type="button" className="rd-social-invite" onClick={() => setInviteOpen(true)}><span className="rd-social-invite-icon">↗</span><span><strong>친구 초대하기</strong><small>카카오톡으로 초대 링크 공유</small></span><span aria-hidden="true">›</span></button>
-          {incoming.length > 0 && (
-            <section className="rd-social-requests">
-              <div className="rd-social-feed-heading"><h3>받은 친구 요청</h3><p>수락해야 친구가 연결됩니다. (시연)</p></div>
-              <div className="rd-social-user-list">{incoming.map(user => (
-                <div key={user.id} className="rd-social-user-row">
-                  <FriendAvatar user={user} />
-                  <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>친구가 되고 싶어 해요</small></div>
-                  <div className="rd-social-request-buttons"><button type="button" onClick={() => answerIncoming(user, true)}>수락</button><button type="button" className="is-secondary" onClick={() => answerIncoming(user, false)}>거절</button></div>
-                </div>
-              ))}</div>
-            </section>
-          )}
-          {outgoing.length > 0 && (
-            <section className="rd-social-requests">
-              <div className="rd-social-feed-heading"><h3>보낸 친구 요청</h3><p>상대방 수락 대기 중 · 현재 시연 데이터</p></div>
-              <div className="rd-social-user-list">{outgoing.map(user => (
-                <div key={user.id} className="rd-social-user-row">
-                  <FriendAvatar user={user} />
-                  <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>수락 대기</small></div>
-                  <div className="rd-social-request-buttons"><button type="button" onClick={() => demoAcceptSent(user)}>수락 시연</button><button type="button" className="is-secondary" onClick={() => cancelRequest(user)}>취소</button></div>
-                </div>
-              ))}</div>
-            </section>
-          )}
-          <div className="rd-social-feed-heading"><h3>추천 친구</h3><p>시연용 추천 목록입니다.</p></div>
-          {recommendations.length ? (
-            <div className="rd-social-user-list">
-              {recommendations.map(user => (
-                <div className="rd-social-user-row" key={user.id}>
-                  <FriendAvatar user={user} />
-                  <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>또랑이 {user.drains.length}개 돌봄 중</small></div>
-                  <div className="rd-social-recommend-actions">
-                    <button
-                      type="button"
-                      className={`rd-social-report-button${pressedReportId === user.id ? ' is-active' : ''}`}
-                      onClick={() => handleReportClick(user)}
-                    >
-                      닉네임 신고
-                    </button>
-                    <button
-                      type="button"
-                      className={pressedRequestId === user.id ? 'is-pressed' : ''}
-                      onClick={() => handleRequestFriendClick(user)}
-                    >
-                      ＋ 친구 요청
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : <div className="rd-social-empty"><h3>추천 친구를 모두 추가했어요.</h3><button type="button" onClick={() => setView('feed')}>친구 소식 보기</button></div>}
-          <div className="rd-social-demo-incoming"><button type="button" onClick={simulateIncoming} disabled={recommendations.length === 0}>받은 친구 요청 시연</button><span>실제 푸시 알림은 발송되지 않습니다.</span></div>
-          <p className="rd-social-disclaimer">친구 요청·수락·거절은 이 브라우저에서만 동작하는 시연 기능입니다. 실제 계정 간 연결에는 서버 API가 필요합니다.</p>
-        </>
-      )}
-
-      {effectiveView === 'list' && (
-        <>
-          <div className="rd-social-list-heading"><div className="rd-social-feed-heading"><h3>친구 목록</h3><p>친구의 관리 현황을 확인할 수 있어요.</p></div><button type="button" aria-pressed={editingFriends} onClick={() => setEditingFriends(current => !current)}>{editingFriends ? '완료' : '편집'}</button></div>
-          <div className="rd-social-user-list">
-            {friends.map(user => (
-              <div className="rd-social-user-row" key={user.id}>
-                <FriendAvatar user={user} />
-                <div><strong><ReportableNickname targetId={String(user.id)} nickname={user.nickname} /></strong><small>또랑이 {user.drains.length}개 관리 중</small></div>
-                {editingFriends ? <button type="button" className="rd-social-friend-delete" aria-label={`${user.nickname} 친구 삭제`} onClick={() => { if (window.confirm(`${user.nickname}님을 친구 목록에서 삭제하시겠습니까?`)) removeFriend(user) }}>×</button> : <button type="button" onClick={() => setSelectedFriend(user)}>현황 보기</button>}
-              </div>
-            ))}
-          </div>
-          <button type="button" className="rd-social-wide-add" onClick={() => setView('add')}>＋ 친구 추가하기</button>
-        </>
-      )}
-
-      {reportTarget && createPortal(
-        <div className="dd-nick-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReportTarget(null) }}>
-          <section className="dd-nick-dialog" role="dialog" aria-modal="true" aria-label="닉네임 신고하기">
-            <div className="dd-nick-heading">
-              <h2>닉네임 신고하기</h2>
-              <button type="button" className="dd-nick-close" aria-label="닫기" onClick={() => setReportTarget(null)}>×</button>
-            </div>
-            <div className="dd-nick-flow">
-              <p className="dd-nick-notice">{reportTarget.nickname} 님의 닉네임을 신고하시겠습니까?</p>
-              <p className="dd-nick-disclaimer">현재는 UI 시연 단계입니다. 신고는 이 브라우저에만 저장되며 관리자 서버로 전송되지 않습니다.</p>
-              <button type="button" className="dd-nick-primary" onClick={() => {
-                const saved = storeDemoReport(String(reportTarget.id), reportTarget.nickname)
-                setReportTarget(null)
-                setNotice(saved ? '시연용 신고를 이 브라우저에 저장했습니다.' : '신고 시연을 저장하지 못했습니다.')
-              }}>신고</button>
-            </div>
-          </section>
-        </div>,
-        document.body,
-      )}
-
-      {notice && <div className="rd-social-toast" role="status" aria-live="polite">{notice}</div>}
-      {inviteOpen && <FriendInviteDialog onClose={() => setInviteOpen(false)} onNotice={setNotice} />}
-      {leagueOpen && <LeaguePanel onClose={() => setLeagueOpen(false)} />}
-      {selectedFriend && createPortal(
-        <div className="rd-social-overlay" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedFriend(null) }}>
-          <section className="rd-social-friend-dialog" role="dialog" aria-modal="true" aria-labelledby="rd-friend-title">
-            <div className="rd-social-dialog-head"><div><h2 id="rd-friend-title">{selectedFriend.nickname}의 관리 현황</h2><p>돌보는 또랑이 {selectedFriend.drains.length}개</p></div><button type="button" aria-label="친구 현황 닫기" onClick={() => setSelectedFriend(null)}>×</button></div>
-            <div className="rd-social-managed">
-              {selectedFriend.drains.length ? selectedFriend.drains.map(drain => <div key={drain.id}><strong>{drain.name}</strong><span>Lv.{drain.level}</span></div>) : <p>아직 관리 중인 또랑이가 없어요.</p>}
-            </div>
-            <div className="rd-social-friend-interactions">
-              <button type="button" disabled={pokedIds.includes(selectedFriend.id)} onClick={() => {
-                setPokedIds(prev => [...prev, selectedFriend.id])
-                setNotice('친구 찌르기를 시연했습니다. 실제 알림은 보내지지 않습니다.')
-              }}>{pokedIds.includes(selectedFriend.id) ? '찌르기 완료' : '친구 찌르기'}</button>
-              <button type="button" disabled={cheeredIds.includes(selectedFriend.id)} onClick={() => {
-                setCheeredIds(prev => [...prev, selectedFriend.id])
-                setNotice('친구 돌봄을 응원했습니다. 실제 알림은 보내지지 않습니다.')
-              }}>{cheeredIds.includes(selectedFriend.id) ? '응원 완료' : '돌봄 응원'}</button>
-            </div>
-            <button type="button" className="rd-social-remove" onClick={() => removeFriend(selectedFriend)}>친구 해제</button>
-          </section>
-        </div>, document.body,
+      {notice && (
+        <p role="status" className="fixed inset-x-5 bottom-[calc(84px+env(safe-area-inset-bottom))] z-50 mx-auto w-fit max-w-[420px] rounded-xl bg-[#193454] px-4 py-3 text-center text-[13px] text-white shadow-lg">
+          {notice}
+        </p>
       )}
     </div>
   )
