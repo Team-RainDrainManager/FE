@@ -28,6 +28,8 @@ import SafetyStart from '../../../components/common/camera/SafetyStart'
 import { dirtLevelLabel } from '../../../utils/dirtGrade'
 
 interface Props {
+  /** 운영자가 지도에서 고른 등록 지점(지도 가운데). 일반 사용자는 null이라 GPS 위치로만 등록합니다. */
+  mapCenter?: { latitude: number; longitude: number } | null
   onClose: () => void
   onViewDetail: (drainId: number) => void
 }
@@ -45,6 +47,7 @@ const LABEL =
   'mb-1.5 block text-sm font-semibold text-[#304563]'
 
 export default function CreateDrainModal({
+  mapCenter = null,
   onClose,
   onViewDetail,
 }: Props) {
@@ -63,6 +66,9 @@ export default function CreateDrainModal({
   const [safetyConfirmed, setSafetyConfirmed] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
   const [name, setName] = useState('')
+  // 운영자만 고를 수 있습니다. 기본은 사진을 찍은 곳(GPS)입니다.
+  const [useMapCenter, setUseMapCenter] = useState(false)
+  const pickedLocation = useMapCenter ? mapCenter : null
   const [formError, setFormError] = useState('')
   const [stage, setStage] =
     useState<SubmitStage>('idle')
@@ -109,7 +115,7 @@ export default function CreateDrainModal({
       setStage('location')
 
       const { latitude, longitude } =
-        photoCoordinates ?? await getCurrentCoordinates()
+        pickedLocation ?? photoCoordinates ?? await getCurrentCoordinates()
 
       // 2. 사진 S3 업로드
       // 같은 사진으로 재시도하면 기존 키 재사용
@@ -379,10 +385,26 @@ export default function CreateDrainModal({
                 />
               </div>
 
+              {/* 등록 위치: 운영자는 지도 가운데 지점을 고를 수 있음 */}
+              {mapCenter && (
+                <fieldset className="rounded-xl border border-[#DCE4EE] p-3">
+                  <legend className="px-1 text-sm font-semibold text-[#304563]">등록 위치 (운영자)</legend>
+                  <label className="flex min-h-11 items-center gap-2 text-sm text-[#203451]">
+                    <input type="radio" name="create-drain-location" checked={!useMapCenter} disabled={busy} onChange={() => setUseMapCenter(false)} className="h-4 w-4 shrink-0" />
+                    사진을 찍은 곳 (GPS)
+                  </label>
+                  <label className="flex min-h-11 items-center gap-2 text-sm text-[#203451]">
+                    <input type="radio" name="create-drain-location" checked={useMapCenter} disabled={busy} onChange={() => setUseMapCenter(true)} className="h-4 w-4 shrink-0" />
+                    <span>지도 가운데 지점 <span className="text-[13px] text-[#53647E]">({mapCenter.latitude.toFixed(5)}, {mapCenter.longitude.toFixed(5)})</span></span>
+                  </label>
+                </fieldset>
+              )}
+
               {/* GPS 안내 */}
               <p className="rounded-xl bg-[#F4F7FB] p-3 text-xs leading-5 text-[#53647E]">
-                사진을 찍은 곳의 GPS 위치로 등록해요.
-                위치 권한을 허용해 주세요.
+                {pickedLocation
+                  ? '지도 가운데에 표시된 지점으로 등록해요. 지도를 움직여 위치를 맞춘 뒤 다시 열면 지점이 바뀌어요.'
+                  : '사진을 찍은 곳의 GPS 위치로 등록해요. 위치 권한을 허용해 주세요.'}
               </p>
 
               {/* 오류 표시 */}

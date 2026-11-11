@@ -12,6 +12,7 @@ import { getPauseStatus } from '../../apis/profile-settings'
 import type { MyAdoptionDto } from '../../types/myDrains'
 import { getErrorMessage, getMe } from '../../apis/auth'
 import NicknameChangeDialog from '../../features/nickname/NicknameChangeDialog'
+import AdminEntryLink from '../../features/admin/AdminEntryLink'
 
 // The server nickname is authoritative; preview names must not override signup.
 const NAME_STORAGE_KEY = 'ddorang:demo-profile-name'
@@ -266,6 +267,7 @@ export default function ProfilePage() {
 
       <MyReportsSection />
       <MySanctionsSection />
+      <AdminEntryLink />
     </div>
   )
 }

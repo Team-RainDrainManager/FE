@@ -26,7 +26,9 @@ export type TermsItem = {
 }
 export type TermsContent = Omit<TermsItem, 'hasContent' | 'displayOrder'> & { content: string | null }
 export type Agreement = { termsId: number; agreed: boolean }
+export type UserRole = 'ADMIN' | 'CITY_OFFICIAL' | 'USER'
 export type MeResponse = {
+  role?: UserRole
   level: number
   point: number
   participationScore: number

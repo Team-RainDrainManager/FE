@@ -35,6 +35,8 @@ import DrainMarker from './components/DrainMarker'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
 import CreateDrainModal from './components/CreateDrainModal'
+import RainNoticeBanner from './components/RainNoticeBanner'
+import { isStaffRole, useMyRole } from '../../features/admin/useMyRole'
 
 const DEFAULT_CENTER = {
   lat: 37.4884,
@@ -184,6 +186,9 @@ function KakaoMapContent({
   const [listOpen, setListOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
+  // 운영자는 지도 가운데 지점을 등록 위치로 고를 수 있습니다. (현장에 가지 않고 미리 등록할 때)
+  const staff = isStaffRole(useMyRole().role)
+  const [createCenter, setCreateCenter] = useState<{ latitude: number; longitude: number } | null>(null)
 
   const [currentPosition, setCurrentPosition] =
     useState<Position | null>(null)
@@ -805,6 +810,17 @@ const statusNotice = drainsError
           </section>
 
           {/* 목록 버튼 */}
+          {/* 운영자에게만 보이는 지도 가운데 표시. 이 지점으로 빗물받이를 등록할 수 있습니다. */}
+          {staff && (
+            <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[calc((100%-114px)/2)] z-[5] -translate-x-1/2 -translate-y-1/2 text-center">
+              <span className="block text-[26px] font-light leading-none text-[#DC2626]">+</span>
+              <span className="mt-0.5 block rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-[#DC2626]">등록 지점</span>
+            </div>
+          )}
+
+          {/* 비 예보 배너: GET /api/v1/rain-notice */}
+          <RainNoticeBanner />
+
           <button
             type="button"
             onClick={() => {
@@ -1008,7 +1024,7 @@ const statusNotice = drainsError
                       setFilter(option.value)
                       setSelectedSummary(null)
                     }}
-                    className={`flex h-9 min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-1 text-[10px] font-bold transition min-[400px]:text-[11px] ${
+                    className={`flex h-9 min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-1 text-[11px] font-bold transition min-[360px]:text-[12px] ${
                       active
                         ? `${FILTER_ACTIVE_STYLES[option.value]} shadow-[0_3px_8px_rgba(23,43,77,0.10)]`
                         : 'border-[#E8EDF5] bg-white text-[#53647E] hover:bg-[#F8FAFD]'
@@ -1036,7 +1052,11 @@ const statusNotice = drainsError
             <div className="mt-2.5">
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={() => {
+                  const center = staff ? mapRef.current?.getCenter() : null
+                  setCreateCenter(center ? { latitude: center.getLat(), longitude: center.getLng() } : null)
+                  setCreateOpen(true)
+                }}
                 className="flex h-11 w-full items-center justify-center rounded-2xl border border-transparent bg-[#6384EF] px-3 text-sm font-semibold text-white outline-none shadow-[0_3px_10px_rgba(99,132,239,0.18)] transition-colors hover:bg-[#5476E3] active:bg-[#4869D4] focus-visible:ring-2 focus-visible:ring-[#8FA5F5] focus-visible:ring-offset-2"
               >
                 새로운 빗물받이
@@ -1058,6 +1078,7 @@ const statusNotice = drainsError
           {/* 실제 빗물받이 등록 */}
           {createOpen && (
             <CreateDrainModal
+              mapCenter={createCenter}
               onClose={() => setCreateOpen(false)}
               onViewDetail={(drainId) => {
                 setCreateOpen(false)

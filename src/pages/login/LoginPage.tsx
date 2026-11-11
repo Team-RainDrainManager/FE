@@ -11,6 +11,7 @@ import bellIcon from '../../assets/icons/bell.svg'
 import { useThemeStore } from '../../store/useThemeStore'
 import { fetchSky, type SkyData } from '../../utils/sky'
 import './LoginPage.css'
+import ServerStatusNotice from '../../components/common/ServerStatusNotice'
 
 const FEATURES = [
   { number: '01', title: '빗물받이 입양', detail: '우리 동네를 함께 돌봐요', icon: mapIcon },
@@ -189,6 +190,7 @@ export default function LoginPage() {
         </section>
 
         <footer className="dd-login-footer">
+          <ServerStatusNotice className="dd-login-message" />
           <button type="button" onClick={() => { void handleKakaoLogin() }} disabled={loginPending} className="dd-login-kakao-button">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="dd-login-kakao-icon">
               <path d="M12 3C6.75 3 2.5 6.38 2.5 10.55c0 2.64 1.72 4.97 4.32 6.32l-.87 3.67a.5.5 0 0 0 .73.54l4.18-2.45c.37.04.75.06 1.14.06 5.25 0 9.5-3.38 9.5-7.55S17.25 3 12 3Z" />

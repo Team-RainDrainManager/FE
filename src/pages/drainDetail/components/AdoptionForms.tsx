@@ -1,6 +1,7 @@
 
 import { useContext, useEffect, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
 
 import CameraCapture, { type CaptureMeta } from '../../../components/common/CameraCapture'
 import type { Box } from '../../../components/common/camera/box'
@@ -21,6 +22,7 @@ import { AccountId } from '../../../features/missions/wallet'
 import {
   getCurrentCoordinates,
   registerAdoption,
+  releaseAdoption,
   startAdoptionCleaning,
   uploadAdoptionPhoto,
   verifyAdoptionCleaning,
@@ -568,32 +570,65 @@ export function AdoptForm({
   )
 }
 
-// 기존 입양 해제 UI 유지
-export function ReleaseForm() {
+// 입양 그만두기: POST /api/v1/adoptions/{adoptionId}/release
+export function ReleaseForm({
+  adoptionId,
+  drainId,
+  onCancel,
+}: {
+  adoptionId: number
+  drainId: number
+  onCancel: () => void
+}) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [reason, setReason] =
     useState<ReleaseReason>('MOVED')
-  const [note, setNote] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
 
-  const submit = (
+  const submit = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault()
-    setSubmitted(true)
+    if (pending) return
+    // 되돌릴 수 없는 동작이라 한 번 더 확인합니다.
+    if (!confirming) {
+      setConfirming(true)
+      return
+    }
+
+    setPending(true)
+    setError('')
+    try {
+      await releaseAdoption(adoptionId, reason)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['my-adoptions'] }),
+        queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
+        queryClient.invalidateQueries({ queryKey: ['drain-detail', drainId] }),
+      ])
+      navigate('/my-drains', { replace: true })
+    } catch (caught: unknown) {
+      setError(getErrorMessage(caught))
+      setPending(false)
+    }
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <label className="block text-xs font-semibold">
-        입양 해제 사유
+    <form onSubmit={(event) => { void submit(event) }} className="space-y-4">
+      <label className="block text-sm font-semibold">
+        그만두는 이유
 
         <select
           value={reason}
-          onChange={(event) =>
+          disabled={pending}
+          onChange={(event) => {
             setReason(
               event.target.value as ReleaseReason,
             )
-          }
+            setConfirming(false)
+          }}
           className="mt-2 w-full rounded-xl border border-[#DCE8F1] p-3 text-sm"
         >
           <option value="MOVED">이사</option>
@@ -602,35 +637,39 @@ export function ReleaseForm() {
         </select>
       </label>
 
-      <label className="block text-xs font-semibold">
-        추가 설명 (선택)
+      <p className="break-keep rounded-xl bg-[#F4F7FB] p-3 text-[13px] leading-5 text-[#53647E]">
+        그만두면 다른 이웃이 이 빗물받이를 입양할 수 있어요. 지금까지의 점검 기록과 성장 정보는 보관돼요.
+      </p>
 
-        <textarea
-          maxLength={300}
-          value={note}
-          onChange={(event) =>
-            setNote(event.target.value)
-          }
-          placeholder="사유를 입력해주세요."
-          className="mt-2 min-h-20 w-full rounded-xl border border-[#DCE8F1] p-3 text-sm"
-        />
-      </label>
-
-      <button
-        type="submit"
-        className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white"
-      >
-        입양 해제 화면 확인
-      </button>
-
-      {submitted && (
-        <p
-          role="status"
-          className="rounded-xl bg-[#E8F7EF] p-3 text-xs text-[#259B68]"
-        >
-          입력값 확인 완료. 실제 입양은 해제되지 않았어요.
+      {error && (
+        <p role="alert" className="rounded-xl bg-[#FFF1F1] p-3 text-[13px] leading-5 text-[#B84D4D]">
+          {error}
         </p>
       )}
+
+      {confirming && !pending && (
+        <p role="status" className="text-[14px] font-bold text-[#B84D4D]">
+          정말 그만둘까요? 한 번 더 누르면 입양이 해제돼요.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onCancel}
+          className="min-h-11 rounded-full border border-[#DCE5F0] bg-white p-3 text-sm font-bold text-[#53647E] disabled:opacity-50"
+        >
+          계속 돌볼게요
+        </button>
+        <button
+          type="submit"
+          disabled={pending}
+          className="min-h-11 rounded-full bg-[#C85D5D] p-3 text-sm font-bold text-white disabled:opacity-50"
+        >
+          {pending ? '해제하는 중…' : confirming ? '입양 해제 확정' : '입양 그만두기'}
+        </button>
+      </div>
     </form>
   )
 }
