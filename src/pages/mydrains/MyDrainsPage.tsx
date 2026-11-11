@@ -1,5 +1,3 @@
-import MissionButton from '../../features/missions/MissionButton'
-
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
@@ -106,7 +104,6 @@ export default function MyDrainsPage() {
   if (isPending) {
     return (
       <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] bg-[#F4F7FC] px-4 py-16 text-center">
-        <MissionButton />
         <Character
           type="state"
           state="happy"
@@ -161,7 +158,6 @@ export default function MyDrainsPage() {
           </p>
         </div>
 
-        <MissionButton />
         <Character
           type="state"
           state="happy"

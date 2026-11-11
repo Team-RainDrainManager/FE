@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { AccountId, award } from '../../../features/missions/wallet'
+import { AccountId} from '../../../features/missions/wallet'
 import {
   clearDraft,
   flowDraftKey,
@@ -252,9 +252,6 @@ const refreshData = async () => {
     },
 
     onSuccess: async (result, { photo }) => {
-      if (result.status === 'COMPLETED' && kind === 'SUBSTITUTE') {
-        void award(account, 'substitute').catch(console.error)
-      }
       setStartResult(result)
       setResumed(false)
 
@@ -311,9 +308,6 @@ const refreshData = async () => {
         return
       }
 
-      if (result.status === 'COMPLETED' && kind !== 'FORECAST') {
-        void award(account, kind === 'SUBSTITUTE' ? 'substitute' : 'clean').catch(console.error)
-      }
       clearDraft(draftKey)
       setFinalResult(result)
       await refreshData()
