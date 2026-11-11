@@ -152,3 +152,42 @@ export async function decideAdminReview(
   )
   return unwrap(body)
 }
+
+// ───────── 시연 도구 (ADMIN 전용, CITY_OFFICIAL은 403) ─────────
+
+export type ForecastSimulateResult = {
+  forecastId: number | null
+  /** CONFIRMED 새로 확정 · UPDATED 값만 갱신 · CANCELLED 기준 미달로 취소 · IGNORED 취소할 예보 없음 */
+  applied: 'CONFIRMED' | 'UPDATED' | 'CANCELLED' | 'IGNORED'
+  /** 바로 보낸 점검 요청 수 */
+  createdCount: number
+  cancelledCount: number
+}
+
+// POST /api/v1/admin/forecasts/simulate : 가상 예보 적용. 기준(강수확률 60% · 강수량 5mm)에 못 미치면 취소로 처리됩니다.
+export async function simulateForecast(input: {
+  pop: number
+  mm: number
+  /** 한국 시각 (예: 2026-11-12T15:00:00). 지금부터 3시간 뒤 이후여야 합니다. */
+  rainStartAt: string
+}): Promise<ForecastSimulateResult> {
+  const { data: body } = await apiClient.post<ApiResponse<ForecastSimulateResult>>(
+    '/api/v1/admin/forecasts/simulate',
+    input,
+  )
+  return unwrap(body)
+}
+
+export type SimulateRainResult = {
+  raining: boolean
+  simulatedRainingUntil: string | null
+}
+
+// POST /api/v1/admin/weather/simulate-rain : 지금부터 minutes분 동안 '비 오는 중'으로 표시 (0이면 해제)
+export async function simulateRain(minutes: number): Promise<SimulateRainResult> {
+  const { data: body } = await apiClient.post<ApiResponse<SimulateRainResult>>(
+    '/api/v1/admin/weather/simulate-rain',
+    { minutes },
+  )
+  return unwrap(body)
+}
