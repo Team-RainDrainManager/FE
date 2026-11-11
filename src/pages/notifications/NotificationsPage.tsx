@@ -143,6 +143,13 @@ export default function NotificationsPage() {
       case 'SUBSTITUTE_OPEN':
       case 'REQUEST_CLAIMED':
       case 'REQUEST_DEADLINE_CHANGED': {
+        // 요청에 묶이지 않은 비 소식 알림(입양하지 않은 사용자)은 내 위치 주변의 대신 점검 요청을 바로 보여 줍니다.
+        if (notification.requestId === null) {
+          setActiveTab('requests')
+          setRequestMessage('내 위치 주변에서 도움이 필요한 빗물받이를 찾고 있어요.')
+          void showNearbyAtMyLocation()
+          return
+        }
         const request = requests.find(
           (item) => item.requestId === notification.requestId,
         )
