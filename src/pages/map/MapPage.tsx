@@ -35,6 +35,7 @@ import DrainMarker from './components/DrainMarker'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
 import CreateDrainModal from './components/CreateDrainModal'
+import RainNoticeBanner from './components/RainNoticeBanner'
 
 const DEFAULT_CENTER = {
   lat: 37.4884,
@@ -805,6 +806,9 @@ const statusNotice = drainsError
           </section>
 
           {/* 목록 버튼 */}
+          {/* 비 예보 배너: GET /api/v1/rain-notice */}
+          <RainNoticeBanner />
+
           <button
             type="button"
             onClick={() => {
@@ -1008,7 +1012,7 @@ const statusNotice = drainsError
                       setFilter(option.value)
                       setSelectedSummary(null)
                     }}
-                    className={`flex h-9 min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-1 text-[10px] font-bold transition min-[400px]:text-[11px] ${
+                    className={`flex h-9 min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-1 text-[11px] font-bold transition min-[360px]:text-[12px] ${
                       active
                         ? `${FILTER_ACTIVE_STYLES[option.value]} shadow-[0_3px_8px_rgba(23,43,77,0.10)]`
                         : 'border-[#E8EDF5] bg-white text-[#53647E] hover:bg-[#F8FAFD]'

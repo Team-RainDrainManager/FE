@@ -4,6 +4,7 @@ import { getErrorMessage, type OnboardingStatus } from '../../apis/auth'
 import { useAuthStore } from '../../store/useAuthStore'
 import { nextAfterCompletedOnboarding, needsNickname, rememberReturnTo } from './auth-flow'
 import { syncPushTokenIfAllowed } from '../../services/push-messaging'
+import ServerStatusNotice from '../../components/common/ServerStatusNotice'
 import {
   clearOnboardingStatusCache,
   fetchOnboardingStatus,
@@ -53,6 +54,7 @@ export default function AuthGuard({ children, mode }: { children: ReactNode; mod
     if (check?.token === accessToken && 'error' in check) return (
       <div className="dd-auth-error-page">
         <p role="alert">{check.error}</p>
+        <ServerStatusNotice />
         <button type="button" onClick={() => {
           clearOnboardingStatusCache()
           setCheck(null)

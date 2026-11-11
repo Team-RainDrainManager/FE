@@ -14,6 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/notifications': '알림',
   '/profile/mypage': '마이페이지',
   '/profile': '프로필',
+  '/admin': '관리자 화면',
   '/settings': '설정',
   '/shop': '꾸미기 상점',
 }
@@ -39,11 +40,12 @@ export default function Header() {
 
   // 뒤로 가기 버튼 표시 여부
   const isMyPage = pathname === '/profile/mypage'
-  const showBackButton = isMyPage || isSettingsPage || isDetailPage
+  const isAdminPage = pathname === '/admin'
+  const showBackButton = isMyPage || isAdminPage || isSettingsPage || isDetailPage
 
   function goBack() {
     if (isMyPage && state?.fromProfile) navigate(-1)
-    else if (isMyPage) navigate('/profile', { replace: true })
+    else if (isMyPage || isAdminPage) navigate('/profile', { replace: true })
     else if (isSettingsPage) navigate(pathname === '/shop' ? '/my-drains' : '/profile')
     else navigate(-1)
   }
