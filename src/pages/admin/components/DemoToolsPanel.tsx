@@ -48,7 +48,7 @@ function describe(result: ForecastSimulateResult): string {
   if (result.applied === 'CONFIRMED') {
     return result.createdCount > 0
       ? `비 예보를 보냈어요. 점검 요청 ${result.createdCount}건이 만들어졌어요.`
-      : '예보는 적용됐지만 지금은 요청을 바로 보내지 않는 시간이에요. (아침 6시부터 밤 9시 사이에만 바로 보내요)'
+      : '예보는 적용됐지만 만들어진 요청이 없어요. 등록된 빗물받이가 있는지 확인해 주세요.'
   }
   if (result.applied === 'UPDATED') return '같은 날 예보가 이미 있어 값만 바꿨어요. 새 요청은 만들어지지 않았어요.'
   if (result.applied === 'CANCELLED') return `예보를 취소했어요. 점검 요청 ${result.cancelledCount}건이 취소됐어요.`
@@ -127,7 +127,7 @@ export default function DemoToolsPanel() {
   return (
     <section aria-label="시연 도구" className="space-y-3">
       <p className="rounded-xl bg-[#FFF4DC] px-3 py-2.5 text-[13px] font-medium leading-5 text-[#8A6510]">
-        시연용 도구예요. 비 예보를 보내면 입양한 모든 사용자에게 점검 요청과 푸시가 가요. 행사가 끝나면 꼭 취소해 주세요.
+        시연용 도구예요. 비 예보를 보내면 알림을 켠 모든 사용자에게 알림이 가요. 입양자는 점검 요청을, 나머지는 대신 점검 안내를 받아요. 행사가 끝나면 꼭 취소해 주세요.
       </p>
 
       <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
@@ -191,7 +191,7 @@ export default function DemoToolsPanel() {
 
         {armed ? (
           <div role="group" aria-label="보내기 확인" className="mt-3 rounded-xl bg-[#F4F7FB] p-3">
-            <p className="text-[14px] font-bold text-[#203451]">입양한 모든 사용자에게 요청이 가요. 보낼까요?</p>
+            <p className="text-[14px] font-bold text-[#203451]">알림을 켠 모든 사용자에게 알림이 가요. 보낼까요?</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
