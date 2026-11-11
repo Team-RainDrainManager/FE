@@ -174,7 +174,7 @@ pnpm build
 
 ## 🔌 API 연결 현황
 
-서버 API가 앱의 어느 화면과 코드에 연결되어 있는지는 [`docs/api-connection.md`](docs/api-connection.md)에 정리했습니다.
+서버 API가 앱의 어느 화면과 코드에 연결되어 있는지는 [`docs/api-connection.md`](docs/api-connection.md)에 정리했습니다. 데모데이 시연 순서는 [`docs/demo-day.md`](docs/demo-day.md)에 있습니다.
 
 ## 🔗 Repository
 
