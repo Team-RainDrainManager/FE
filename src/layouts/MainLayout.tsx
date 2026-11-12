@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router'
 import Header from '../components/layout/Header'
 import BottomNavigation from '../components/layout/BottomNavigation'
-import SwipeTabOutlet from '../components/layout/SwipeTabOutlet'
+import TabOutlet from '../components/layout/TabOutlet'
 import FirstTimeTour from '../components/FirstTimeTour'
 import CareWarningGate from '../features/care/CareWarningGate'
 
@@ -22,7 +22,7 @@ export default function MainLayout() {
               : 'min-h-0 pb-[calc(68px+env(safe-area-inset-bottom))]'
           }
         >
-          <SwipeTabOutlet />
+          <TabOutlet />
         </main>
 
         {!isDetailPage && <BottomNavigation />}
