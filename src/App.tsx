@@ -22,6 +22,7 @@ import EmailSignupPage from './pages/login/EmailSignupPage'
 import TermsPage from './pages/onboarding/TermsPage'
 import VerifyPage from './pages/onboarding/VerifyPage'
 import NicknamePage from './pages/onboarding/NicknamePage'
+import ModalScrollLock from './components/common/ModalScrollLock'
 import NicknameRestrictionGate from './features/nickname/NicknameRestrictionGate'
 
 /** 로그인한 사용자는 로그인·회원가입 화면으로 다시 들어가지 않습니다. */
@@ -44,6 +45,8 @@ function HomeRedirect() {
 
 export default function App() {
   return (
+    <>
+    <ModalScrollLock />
     <Routes>
       <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
       <Route path="/login/email" element={<GuestOnly><EmailLoginPage /></GuestOnly>} />
@@ -71,5 +74,6 @@ export default function App() {
         element={<Navigate to="/" replace />}
       />
     </Routes>
+    </>
   )
 }
