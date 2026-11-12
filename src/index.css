@@ -133,3 +133,16 @@ html {
 .drain-alert {
   transform: scale(1.12);
 }
+/* 이중 스크롤 방지: 화면 끝에서 당겨도 뒤 화면 · 페이지 새로고침으로 번지지 않게 하고,
+   창 안의 목록은 끝까지 스크롤해도 뒤 화면을 움직이지 않습니다. (뒤 화면 고정은 ModalScrollLock) */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+[aria-modal="true"],
+[aria-modal="true"] *,
+dialog[open],
+dialog[open] * {
+  overscroll-behavior: contain;
+}
