@@ -264,6 +264,15 @@ export default function CreateDrainModal({
               빗물받이 등록이 완료됐어요!
             </p>
 
+            {result.adoptionBlocked === true && (
+              <div className="rounded-2xl border border-[#F2DEB3] bg-[#FFF6E4] p-3 text-[#795015]">
+                <p className="text-sm font-bold">현재 입양이 제한돼요</p>
+                <p className="mt-1 text-xs leading-5">
+                  사진 판독에서 청소하기 어려운 상태로 확인됐어요.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2 rounded-2xl bg-[#F4F7FB] p-4 text-sm text-[#385A73]">
               <p>
                 이름:{' '}

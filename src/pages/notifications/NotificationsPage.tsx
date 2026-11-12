@@ -342,16 +342,38 @@ export default function NotificationsPage() {
       )}
       <section id="notification-panel-requests" role="tabpanel" aria-labelledby="notification-tab-requests" hidden={activeTab !== 'requests'} tabIndex={0}>
 
-        <div className="mb-3 flex flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => void showNearbyAtMyLocation()}
-            disabled={locationPending}
-            className="min-h-11 rounded-xl bg-[#EAF2FF] px-3 text-[13px] font-semibold text-[#3981F7] disabled:opacity-50"
+        <button
+          type="button"
+          role="switch"
+          aria-checked={coordinates !== null}
+          aria-label="내 위치 주변 요청 포함"
+          aria-busy={locationPending}
+          disabled={locationPending}
+          onClick={() => {
+            if (coordinates !== null) {
+              setCoordinates(null)
+              setLocationError('')
+            } else {
+              void showNearbyAtMyLocation()
+            }
+          }}
+          className="mb-3 flex min-h-11 w-full items-center gap-2.5 rounded-xl bg-[#F0F3F9] px-3 text-left text-[13px] font-semibold text-[#203451] transition-colors hover:bg-[#EAF0FA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#637FEA] disabled:opacity-60 [html[data-dd-theme=dark]_&]:bg-[#233349] [html[data-dd-theme=dark]_&]:text-[#EDF5FF]"
+        >
+          <svg aria-hidden="true" className="size-5 shrink-0 text-[#536ED4] [html[data-dd-theme=dark]_&]:text-[#9BCAFF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M19 10c0 5-7 10-7 10s-7-5-7-10a7 7 0 1 1 14 0Z" />
+            <circle cx="12" cy="10" r="2.5" />
+          </svg>
+          <span className="flex-1">내 위치 주변 요청 포함</span>
+          {locationPending && (
+            <span role="status" className="text-[11px] font-medium">위치 확인 중…</span>
+          )}
+          <span
+            aria-hidden="true"
+            className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${coordinates !== null ? 'bg-[#536ED4]' : 'bg-[#A2AEC0]'}`}
           >
-            {locationPending ? '위치 확인 중...' : '내 위치 주변 요청 보기'}
-          </button>
-        </div>
+            <span className={`absolute left-[3px] top-[3px] size-[18px] rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${coordinates !== null ? 'translate-x-4' : 'translate-x-0'}`} />
+          </span>
+        </button>
         {coordinates && requests.length > 0 && (<p className="mb-2 text-[13px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>)}
         {locationError && <p role="alert" className="mb-3 text-[13px] text-[#B84D4D]">{locationError}</p>}
         {requestMessage && <p role="status" className="mb-3 text-[13px] leading-5 text-[#637790]">{requestMessage}</p>}
