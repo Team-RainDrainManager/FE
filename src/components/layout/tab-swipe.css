@@ -1,41 +1,30 @@
-/* Only the routed content moves; header and bottom navigation stay put. */
-.dd-tab-swipe-track {
+/* 옆으로 넘기는 탭 묶음. 머리글과 아래 탭바는 그대로 두고 탭 화면만 움직입니다. */
+.dd-tab-pager {
   position: relative;
 }
 
-/* 세로 스크롤은 브라우저가 바로 처리하고, 가로 끌기는 탭 넘기기가 받습니다.
-   지도 화면은 지도 자체를 끌어야 해서 빼 둡니다. */
-.dd-tab-swipe-track[data-swipe-axis='y'] {
+/* 세로 스크롤은 브라우저가 바로 처리하고, 가로 끌기는 탭 넘기기가 받습니다. */
+.dd-tab-pager[data-swipe-axis='y'] {
   touch-action: pan-y;
 }
 
-/* 끄는 동안 옆에 붙는 이웃 탭. 지금 보이는 화면 높이만큼만 그립니다. */
-.dd-tab-swipe-peek {
+/* 미리 그려 둔 이웃 탭: 옆에 붙여 숨겨 두고, 끌 때만 보입니다. (지금 보이는 화면 높이만큼) */
+.dd-tab-page[data-state='parked'] {
   position: absolute;
+  top: 0;
   left: 100%;
   width: 100%;
   height: calc(100dvh - 60px);
   overflow: hidden;
   pointer-events: none;
+  visibility: hidden;
   background: #fff;
 }
 
-.dd-tab-swipe-peek[data-side='previous'] {
+.dd-tab-page[data-side='prev'] {
   left: -100%;
 }
 
-html[data-dd-theme='dark'] .dd-tab-swipe-peek {
+html[data-dd-theme='dark'] .dd-tab-page[data-state='parked'] {
   background: var(--dd-canvas, #0f1a26);
-}
-
-/* 지도 탭 미리보기: 지도 SDK 대신 지도 바탕색과 길만 그립니다. */
-.dd-tab-peek-map {
-  height: 100%;
-  background-color: #eef1ea;
-  background-image:
-    linear-gradient(90deg, #fff 6px, transparent 6px),
-    linear-gradient(#fff 6px, transparent 6px),
-    linear-gradient(90deg, rgba(0, 0, 0, .04) 1px, transparent 1px),
-    linear-gradient(rgba(0, 0, 0, .04) 1px, transparent 1px);
-  background-size: 140px 140px, 140px 140px, 28px 28px, 28px 28px;
 }
