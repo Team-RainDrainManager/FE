@@ -1,31 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { getRainNotice, type RainNotice } from '../../../apis/rain-notice'
+import { formatKstDayAndTime, getKstDayLabel } from '../../../utils/kstDateTime'
 
-const timeFormat = new Intl.DateTimeFormat('ko-KR', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'Asia/Seoul',
-})
-const dayFormat = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' })
-
-/** '오늘 18:00' · '내일 06:00' 형태로 보여 줍니다. */
-function dayAndTime(value: string | null | undefined, today: string): string | null {
-  if (!value) return null
-  const time = new Date(value)
-  if (!Number.isFinite(time.getTime())) return null
-  const day = dayFormat.format(time)
-  const label = day === today ? '오늘' : day > today ? '내일' : ''
-  return `${label} ${timeFormat.format(time)}`.trim()
-}
-
-function shortLabel(notice: RainNotice, today: string): string {
+function shortLabel(notice: RainNotice, now: number): string {
   if (notice.state === 'RAINING') return '비 오는 중'
-  const rainDate = notice.forecast?.rainDate
-  return `${rainDate && rainDate !== today ? '내일' : '오늘'} 비 예보`
+  const day = getKstDayLabel(notice.forecast?.rainDate, now)
+  return day ? `${day} 비 예보` : '비 예보'
 }
 
 /**
@@ -34,7 +17,7 @@ function shortLabel(notice: RainNotice, today: string): string {
  */
 export default function RainNoticeBanner() {
   const [open, setOpen] = useState(false)
-  const [today] = useState(() => dayFormat.format(new Date()))
+  const [now, setNow] = useState(() => Date.now())
   const { data: notice } = useQuery({
     queryKey: ['rain-notice'],
     queryFn: ({ signal }) => getRainNotice(signal),
@@ -42,11 +25,16 @@ export default function RainNoticeBanner() {
     refetchInterval: 60_000,
   })
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   if (!notice || notice.state === 'NONE') return null
 
   const raining = notice.state === 'RAINING'
-  const rainStart = dayAndTime(notice.forecast?.rainStartAt, today)
-  const deadline = dayAndTime(notice.forecast?.completeDeadlineAt, today)
+  const rainStart = formatKstDayAndTime(notice.forecast?.rainStartAt, now)
+  const deadline = formatKstDayAndTime(notice.forecast?.completeDeadlineAt, now)
   const help = notice.help
 
   return (
@@ -62,7 +50,7 @@ export default function RainNoticeBanner() {
         }`}
       >
         <span aria-hidden="true">{raining ? '☔' : '🌧'}</span>
-        <span>{shortLabel(notice, today)}</span>
+        <span>{shortLabel(notice, now)}</span>
         <span aria-hidden="true" className="text-[11px]">{open ? '▲' : '▼'}</span>
       </button>
 
