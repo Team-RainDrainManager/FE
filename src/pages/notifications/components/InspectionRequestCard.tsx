@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import Character from '../../../components/common/Character'
+import { formatKstDayAndTime } from '../../../utils/kstDateTime'
 
 import type {
   InspectionRequest,
@@ -37,39 +38,6 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
   COMPLETED: '점검 완료',
 }
 
-const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  month: 'numeric',
-  day: 'numeric',
-  timeZone: 'Asia/Seoul',
-})
-
-const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'Asia/Seoul',
-})
-
-function formatDate(value: string, now: number) {
-  const date = new Date(value)
-
-  const day = Math.floor(
-    (date.getTime() + 9 * 60 * 60 * 1000) / 86400000,
-  )
-  const today = Math.floor(
-    (now + 9 * 60 * 60 * 1000) / 86400000,
-  )
-
-  const label =
-    day === today
-      ? '오늘'
-      : day === today + 1
-        ? '내일'
-        : dateFormatter.format(date)
-
-  return `${label} ${timeFormatter.format(date)}`
-}
-
 export default function InspectionRequestCard({
   request,
   onRespond,
@@ -96,6 +64,11 @@ export default function InspectionRequestCard({
   const canInspect = request.availableActions.includes('INSPECT')
 
   const finished = request.remainingMinutes === null
+  const deadline = formatKstDayAndTime(
+    canReply ? request.replyDeadlineAt : request.deadlineAt,
+    now,
+  )
+  const deadlineSuffix = canReply ? '까지 응답' : finished ? ' 마감' : '까지 완료'
   const remaining =
     request.remainingMinutes === null
       ? null
@@ -150,17 +123,7 @@ export default function InspectionRequestCard({
       <div className="mt-3 border-t border-[#EDF1F6] pt-3">
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <p className="text-[15px] font-bold leading-5 text-[#203451]">
-            {formatDate(
-              canReply
-                ? request.replyDeadlineAt
-                : request.deadlineAt,
-              now,
-            )}
-            {canReply
-              ? '까지 응답'
-              : finished
-                ? ' 마감'
-                : '까지 완료'}
+            {deadline ? `${deadline}${deadlineSuffix}` : '마감 확인 중'}
           </p>
 
           {remaining !== null && (
@@ -179,7 +142,7 @@ export default function InspectionRequestCard({
           <div className="rounded-xl bg-[#F4F7FB] px-2.5 py-2">
             <p className="text-[#637790]">비 시작</p>
             <p className="mt-0.5 font-bold tabular-nums text-[#203451]">
-              {formatDate(request.rainStartAt, now)}
+              {formatKstDayAndTime(request.rainStartAt, now) ?? '확인 중'}
             </p>
           </div>
 
@@ -187,7 +150,7 @@ export default function InspectionRequestCard({
             <div className="rounded-xl bg-[#F4F7FB] px-2.5 py-2">
               <p className="text-[#637790]">점검 마감</p>
               <p className="mt-0.5 font-bold tabular-nums text-[#203451]">
-                {formatDate(request.deadlineAt, now)}
+                {formatKstDayAndTime(request.deadlineAt, now) ?? '확인 중'}
               </p>
             </div>
           )}

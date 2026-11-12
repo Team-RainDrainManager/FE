@@ -18,20 +18,10 @@ import {
   type NotificationItem,
 } from '../../apis/notifications'
 import type { Coordinates } from '../../apis/requests'
+import { formatKstDateTime } from '../../utils/kstDateTime'
 
 import InspectionRequestCard from './components/InspectionRequestCard'
 import PushOptInCard from '../../features/push/PushOptInCard'
-
-function formatNotificationDate(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Seoul',
-  }).format(new Date(value))
-}
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
@@ -254,7 +244,7 @@ export default function NotificationsPage() {
                 dateTime={notification.createdAt}
                 className="mt-2 block text-[12px] text-[#78899F]"
               >
-                {formatNotificationDate(notification.createdAt)}
+                {formatKstDateTime(notification.createdAt) ?? '시각 정보 없음'}
               </time>
             </span>
           </button>
