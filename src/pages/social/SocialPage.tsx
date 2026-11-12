@@ -72,15 +72,15 @@ function WeekMetric({ label, value, unit }: {
   unit: string
 }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-white/20 bg-[#ffffff]/10 px-3 py-2.5">
-      <dt className="text-xs font-semibold text-[#edf5ff]">{label}</dt>
-      <dd className="mt-0.5 font-extrabold break-words tabular-nums">
+    <div className="min-w-0 first:pr-3 last:pl-4">
+      <dt className="text-xs font-semibold text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">{label}</dt>
+      <dd className={`mt-0.5 font-extrabold break-words tabular-nums ${unit === '점' ? 'text-[#385fd4] [html[data-dd-theme=dark]_&]:text-[#9bcaff]' : ''}`}>
         {value === null ? (
           <span className="text-[17px] leading-[35px]">순위 미집계</span>
         ) : (
           <>
             <span className="text-[27px] leading-[35px] tracking-[-0.04em]">{numbers.format(value)}</span>
-            <span className="ml-0.5 text-[13px] text-[#edf5ff]">{unit}</span>
+            <span className="ml-0.5 text-[13px]">{unit}</span>
           </>
         )}
       </dd>
@@ -204,11 +204,11 @@ export default function SocialPage() {
   const totalParticipants = leaderboard.data?.totalParticipants
 
   return (
-    <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] space-y-4 bg-[#f4f8fe] bg-[radial-gradient(ellipse_at_82%_0%,#e6f2ff,transparent_32rem)] px-[18px] pt-[17px] pb-8 text-[#193454] [html[data-dd-theme=dark]_&]:bg-[#101c2b] [html[data-dd-theme=dark]_&]:bg-none [html[data-dd-theme=dark]_&]:text-[#edf5ff]">
+    <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] space-y-4 bg-[#f2f5fc] px-4 pt-[17px] pb-8 text-[#193454] [html[data-dd-theme=dark]_&]:bg-[#101c2b] [html[data-dd-theme=dark]_&]:bg-none [html[data-dd-theme=dark]_&]:text-[#edf5ff]">
       <button
         type="button"
         onClick={() => void shareInvite()}
-        className="flex w-full cursor-pointer items-center gap-3.5 rounded-[21px] border border-[#dfe9f4] bg-white px-4 py-3.5 text-left shadow-[0_5px_16px_#315d9310] transition-colors hover:border-[#b6d3f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#246fce] [html[data-dd-theme=dark]_&]:border-[#354962]"
+        className="flex w-full cursor-pointer items-center gap-3.5 rounded-[21px] border border-[#b7c7ff] bg-[#f5f7ff] px-4 py-3 text-left [html[data-dd-theme=dark]_&]:bg-[#17283e] transition-colors hover:border-[#b6d3f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#246fce] [html[data-dd-theme=dark]_&]:border-[#354962]"
       >
         <span className="grid size-12 shrink-0 place-items-center rounded-[15px] bg-[#eaf3ff] text-[#2068cd] [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#9bcaff]">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -228,17 +228,18 @@ export default function SocialPage() {
       <section
         aria-labelledby="social-weekly-title"
         aria-busy={weekly.isFetching}
-        className="relative isolate min-h-[210px] overflow-hidden rounded-3xl border border-[#245eba] bg-[#1b50b3] bg-[radial-gradient(circle_at_96%_10%,#4388e3,transparent_58%),linear-gradient(138deg,#1b50b3,#276ed4)] p-5 text-white shadow-[0_9px_21px_#1e57b526] max-[350px]:px-4"
+        className="rounded-3xl border border-[#dfe6f3] bg-white p-5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]"
       >
-        <div aria-hidden="true" className="pointer-events-none absolute -top-[83px] -right-12 -z-10 size-[245px] rounded-full border border-white/20 shadow-[0_0_0_21px_#ffffff0b,0_0_0_44px_#ffffff0a]" />
-        <img src={happyCharacter} alt="" width={129} height={129} draggable={false} className="pointer-events-none absolute top-0.5 right-3.5 -z-10 size-[129px] drop-shadow-md max-[350px]:right-1.5 max-[350px]:size-[110px]" />
-        <div className="min-h-[90px] pr-[108px] pt-1 pl-0.5 max-[350px]:pr-[84px]">
+        <div className="relative flex min-h-24 flex-col justify-center pr-24">
+          <div className="pointer-events-none absolute right-0 top-1/2 grid size-24 -translate-y-1/2 place-items-center rounded-full bg-[#eaf0ff] [html[data-dd-theme=dark]_&]:bg-[#283f5b]">
+            <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-[88px] object-contain" />
+          </div>
           <h2 id="social-weekly-title" className="text-[22px] font-extrabold tracking-tight">내 주간 기록</h2>
-          {weekStart && <p className="mt-1.5 text-[13px] text-[#e0edff]">{weekStart}</p>}
+          {weekStart && <p className="mt-1.5 text-[13px] text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">{weekStart}</p>}
         </div>
 
         {weekly.data ? (
-          <dl className="grid grid-cols-2 gap-2">
+          <dl className="mt-4 grid grid-cols-2 divide-x divide-[#e0e7f3] [html[data-dd-theme=dark]_&]:divide-[#354962]">
             <WeekMetric label="이번 주 점수" value={weekly.data.score} unit="점" />
             <WeekMetric label="전체 순위" value={weekly.data.rank} unit="위" />
           </dl>
@@ -254,7 +255,7 @@ export default function SocialPage() {
       <section
         aria-labelledby="social-top-title"
         aria-busy={leaderboard.isFetching}
-        className="rounded-3xl border border-[#dfe9f4] bg-white px-3.5 pt-[18px] pb-2.5 shadow-[0_6px_18px_#315d9310] [html[data-dd-theme=dark]_&]:border-[#354962]"
+        className="rounded-3xl border border-[#dfe9f4] bg-white px-3.5 pt-[18px] pb-2.5 [html[data-dd-theme=dark]_&]:bg-[#182638] [html[data-dd-theme=dark]_&]:border-[#354962]"
       >
         <div className="flex items-center justify-between gap-2.5 px-1.5 pb-3">
           <div>

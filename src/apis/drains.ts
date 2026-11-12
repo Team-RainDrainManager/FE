@@ -369,6 +369,7 @@ export interface DrainCreateResponse {
   aiConfidence: number
   riskRemind: boolean
   riskReportId: number | null
+  adoptionBlocked: boolean
 }
 
 export async function createDrain(
