@@ -178,6 +178,21 @@ export async function simulateForecast(input: {
   return unwrap(body)
 }
 
+export type SimulatedForecastCancelResult = {
+  /** 취소한 가상 예보 수 */
+  cancelledForecastCount: number
+  /** 함께 취소된 점검 요청 수 */
+  cancelledRequestCount: number
+}
+
+// POST /api/v1/admin/forecasts/simulated/cancel : 진행 중인 가상 예보를 날짜와 관계없이 모두 취소 (실제 예보는 그대로)
+export async function cancelSimulatedForecasts(): Promise<SimulatedForecastCancelResult> {
+  const { data: body } = await apiClient.post<ApiResponse<SimulatedForecastCancelResult>>(
+    '/api/v1/admin/forecasts/simulated/cancel',
+  )
+  return unwrap(body)
+}
+
 export type SimulateRainResult = {
   raining: boolean
   simulatedRainingUntil: string | null

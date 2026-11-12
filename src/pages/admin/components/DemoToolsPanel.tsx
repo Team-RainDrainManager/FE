@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
+  cancelSimulatedForecasts,
   simulateForecast,
   simulateRain,
   type ForecastSimulateResult,
@@ -83,8 +84,8 @@ export default function DemoToolsPanel() {
     mutationFn: async () => {
       const at = rainStartAt(option, Date.now())
       if (!at) throw new Error('오늘 비는 자정 전에 시작하는 일정만 보낼 수 있어요. 내일 비로 보내 주세요.')
-      // 같은 날짜에 예보가 남아 있으면 새 요청이 만들어지지 않으므로, 먼저 취소하고 다시 보냅니다.
-      await simulateForecast({ pop: 0, mm: 0, rainStartAt: at })
+      // 가상 예보가 남아 있으면 같은 날짜에 새 요청이 만들어지지 않으므로, 먼저 모두 취소하고 다시 보냅니다.
+      await cancelSimulatedForecasts()
       return simulateForecast({ pop: DEMO_POP, mm: DEMO_MM, rainStartAt: at })
     },
     onSuccess: (result) => { setMessage(describe(result)); return refresh() },
@@ -92,19 +93,11 @@ export default function DemoToolsPanel() {
   })
 
   const cancel = useMutation({
-    mutationFn: async () => {
-      const now = Date.now()
-      const results: ForecastSimulateResult[] = []
-      for (const at of [rainStartAt('tomorrow', now), rainStartAt('today', now)]) {
-        if (at) results.push(await simulateForecast({ pop: 0, mm: 0, rainStartAt: at }))
-      }
-      return results
-    },
-    onSuccess: (results) => {
-      const cancelled = results.filter((result) => result.applied === 'CANCELLED')
-      setMessage(cancelled.length > 0
-        ? `예보를 취소했어요. 점검 요청 ${cancelled.reduce((sum, result) => sum + result.cancelledCount, 0)}건이 취소됐어요.`
-        : '취소할 예보가 없어요.')
+    mutationFn: cancelSimulatedForecasts,
+    onSuccess: (result) => {
+      setMessage(result.cancelledForecastCount > 0
+        ? `가상 예보 ${result.cancelledForecastCount}건을 취소했어요. 점검 요청 ${result.cancelledRequestCount}건도 함께 취소됐어요.`
+        : '취소할 가상 예보가 없어요.')
       return refresh()
     },
   })
@@ -129,7 +122,7 @@ export default function DemoToolsPanel() {
   return (
     <section aria-label="시연 도구" className="space-y-3">
       <p className="rounded-xl bg-[#FFF4DC] px-3 py-2.5 text-[13px] font-medium leading-5 text-[#8A6510]">
-        시연용 도구예요. 비 예보를 보내면 알림을 켠 모든 사용자에게 알림이 가요. 입양자는 점검 요청을, 나머지는 대신 점검 안내를 받아요. 행사가 끝나면 꼭 취소해 주세요.
+        시연용 도구예요. 비 예보를 보내면 운영 서버의 입양자 모두에게 점검 요청과 알림이 가요. 행사가 끝나면 꼭 취소해 주세요.
       </p>
 
       <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
@@ -195,7 +188,7 @@ export default function DemoToolsPanel() {
 
         {armed ? (
           <div role="group" aria-label="보내기 확인" className="mt-3 rounded-xl bg-[#F4F7FB] p-3">
-            <p className="text-[14px] font-bold text-[#203451]">알림을 켠 모든 사용자에게 알림이 가요. 보낼까요?</p>
+            <p className="text-[14px] font-bold text-[#203451]">입양자 모두에게 점검 요청이 가요. 보낼까요?</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -232,7 +225,7 @@ export default function DemoToolsPanel() {
           onClick={() => { setMessage(''); setArmed(false); cancel.mutate() }}
           className="mt-2 min-h-11 w-full rounded-xl border border-[#DCE5F0] bg-white px-3 text-[14px] font-bold text-[#53647E] disabled:opacity-50"
         >
-          {cancel.isPending ? '취소하는 중…' : '예보 취소'}
+          {cancel.isPending ? '취소하는 중…' : '가상 예보 모두 취소'}
         </button>
       </div>
 
