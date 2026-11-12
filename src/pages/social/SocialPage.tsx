@@ -1,5 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useMyWeeklyRank, useTopRanks, type Rank } from '../../apis/leaderboard'
+import { getMe } from '../../apis/auth'
 import happyCharacter from '../../assets/characters/states/happy.svg'
 import { AccountId } from '../../features/account/AccountId'
 
@@ -163,6 +165,10 @@ export default function SocialPage() {
   const accountId = useContext(AccountId)
   const weekly = useMyWeeklyRank(accountId)
   const leaderboard = useTopRanks(accountId)
+  // 내 프로필 사진 (프로필 · 마이페이지와 같은 조회를 함께 씁니다)
+  const me = useQuery({ queryKey: ['mypage', 'me', accountId], queryFn: getMe, enabled: accountId !== null, staleTime: 30_000 })
+  const myPhoto = me.data?.profileImage ?? null
+  const [failedMyPhoto, setFailedMyPhoto] = useState<string | null>(null)
   const inviting = useRef(false)
   const [notice, setNotice] = useState('')
 
@@ -231,8 +237,12 @@ export default function SocialPage() {
         className="rounded-3xl border border-[#dfe6f3] bg-white p-5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]"
       >
         <div className="relative flex min-h-24 flex-col justify-center pr-24">
-          <div className="pointer-events-none absolute right-0 top-1/2 grid size-24 -translate-y-1/2 place-items-center rounded-full bg-[#eaf0ff] [html[data-dd-theme=dark]_&]:bg-[#283f5b]">
-            <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-[88px] object-contain" />
+          <div className="pointer-events-none absolute right-0 top-1/2 grid size-24 -translate-y-1/2 place-items-center overflow-hidden rounded-full bg-[#eaf0ff] [html[data-dd-theme=dark]_&]:bg-[#283f5b]">
+            {myPhoto && myPhoto !== failedMyPhoto ? (
+              <img src={myPhoto} alt="" width={96} height={96} draggable={false} onError={() => setFailedMyPhoto(myPhoto)} className="size-24 object-cover" />
+            ) : (
+              <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-[88px] object-contain" />
+            )}
           </div>
           <h2 id="social-weekly-title" className="text-[22px] font-extrabold tracking-tight">내 주간 기록</h2>
           {weekStart && <p className="mt-1.5 text-[13px] text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">{weekStart}</p>}
