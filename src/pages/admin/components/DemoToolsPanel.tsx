@@ -1,444 +1,267 @@
 import { useState } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useLocation, useNavigate } from 'react-router'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { getCurrentCoordinates } from '../../../apis/adoptions'
+import {
+  simulateForecast,
+  simulateRain,
+  type ForecastSimulateResult,
+} from '../../../apis/admin'
 import { getErrorMessage } from '../../../apis/auth'
-import {
-  claimRainRequest,
-  getMyRainRequests,
-  replyRainRequest,
-} from '../../../apis/requests'
-import type { RequestAction } from '../../../types/notifications'
-import {
-  getNotifications,
-  getNotificationSummary,
-  markAllNotificationsRead,
-  markNotificationRead,
-  type NotificationItem,
-} from '../../../apis/notifications'
-import type { Coordinates } from '../../../apis/requests'
-import { formatKstDateTime } from '../../../utils/kstDateTime'
+import { getRainNotice } from '../../../apis/rain-notice'
+import { formatKstDateTime, KST_TIME_ZONE } from '../../../utils/kstDateTime'
 
-import InspectionRequestCard from '../../notifications/components/InspectionRequestCard'
-import PushOptInCard from '../../../features/push/PushOptInCard'
+// 서버의 비 예보 기준(강수확률 60% 이상이고 강수량 5mm 이상)을 넉넉히 넘는 값입니다.
+const DEMO_POP = 80
+const DEMO_MM = 10
+const HOUR_MS = 60 * 60 * 1000
+// 서버는 비 시작이 지금부터 3시간 뒤 이후일 때만 받습니다. 요청이 오가는 시간을 10분 더합니다.
+const SAME_DAY_LEAD_MS = 3 * HOUR_MS + 10 * 60 * 1000
 
-export default function NotificationsPage() {
-  const navigate = useNavigate()
-  const { search, state } = useLocation()
+const serverTimeFormat = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: KST_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
+/** 서버가 받는 한국 시각 문자열(2026-11-11T15:00:00)로 바꿉니다. */
+function toServerTime(time: number): string {
+  return serverTimeFormat.format(new Date(time)).replace(' ', 'T')
+}
+
+type RainStart = 'tomorrow' | 'today'
+
+/** 고른 비 시작 시각. 오늘 비가 자정을 넘기면 보낼 수 없어 null을 돌려줍니다. */
+function rainStartAt(option: RainStart, now: number): string | null {
+  if (option === 'tomorrow') {
+    return `${toServerTime(now + 24 * HOUR_MS).slice(0, 10)}T15:00:00`
+  }
+  const start = toServerTime(now + SAME_DAY_LEAD_MS)
+  return start.slice(0, 10) === toServerTime(now).slice(0, 10) ? start : null
+}
+
+function describe(result: ForecastSimulateResult): string {
+  if (result.applied === 'CONFIRMED') {
+    return result.createdCount > 0
+      ? `비 예보를 보냈어요. 점검 요청 ${result.createdCount}건이 만들어졌어요.`
+      : '예보는 적용됐지만 만들어진 요청이 없어요. 등록된 빗물받이가 있는지 확인해 주세요.'
+  }
+  if (result.applied === 'UPDATED') return '같은 날 예보가 이미 있어 값만 바꿨어요. 새 요청은 만들어지지 않았어요.'
+  if (result.applied === 'CANCELLED') return `예보를 취소했어요. 점검 요청 ${result.cancelledCount}건이 취소됐어요.`
+  return '취소할 예보가 없어요.'
+}
+
+/**
+ * 데모데이 시연 도구 (ADMIN 전용).
+ * 가상 예보를 보내 점검 요청을 만들고, 지도의 '비 오는 중' 표시를 켜고 끕니다.
+ */
+export default function DemoToolsPanel() {
   const queryClient = useQueryClient()
-  const requestId = Number(new URLSearchParams(search).get('requestId'))
-  const focusedRequestId = Number.isSafeInteger(requestId) && requestId > 0 ? requestId : null
-  const [requestMessage, setRequestMessage] = useState('')
-  const [activeTab, setActiveTab] = useState<'requests' | 'activity'>('requests')
-  const [coordinates, setCoordinates] = useState<Coordinates | null>(() => {
-    const mapState = state as { mapRequestCoordinates?: Coordinates | null } | null
-    return focusedRequestId === null ? null : mapState?.mapRequestCoordinates ?? null
-  })
-  const [locationPending, setLocationPending] = useState(false)
-  const [locationError, setLocationError] = useState('')
-  const [notificationMessage, setNotificationMessage] = useState('')
+  const [option, setOption] = useState<RainStart>('tomorrow')
+  const [armed, setArmed] = useState(false)
+  const [message, setMessage] = useState('')
 
-  const {
-    data: requests = [],
-    isPending: requestsPending,
-    isFetching: requestsFetching,
-    isError: requestsFailed,
-    error: requestsError,
-    refetch: refetchRequests,
-  } = useQuery({
-    queryKey: ['rain-requests', coordinates?.latitude ?? null, coordinates?.longitude ?? null],
-    queryFn: ({ signal }) => getMyRainRequests(coordinates ?? undefined, signal),
-    staleTime: 20_000,
-    refetchInterval: 60_000,
+  const notice = useQuery({
+    queryKey: ['rain-notice'],
+    queryFn: ({ signal }) => getRainNotice(signal),
+    staleTime: 10_000,
+    refetchInterval: 30_000,
   })
 
-  const focusedRequest = requests.find((request) => request.requestId === focusedRequestId)
-  const displayedRequests = focusedRequest
-    ? [focusedRequest, ...requests.filter((request) => request.requestId !== focusedRequestId)]
-    : requests
+  const refresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['rain-notice'] }),
+    queryClient.invalidateQueries({ queryKey: ['rain-requests'] }),
+    queryClient.invalidateQueries({ queryKey: ['notifications-list'] }),
+    queryClient.invalidateQueries({ queryKey: ['notifications-summary'] }),
+  ])
 
-  type RequestMutationInput = { requestId: number; drainId: number; action: RequestAction }
-  const respondMutation = useMutation({
-    mutationFn: async ({ requestId, action }: RequestMutationInput) => {
-      if (action === 'claim') {
-        // 대신 점검은 반드시 현재 GPS 위치를 서버에 전송합니다.
-        const current = await getCurrentCoordinates()
-        return claimRainRequest(requestId, current)
-      }
-      return replyRainRequest(requestId, action === 'accept' ? 'ACCEPT' : 'DECLINE')
+  const send = useMutation({
+    mutationFn: async () => {
+      const at = rainStartAt(option, Date.now())
+      if (!at) throw new Error('오늘 비는 자정 전에 시작하는 일정만 보낼 수 있어요. 내일 비로 보내 주세요.')
+      // 같은 날짜에 예보가 남아 있으면 새 요청이 만들어지지 않으므로, 먼저 취소하고 다시 보냅니다.
+      await simulateForecast({ pop: 0, mm: 0, rainStartAt: at })
+      return simulateForecast({ pop: DEMO_POP, mm: DEMO_MM, rainStartAt: at })
     },
-    onSuccess: async (_result, { requestId, drainId, action }) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['rain-requests'] }),
-        queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
-        queryClient.invalidateQueries({ queryKey: ['rain-notice'] }),
-        queryClient.invalidateQueries({ queryKey: ['drain-detail', drainId] }),
-        queryClient.invalidateQueries({ queryKey: ['rain-inspection-context', requestId] }),
-      ])
-      setRequestMessage(
-        action === 'claim'
-          ? '대신 점검을 맡았어요. 입양권은 이동하지 않아요.'
-          : action === 'decline'
-            ? '주변에 대신 점검 요청을 공개했어요. 불이익은 없어요.'
-            : '점검 가능으로 응답했어요. 마감 전에 점검해 주세요.',
-      )
+    onSuccess: (result) => { setMessage(describe(result)); return refresh() },
+    onSettled: () => setArmed(false),
+  })
+
+  const cancel = useMutation({
+    mutationFn: async () => {
+      const now = Date.now()
+      const results: ForecastSimulateResult[] = []
+      for (const at of [rainStartAt('tomorrow', now), rainStartAt('today', now)]) {
+        if (at) results.push(await simulateForecast({ pop: 0, mm: 0, rainStartAt: at }))
+      }
+      return results
     },
-    onError: (error) => setRequestMessage(getErrorMessage(error)),
+    onSuccess: (results) => {
+      const cancelled = results.filter((result) => result.applied === 'CANCELLED')
+      setMessage(cancelled.length > 0
+        ? `예보를 취소했어요. 점검 요청 ${cancelled.reduce((sum, result) => sum + result.cancelledCount, 0)}건이 취소됐어요.`
+        : '취소할 예보가 없어요.')
+      return refresh()
+    },
   })
 
-  // 서버에 저장된 알림 메시지는 활동 알림 탭에 모아 표시합니다.
-  // 점검 요청 탭에는 별도 API의 실제 점검 요청 카드만 표시합니다.
-  const {
-    data: notificationPages,
-    isPending: notificationsPending,
-    isError: notificationsFailed,
-    error: notificationsError,
-    refetch: refetchNotifications,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['notifications-list'],
-    initialPageParam: null as number | null,
-    queryFn: ({ pageParam, signal }) =>
-      getNotifications({ cursor: pageParam, size: 20 }, signal),
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: activeTab === 'activity',
-    staleTime: 20_000,
+  const rain = useMutation({
+    mutationFn: (minutes: number) => simulateRain(minutes),
+    onSuccess: (result) => {
+      const until = formatKstDateTime(result.simulatedRainingUntil)
+      setMessage(result.raining
+        ? `지도에 '비 오는 중'을 켰어요.${until ? ` ${until}까지 표시돼요.` : ''}`
+        : "'비 오는 중' 표시를 껐어요.")
+      return refresh()
+    },
   })
 
-  const {
-    data: notificationSummary,
-    isError: summaryFailed,
-    error: summaryError,
-  } = useQuery({
-    queryKey: ['notifications-summary'],
-    queryFn: ({ signal }) => getNotificationSummary(signal),
-    staleTime: 20_000,
-    refetchInterval: 60_000,
-  })
-
-  const notifications = notificationPages?.pages.flatMap(
-    (page) => page.notifications,
-  ) ?? []
-
-  // 점검 요청 탭 배지는 조치할 요청 수, 활동 알림 탭 배지는
-  // 알림 종류와 관계없이 서버에 저장된 미확인 메시지 수를 나타냅니다.
-  const totalUnreadCount = notificationSummary?.totalUnread ?? 0
-
-  const invalidateNotificationQueries = () => {
-    void queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
-    void queryClient.invalidateQueries({ queryKey: ['notifications-summary'] })
-  }
-
-  const readOneMutation = useMutation({
-    mutationFn: markNotificationRead,
-    onSuccess: invalidateNotificationQueries,
-  })
-
-  const readAllMutation = useMutation({
-    mutationFn: markAllNotificationsRead,
-    onSuccess: invalidateNotificationQueries,
-  })
-
-  // 현재 라우트에서 확인된 목적지만 연결합니다.
-  // requestId로 빗물받이 ID를 알 수 있으면 기존 상세 점검 화면으로 이동합니다.
-  const openNotificationDestination = (notification: NotificationItem) => {
-    switch (notification.type) {
-      case 'RAIN_TOMORROW':
-      case 'RAIN_TODAY':
-      case 'SUBSTITUTE_OPEN':
-      case 'REQUEST_CLAIMED':
-      case 'REQUEST_DEADLINE_CHANGED': {
-        // 요청에 묶이지 않은 비 소식 알림(입양하지 않은 사용자)은 내 위치 주변의 대신 점검 요청을 바로 보여 줍니다.
-        if (notification.requestId === null) {
-          setActiveTab('requests')
-          setRequestMessage('내 위치 주변에서 도움이 필요한 빗물받이를 찾고 있어요.')
-          void showNearbyAtMyLocation()
-          return
-        }
-        const request = requests.find(
-          (item) => item.requestId === notification.requestId,
-        )
-        if (request) {
-          navigate(`/drains/${request.drain.drainId}?requestId=${request.requestId}`)
-          return
-        }
-        setActiveTab('requests')
-        setRequestMessage('해당 요청이 현재 요청 목록에 없어요. 목록을 새로고침해 확인해 주세요.')
-        return
-      }
-      case 'REQUEST_CANCELLED':
-      case 'REQUEST_MISSED':
-        setActiveTab('requests')
-        return
-      case 'MANAGEMENT_DUE':
-      case 'ADOPTION_WARNING':
-      case 'ADOPTION_RELEASED':
-      case 'ADOPTION_REGISTERED':
-      case 'LEVEL_UP':
-      case 'INSPECTION_APPROVED':
-        navigate('/my-drains')
-        return
-      case 'REPORT_RESULT':
-        // 프로필의 내 제보 내역을 바로 펼쳐 보여 줍니다.
-        navigate('/profile', { state: { openReports: true } })
-        return
-      case 'WELCOME':
-        navigate('/my-drains')
-        return
-      default:
-        // 이동 경로가 없는 알림은 읽음 처리만 수행합니다.
-        return
-    }
-  }
-
-  const handleNotificationClick = async (notification: NotificationItem) => {
-    if (readOneMutation.isPending || readAllMutation.isPending) return
-    setNotificationMessage('')
-    try {
-      if (!notification.read) {
-        await readOneMutation.mutateAsync(notification.notificationId)
-      }
-      openNotificationDestination(notification)
-    } catch (error) {
-      setNotificationMessage(getErrorMessage(error))
-    }
-  }
-
-  const handleMarkAllRead = async () => {
-    if (readOneMutation.isPending || readAllMutation.isPending) return
-    setNotificationMessage('')
-    try {
-      const updatedCount = await readAllMutation.mutateAsync()
-      setNotificationMessage(`${updatedCount}개의 알림을 읽음 처리했어요.`)
-    } catch (error) {
-      setNotificationMessage(getErrorMessage(error))
-    }
-  }
-
-  const renderNotificationList = (items: NotificationItem[]) => (
-    <ul className="divide-y divide-[#EDF1F6]">
-      {items.map((notification) => (
-        <li key={notification.notificationId}>
-          <button
-            type="button"
-            disabled={readOneMutation.isPending || readAllMutation.isPending}
-            onClick={() => void handleNotificationClick(notification)}
-            aria-label={`${notification.read ? '읽은 알림' : '읽지 않은 알림'}: ${notification.title}. ${notification.body}`}
-            className="flex w-full items-start gap-2.5 py-4 text-left disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[#3981F7]"
-          >
-            <span
-              aria-hidden="true"
-              className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${notification.read ? 'bg-transparent' : 'bg-[#3981F7]'}`}
-            />
-            <span className="min-w-0 flex-1">
-              <span className={`block text-[15px] font-semibold leading-5 ${notification.read ? 'text-[#637790]' : 'text-[#203451]'}`}>
-                {notification.title}
-              </span>
-              <span className={`mt-1 block whitespace-pre-wrap break-words text-[14px] leading-5 ${notification.read ? 'text-[#78899F]' : 'text-[#53647E]'}`}>
-                {notification.body}
-              </span>
-              <time
-                dateTime={notification.createdAt}
-                className="mt-2 block text-[12px] text-[#78899F]"
-              >
-                {formatKstDateTime(notification.createdAt) ?? '시각 정보 없음'}
-              </time>
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
-  )
-
-  const renderNotificationLoadMore = () => (
-    hasNextPage ? (
-      <button
-        type="button"
-        onClick={() => void fetchNextPage()}
-        disabled={isFetchingNextPage}
-        className="mt-3 min-h-11 w-full rounded-xl bg-[#F0F4F9] text-[13px] font-semibold text-[#3981F7] disabled:opacity-50"
-      >
-        {isFetchingNextPage ? '알림 불러오는 중...' : '알림 더 보기'}
-      </button>
-    ) : null
-  )
-
-  const handleRespond = (requestId: number, action: RequestAction) => {
-    if (respondMutation.isPending) return
-    const target = requests.find((request) => request.requestId === requestId)
-    const requiredAction = action === 'claim' ? 'CLAIM' : 'REPLY'
-    if (!target?.availableActions.includes(requiredAction)) return
-    setRequestMessage('')
-    respondMutation.mutate({ requestId, drainId: target.drain.drainId, action })
-  }
-
-  const showNearbyAtMyLocation = async () => {
-    if (locationPending) return
-    setLocationPending(true)
-    setLocationError('')
-    try {
-      const current = await getCurrentCoordinates()
-      // GET 파라미터: 위도와 경도를 함께 전달해야 합니다.
-      setCoordinates(current)
-    } catch (error) {
-      setLocationError(`${getErrorMessage(error)} 내 또랑이 주변 요청은 계속 볼 수 있어요.`)
-    } finally {
-      setLocationPending(false)
-    }
-  }
+  const busy = send.isPending || cancel.isPending || rain.isPending
+  const failed = send.error ?? cancel.error ?? rain.error
+  const forecast = notice.data?.forecast
+  const forecastStart = formatKstDateTime(forecast?.rainStartAt)
+  const help = notice.data?.help
 
   return (
-    <main className="min-h-[calc(100dvh-128px)] bg-white px-[18px] pb-8 pt-2">
-      <PushOptInCard className="mb-4" />
-      <div role="tablist" aria-label="알림 종류" className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-[#F0F4F9] p-1">
-        {([
-          { id: 'requests', label: '점검 요청', count: requests.length },
-          { id: 'activity', label: '활동 알림', count: totalUnreadCount },
-        ] as const).map((tab, index) => {
-          const active = activeTab === tab.id
-          return (
-            <button key={tab.id} id={`notification-tab-${tab.id}`} type="button" role="tab" aria-selected={active} aria-controls={`notification-panel-${tab.id}`} tabIndex={active ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
-              onKeyDown={(event) => {
-                let target: 'requests' | 'activity' | null = null
-                if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') target = index === 0 ? 'activity' : 'requests'
-                if (event.key === 'Home') target = 'requests'
-                if (event.key === 'End') target = 'activity'
-                if (target) {
-                  event.preventDefault()
-                  setActiveTab(target)
-                  document.getElementById(`notification-tab-${target}`)?.focus()
-                }
-              }}
-              className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border text-[15px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[#3981F7] ${active ? 'border-[#C6DCFF] bg-white text-[#3981F7]' : 'border-transparent text-[#78899F]'}`}>
-              {tab.label}
-              <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[13px] ${active ? 'bg-[#3981F7] text-white' : 'bg-[#EAF2FF] text-[#53647E]'}`} aria-label={`${tab.count}개 미확인`}>{tab.count}</span>
-            </button>
-          )
-        })}
-      </div>
-      {summaryFailed && activeTab === 'activity' && (
-        <p role="alert" className="mb-3 text-[13px] text-[#B84D4D]">
-          알림 미확인 수를 불러오지 못했어요: {getErrorMessage(summaryError)}
-        </p>
-      )}
-      {notificationMessage && (
-        <p role="status" className="mb-3 text-[13px] text-[#637790]">
-          {notificationMessage}
-        </p>
-      )}
-      <section id="notification-panel-requests" role="tabpanel" aria-labelledby="notification-tab-requests" hidden={activeTab !== 'requests'} tabIndex={0}>
+    <section aria-label="시연 도구" className="space-y-3">
+      <p className="rounded-xl bg-[#FFF4DC] px-3 py-2.5 text-[13px] font-medium leading-5 text-[#8A6510]">
+        시연용 도구예요. 비 예보를 보내면 알림을 켠 모든 사용자에게 알림이 가요. 입양자는 점검 요청을, 나머지는 대신 점검 안내를 받아요. 행사가 끝나면 꼭 취소해 주세요.
+      </p>
 
-        <button
-          type="button"
-          role="switch"
-          aria-checked={coordinates !== null}
-          aria-label="내 위치 주변 요청 포함"
-          aria-busy={locationPending}
-          disabled={locationPending}
-          onClick={() => {
-            if (coordinates !== null) {
-              setCoordinates(null)
-              setLocationError('')
-            } else {
-              void showNearbyAtMyLocation()
-            }
-          }}
-          className="mb-3 flex min-h-11 w-full items-center gap-2.5 rounded-xl bg-[#F0F3F9] px-3 text-left text-[13px] font-semibold text-[#203451] transition-colors hover:bg-[#EAF0FA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#637FEA] disabled:opacity-60 [html[data-dd-theme=dark]_&]:bg-[#233349] [html[data-dd-theme=dark]_&]:text-[#EDF5FF]"
-        >
-          <svg aria-hidden="true" className="size-5 shrink-0 text-[#536ED4] [html[data-dd-theme=dark]_&]:text-[#9BCAFF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M19 10c0 5-7 10-7 10s-7-5-7-10a7 7 0 1 1 14 0Z" />
-            <circle cx="12" cy="10" r="2.5" />
-          </svg>
-          <span className="flex-1">내 위치 주변 요청 포함</span>
-          {locationPending && (
-            <span role="status" className="text-[11px] font-medium">위치 확인 중…</span>
-          )}
-          <span
-            aria-hidden="true"
-            className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${coordinates !== null ? 'bg-[#536ED4]' : 'bg-[#A2AEC0]'}`}
-          >
-            <span className={`absolute left-[3px] top-[3px] size-[18px] rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${coordinates !== null ? 'translate-x-4' : 'translate-x-0'}`} />
-          </span>
-        </button>
-        {coordinates && requests.length > 0 && (<p className="mb-2 text-[13px] text-[#78899F]">현재 위치와 내 또랑이 주변 요청을 함께 표시해요.</p>)}
-        {locationError && <p role="alert" className="mb-3 text-[13px] text-[#B84D4D]">{locationError}</p>}
-        {requestMessage && <p role="status" className="mb-3 text-[13px] leading-5 text-[#637790]">{requestMessage}</p>}
-        {focusedRequestId !== null && !focusedRequest && !requestsPending && !requestsFetching && !requestsFailed && !locationPending && (
-          <p role="status" className="mb-3 text-[13px] leading-5 text-[#637790]">
-            {coordinates
-              ? '지도에서 고른 점검 요청이 현재 목록에 없어요.'
-              : '지도에서 고른 요청을 찾으려면 내 위치 주변 요청을 확인해 주세요.'}
-          </p>
+      <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
+        <h3 className="text-[15px] font-bold text-[#203451]">지금 상태</h3>
+        {notice.isPending ? (
+          <p role="status" className="mt-2 text-[13px] text-[#637790]">불러오는 중이에요.</p>
+        ) : notice.isError ? (
+          <p role="alert" className="mt-2 text-[13px] text-[#B84D4D]">{getErrorMessage(notice.error)}</p>
+        ) : (
+          <dl className="mt-2 grid grid-cols-2 gap-2 text-[13px]">
+            <div className="rounded-xl bg-[#F4F7FB] px-3 py-2">
+              <dt className="text-[#637790]">비 예보</dt>
+              <dd className="mt-0.5 font-bold text-[#203451]">
+                {forecast
+                  ? `${forecastStart ? `${forecastStart} 시작` : '시작 시각 확인 중'}${forecast.simulated ? ' (가상)' : ''}`
+                  : '없음'}
+              </dd>
+            </div>
+            <div className="rounded-xl bg-[#F4F7FB] px-3 py-2">
+              <dt className="text-[#637790]">비 오는 중</dt>
+              <dd className="mt-0.5 font-bold text-[#203451]">{notice.data.raining ? '켜짐' : '꺼짐'}</dd>
+            </div>
+            {help && (
+              <div className="col-span-2 rounded-xl bg-[#F4F7FB] px-3 py-2">
+                <dt className="text-[#637790]">점검 요청</dt>
+                <dd className="mt-0.5 font-bold text-[#203451]">
+                  도움 필요 {help.needsHelpCount} · 점검 중 {help.inProgressCount} · 완료 {help.doneCount}
+                </dd>
+              </div>
+            )}
+          </dl>
         )}
-        {requestsPending ? (
-          <p role="status" className="py-6 text-[13px] text-[#637790]">점검 요청을 불러오는 중이에요.</p>
-        ) : requestsFailed ? (
-          <div role="alert" className="py-6 text-[13px] text-[#B84D4D]">
-            <p>{getErrorMessage(requestsError)}</p>
-            <button type="button" onClick={() => void refetchRequests()} className="mt-3 min-h-11 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
-          </div>
-        ) : requests.length === 0 ? (
-          <div className="flex min-h-[45dvh] items-center justify-center">
-            <div className="text-center">
-              <p className="text-[15px] font-bold text-[#203451]">아직 점검 요청이 없어요.</p>
-              <p className="mt-1.5 text-[14px] leading-6 text-[#637790]">비 예보가 있으면 여기에 점검 요청이 와요.<br />이웃 또랑이의 대신 점검 요청도 여기서 볼 수 있어요.</p>
+      </div>
+
+      <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
+        <h3 className="text-[15px] font-bold text-[#203451]">비 예보 보내기</h3>
+        <p className="mt-1 text-[13px] leading-5 text-[#637790]">
+          입양자에게 점검 요청이 가고, 입양자 없는 빗물받이는 대신 점검 대상으로 열려요. 체험자가 바뀔 때마다 다시 눌러 주세요.
+        </p>
+
+        <div role="radiogroup" aria-label="비 시작 시각" className="mt-3 grid grid-cols-2 gap-2">
+          {([
+            { id: 'tomorrow', label: '내일 오후 3시' },
+            { id: 'today', label: '오늘 (3시간 10분 뒤)' },
+          ] as const).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="radio"
+              aria-checked={option === item.id}
+              disabled={busy}
+              onClick={() => { setOption(item.id); setArmed(false) }}
+              className={`min-h-11 rounded-xl border px-2 text-[13px] font-bold ${
+                option === item.id
+                  ? 'border-[#3981F7] bg-[#EAF2FF] text-[#3981F7]'
+                  : 'border-[#E2EAF4] bg-white text-[#53647E]'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {armed ? (
+          <div role="group" aria-label="보내기 확인" className="mt-3 rounded-xl bg-[#F4F7FB] p-3">
+            <p className="text-[14px] font-bold text-[#203451]">알림을 켠 모든 사용자에게 알림이 가요. 보낼까요?</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setArmed(false)}
+                className="min-h-11 rounded-xl border border-[#DCE5F0] bg-white text-[14px] font-bold text-[#53647E] disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => { setMessage(''); send.mutate() }}
+                className="min-h-11 rounded-xl bg-[#3981F7] text-[14px] font-bold text-white disabled:opacity-50"
+              >
+                {send.isPending ? '보내는 중…' : '보내기'}
+              </button>
             </div>
           </div>
         ) : (
-          <div>
-            {displayedRequests.map((request) => (
-              <InspectionRequestCard
-                key={request.requestId}
-                request={request}
-                onRespond={handleRespond}
-                disabled={respondMutation.isPending}
-                busy={respondMutation.isPending && respondMutation.variables?.requestId === request.requestId}
-                onViewDrain={(drainId, requestId) =>
-                 navigate(`/drains/${drainId}?requestId=${requestId}`)
-                }
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section id="notification-panel-activity" role="tabpanel" aria-labelledby="notification-tab-activity" hidden={activeTab !== 'activity'} tabIndex={0}>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 id="activity-notifications-title" className="text-[15px] font-bold text-[#203451]">활동 알림</h2>
-          <span className="text-[13px] text-[#637790]" aria-live="polite">{totalUnreadCount}개 미확인</span>
-        </div>
-        {notificationsPending ? (
-          <p role="status" className="py-6 text-[13px] text-[#637790]">활동 알림을 불러오는 중이에요.</p>
-        ) : notificationsFailed ? (
-          <div role="alert" className="py-6 text-[13px] text-[#B84D4D]">
-            <p>{getErrorMessage(notificationsError)}</p>
-            <button type="button" onClick={() => void refetchNotifications()} className="mt-3 min-h-11 rounded-xl bg-[#EAF2FF] px-3 font-semibold text-[#3981F7]">다시 시도</button>
-          </div>
-        ) : (
-          <>
-            {notifications.length > 0 ? (
-              renderNotificationList(notifications)
-            ) : (
-              <p className="py-6 text-[14px] leading-6 text-[#637790]">아직 알림이 없어요. 입양·점검·제보 결과가 여기에 쌓여요.</p>
-            )}
-            {renderNotificationLoadMore()}
-          </>
-        )}
-        {totalUnreadCount > 0 && (
           <button
             type="button"
-            onClick={() => void handleMarkAllRead()}
-            disabled={readAllMutation.isPending || readOneMutation.isPending}
-            className="mt-3 min-h-11 text-[13px] font-semibold text-[#3981F7] disabled:text-[#A5B1C1]"
+            disabled={busy}
+            onClick={() => { setMessage(''); send.reset(); setArmed(true) }}
+            className="mt-3 min-h-11 w-full rounded-xl bg-[#3981F7] px-3 text-[15px] font-bold text-white disabled:opacity-50"
           >
-            {readAllMutation.isPending ? '읽음 처리 중...' : '모든 알림 읽음 처리'}
+            새 체험자에게 비 예보 보내기
           </button>
         )}
-      </section>
-    </main>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => { setMessage(''); setArmed(false); cancel.mutate() }}
+          className="mt-2 min-h-11 w-full rounded-xl border border-[#DCE5F0] bg-white px-3 text-[14px] font-bold text-[#53647E] disabled:opacity-50"
+        >
+          {cancel.isPending ? '취소하는 중…' : '예보 취소'}
+        </button>
+      </div>
+
+      <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
+        <h3 className="text-[15px] font-bold text-[#203451]">지도에 '비 오는 중' 표시</h3>
+        <p className="mt-1 text-[13px] leading-5 text-[#637790]">
+          지도 배너만 바뀌어요. 점검 요청은 만들어지지 않아요.
+        </p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {[10, 30, 0].map((minutes) => (
+            <button
+              key={minutes}
+              type="button"
+              disabled={busy}
+              onClick={() => { setMessage(''); setArmed(false); rain.mutate(minutes) }}
+              className={`min-h-11 rounded-xl border px-2 text-[14px] font-bold disabled:opacity-50 ${
+                minutes === 0
+                  ? 'border-[#DCE5F0] bg-white text-[#53647E]'
+                  : 'border-[#C6DCFF] bg-[#EAF2FF] text-[#3981F7]'
+              }`}
+            >
+              {minutes === 0 ? '끄기' : `${minutes}분 켜기`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {message && <p role="status" className="rounded-xl bg-[#E5F7ED] px-3 py-2.5 text-[14px] font-bold leading-6 text-[#1F7A55]">{message}</p>}
+      {failed && <p role="alert" className="rounded-xl bg-[#FFF1F1] px-3 py-2.5 text-[14px] leading-6 text-[#B84D4D]">{getErrorMessage(failed)}</p>}
+    </section>
   )
 }
