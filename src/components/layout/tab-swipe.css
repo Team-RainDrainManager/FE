@@ -4,3 +4,17 @@
 .dd-tab-swipe-surface[data-swipe-axis='y'] {
   touch-action: pan-y;
 }
+
+/* 넘길 때 잠깐 띄우는 이전 화면 (머리글 · 아래 탭바보다 아래, 앱 폭 안에서만 보임) */
+.dd-tab-swipe-ghost {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dd-tab-swipe-ghost > * {
+  will-change: transform;
+}
