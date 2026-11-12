@@ -2,8 +2,8 @@
 
 서버 API 문서(Swagger)에 있는 API가 앱의 어느 코드에 연결되어 있는지 정리한 문서입니다.
 
-- 기준: [서버 API 문서](https://api.rainbutler.site/swagger-ui/index.html)의 전체 경로 63개
-- 연결: **63 / 63** (2026-11-11 기준)
+- 기준: [서버 API 문서](https://api.rainbutler.site/swagger-ui/index.html)의 전체 경로 65개
+- 연결: **65 / 65** (2026-11-12 기준)
 - 확인 방법: 서버 문서의 경로와 `src` 아래 코드가 부르는 `/api/v1/...` 주소를 대조했습니다.
 
 ## 화면별 요약
@@ -47,6 +47,8 @@
 | 내 정보 | PATCH | `/users/me` | 닉네임 수정 | `apis/account.ts`, `apis/auth.ts` |
 | 내 정보 | GET | `/users/me/certificate` | 활동 확인서 PDF 다운로드 | `apis/my-page.ts` |
 | 내 정보 | POST | `/users/me/identity` | 실명 등록 | `apis/my-page.ts` |
+| 내 정보 | PATCH | `/users/me/profile-image` | 프로필 사진 변경 | `apis/profile-image.ts` |
+| 내 정보 | DELETE | `/users/me/profile-image` | 프로필 사진 삭제 | `apis/profile-image.ts` |
 | 내 정보 | GET | `/users/me/pause` | 점검 쉬기 상태 조회 | `apis/profile-settings.ts` |
 | 내 정보 | POST | `/users/me/pause` | 점검 쉬기 신청 | `apis/profile-settings.ts` |
 | 내 정보 | GET | `/users/me/sanctions` | 내 제재 내역 조회 | `apis/sanctions.ts` |

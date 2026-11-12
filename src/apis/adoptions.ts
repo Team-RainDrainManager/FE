@@ -49,6 +49,7 @@ export type UploadPurpose =
   | 'AFTER'
   | 'DRAIN'
   | 'REPORT'
+  | 'PROFILE'
 
 type PresignedResponse = {
   key: string
