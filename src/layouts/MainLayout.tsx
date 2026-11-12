@@ -12,7 +12,7 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-dvh bg-[#F5FAFF]">
-      <div className="mx-auto min-h-dvh max-w-[480px] bg-white shadow-sm">
+      <div className="mx-auto min-h-dvh max-w-[480px] overflow-x-clip bg-white shadow-sm">
         <Header />
 
         <main
