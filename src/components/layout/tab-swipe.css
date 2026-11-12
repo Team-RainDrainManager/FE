@@ -1,41 +1,6 @@
-/* Only the routed content is animated; header and bottom navigation stay put. */
-.dd-tab-swipe-surface { view-transition-name: dd-tab-surface; }
-
-@keyframes dd-tab-old-next {
-  to { transform: translate3d(-100%, 0, 0); opacity: .84; }
-}
-@keyframes dd-tab-new-next {
-  from { transform: translate3d(100%, 0, 0); opacity: .84; }
-}
-@keyframes dd-tab-old-previous {
-  to { transform: translate3d(100%, 0, 0); opacity: .84; }
-}
-@keyframes dd-tab-new-previous {
-  from { transform: translate3d(-100%, 0, 0); opacity: .84; }
-}
-
-html[data-dd-tab-swipe]::view-transition-group(dd-tab-surface) {
-  animation-duration: 230ms;
-  animation-timing-function: cubic-bezier(.22, 1, .36, 1);
-  overflow: clip;
-}
-html[data-dd-tab-swipe='next']::view-transition-old(dd-tab-surface) {
-  animation: 230ms cubic-bezier(.22, 1, .36, 1) both dd-tab-old-next;
-}
-html[data-dd-tab-swipe='next']::view-transition-new(dd-tab-surface) {
-  animation: 230ms cubic-bezier(.22, 1, .36, 1) both dd-tab-new-next;
-}
-html[data-dd-tab-swipe='previous']::view-transition-old(dd-tab-surface) {
-  animation: 230ms cubic-bezier(.22, 1, .36, 1) both dd-tab-old-previous;
-}
-html[data-dd-tab-swipe='previous']::view-transition-new(dd-tab-surface) {
-  animation: 230ms cubic-bezier(.22, 1, .36, 1) both dd-tab-new-previous;
-}
-html[data-dd-tab-swipe]::view-transition-old(root),
-html[data-dd-tab-swipe]::view-transition-new(root) { animation: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  html[data-dd-tab-swipe]::view-transition-group(dd-tab-surface),
-  html[data-dd-tab-swipe]::view-transition-old(dd-tab-surface),
-  html[data-dd-tab-swipe]::view-transition-new(dd-tab-surface) { animation: none !important; }
+/* Only the routed content moves; header and bottom navigation stay put. */
+/* 세로 스크롤은 브라우저가 바로 처리하고, 가로 끌기는 탭 넘기기가 받습니다.
+   지도 화면은 지도 자체를 끌어야 해서 빼 둡니다. */
+.dd-tab-swipe-surface[data-swipe-axis='y'] {
+  touch-action: pan-y;
 }
