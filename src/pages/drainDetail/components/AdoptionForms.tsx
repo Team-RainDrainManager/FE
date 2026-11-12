@@ -17,7 +17,7 @@ import {
   loadDraftPhoto,
   saveDraft,
 } from '../../../features/flow-draft/flow-draft'
-import { AccountId } from '../../../features/missions/wallet'
+import { AccountId } from '../../../features/account/AccountId'
 
 import {
   getCurrentCoordinates,

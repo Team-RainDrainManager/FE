@@ -2,28 +2,34 @@ import { useState, useEffect } from 'react'
 import { REACTIONS } from '../../login/reactions'
 import Character from '../../../components/common/Character'
 import '../../login/LoginPage.css'
-import Avatar from '../../shop/Avatar'
-import { greet } from '../../shop/greet'
+import waiting from '../../../assets/characters/unadopted.png'
+import happy from '../../../assets/characters/states/happy.svg'
+import { greet } from './greet'
 
 import { CustomOverlayMap } from 'react-kakao-maps-sdk'
-import type { DrainMapFilter, PositionedDrainMapItem } from '../../../types/map'
+import { needsInspection, type DrainMapFilter, type PositionedDrainMapItem } from '../../../types/map'
 
 interface DrainMarkerProps {
   drain: PositionedDrainMapItem
   filter: DrainMapFilter
   hint?: boolean
-  outfit?: string | null
   selected: boolean
   onSelect: (drain: PositionedDrainMapItem) => void
 }
 
-const MARKER_STYLES = {
-  unadopted: 'bg-[#91B6A4]',
-  normal: 'bg-[#4FBAA1]',
-  overdue: 'bg-[#F5B84B]',
-  blocked: 'bg-[#EF7272]',
-  risk: 'bg-[#F5B84B]',
+// 지도 마커 색: 정상 초록 · 점검 필요 노랑 · 막힘 제보 빨강 · 미입양 회색 (필터 점 색과 같음)
+const MARKER_COLORS = {
+  normal: 'bg-[#22A45D]',
+  inspection: 'bg-[#F5B400]',
+  blocked: 'bg-[#E5484D]',
   unknown: 'bg-[#98A2B3]',
+}
+
+function markerColor(drain: PositionedDrainMapItem) {
+  if (drain.status === 'blocked') return MARKER_COLORS.blocked
+  if (needsInspection(drain)) return MARKER_COLORS.inspection
+  if (drain.status === 'normal') return MARKER_COLORS.normal
+  return MARKER_COLORS.unknown
 }
 
 const STATUS_NAMES = {
@@ -54,7 +60,6 @@ export default function DrainMarker({
   drain,
   filter,
   selected,
-  outfit,
   hint = false,
   onSelect,
 }: DrainMarkerProps) {
@@ -92,9 +97,7 @@ export default function DrainMarker({
           }
         }}
 
-        aria-label={`${drain.nickname ?? drain.name}, ${
-          drain.level !== null ? `레벨 ${drain.level}, ` : ''
-        }${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`}
+        aria-label={`${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`}
 
         aria-pressed={selected}
         className="relative flex cursor-pointer flex-col items-center"
@@ -121,7 +124,7 @@ export default function DrainMarker({
             rounded-full border-[3px] border-white
             shadow-[0_3px_12px_rgba(0,0,0,0.22)]
             transition-transform
-            ${selected && available ? 'drain-focus' : hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : ''} ${MARKER_STYLES[drain.status]}
+            ${selected && available ? 'drain-focus' : hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : markerColor(drain)}
             ${selected && !available ? 'scale-125 ring-4 ring-white/60' : ''}
           `}
         >
@@ -137,16 +140,12 @@ export default function DrainMarker({
             {selected && playing && available ? (
               <Character type="state" state={reaction.face} size={128} />
             ) : (
-              <Avatar outfit={outfit} available={available} />
+              <span className="dd-face" aria-hidden="true">
+                <img src={available ? waiting : happy} alt="" draggable={false} />
+              </span>
             )}
           </span>
         </span>
-
-        {drain.level !== null && (
-          <span className="mt-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-extrabold text-[#385A73] shadow-sm">
-            Lv.{drain.level}
-          </span>
-        )}
       </button>
     </CustomOverlayMap>
   )

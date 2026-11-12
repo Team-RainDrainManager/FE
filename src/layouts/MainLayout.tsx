@@ -13,11 +13,11 @@ export default function MainLayout() {
   return (
     <div className="min-h-dvh bg-[#F5FAFF]">
       <div className="mx-auto min-h-dvh max-w-[480px] bg-white shadow-sm">
-        {pathname !== '/shop' && <Header />}
+        <Header />
 
         <main
           className={
-            isDetailPage || pathname === '/shop'
+            isDetailPage
               ? 'min-h-0 pb-6'
               : 'min-h-0 pb-[calc(68px+env(safe-area-inset-bottom))]'
           }
@@ -25,7 +25,7 @@ export default function MainLayout() {
           <SwipeTabOutlet />
         </main>
 
-        {!isDetailPage && pathname !== '/shop' && <BottomNavigation />}
+        {!isDetailPage && <BottomNavigation />}
         <FirstTimeTour />
         <CareWarningGate />
       </div>

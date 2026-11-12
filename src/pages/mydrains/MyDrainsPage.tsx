@@ -11,7 +11,7 @@ import {
 import { getPauseStatus } from '../../apis/profile-settings'
 
 import Character from '../../components/common/Character'
-import { AccountId } from '../../features/missions/wallet'
+import { AccountId } from '../../features/account/AccountId'
 
 import type {
   DrainModalType,

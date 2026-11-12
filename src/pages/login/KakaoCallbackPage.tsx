@@ -5,7 +5,6 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { consumeKakaoRedirect, kakaoRedirectUri, nextAfterLogin } from './auth-flow'
 import { beginFirstRun } from '../../utils/firstRun'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
-import { useDecorationStore } from '../../store/useDecorationStore'
 import './auth-pages.css'
 
 export default function KakaoCallbackPage() {
@@ -36,7 +35,6 @@ export default function KakaoCallbackPage() {
         if (tokens.isNewUser) {
           beginFirstRun()
           useMyDrainsStore.getState().reset()
-          useDecorationStore.getState().reset()
         }
         setTokens(tokens)
         navigate(await nextAfterLogin(), { replace: true })

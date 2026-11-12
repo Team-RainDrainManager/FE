@@ -2,7 +2,7 @@ import { useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { getMe, type UserRole } from '../../apis/auth'
-import { AccountId } from '../missions/wallet'
+import { AccountId } from '../account/AccountId'
 
 /** 관리자 화면에 들어갈 수 있는 역할인지 (운영자 · 시군 담당자) */
 export function isStaffRole(role: UserRole | null | undefined): boolean {

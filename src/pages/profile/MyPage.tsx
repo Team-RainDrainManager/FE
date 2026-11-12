@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { getMe, getErrorMessage } from '../../apis/auth'
 import { getActivities, downloadCertificate, registerCertificateName, CertificateNameRequired, type ActivityFilter } from '../../apis/my-page'
 import { getMyAdoptions } from '../../apis/my-drains'
-import { AccountId } from '../../features/missions/wallet'
+import { AccountId } from '../../features/account/AccountId'
 import Character from '../../components/common/Character'
 import './my-page.css'
 

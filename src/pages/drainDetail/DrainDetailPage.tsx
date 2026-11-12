@@ -9,7 +9,7 @@ import {
 } from '../../apis/adoptions'
 import { getMyRainRequests } from '../../apis/requests'
 import { getPauseStatus } from '../../apis/profile-settings'
-import { AccountId } from '../../features/missions/wallet'
+import { AccountId } from '../../features/account/AccountId'
 import { useAuthStore } from '../../store/useAuthStore'
 
 import DrainInfo from './components/DrainInfo'

@@ -88,7 +88,6 @@ html[data-dd-theme='dark'] :is(
 
 /* Any profile card that was converted from bg-white to dark must not inherit
    the bright-mode's navy text from a more specific inline utility. */
-html[data-dd-theme='dark'] .dd-profile-shop-mini { color: #c1ddff; }
 html[data-dd-theme='dark'] .rd-social {
   --rd-surface: #19293f;
   --rd-ink: #eef5ff;
