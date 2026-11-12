@@ -25,13 +25,6 @@ export default function DrainCard({
   onOpen,
 }: Props) {
   const drainId = adoption.drain.drain_id
-  const nameKey = `ddorang:drain-name:${drainId}`
-  const [specialName,setSpecialName] = useState(() => {
-    try { return localStorage.getItem(nameKey) ?? '' } catch { return '' }
-  })
-  const [draftName,setDraftName] = useState(specialName)
-  const [editingName,setEditingName] = useState(false)
-  const [nameMessage,setNameMessage] = useState('')
   const [celebrate,setCelebrate] = useState(false)
 
   useEffect(() => {
@@ -47,14 +40,6 @@ export default function DrainCard({
       localStorage.setItem(key,String(adoption.level))
     } catch { /* ignore */ }
   }, [adoption.level,drainId])
-
-  function saveName() {
-    const value=draftName.trim()
-    if(adoption.level<10) return
-    if(value.length<2||value.length>16){setNameMessage('이름은 2~16자로 입력해 주세요.');return}
-    try { localStorage.setItem(nameKey,value) } catch {setNameMessage('현재 브라우저에 이름을 저장할 수 없습니다.');return}
-    setSpecialName(value);setEditingName(false);setNameMessage('이 브라우저에서만 이름이 바뀝니다.')
-  }
 
   // 현재 시각은 렌더링이 아닌 Effect의 타이머에서 갱신
   const [now, setNow] = useState<number | null>(null)
@@ -110,7 +95,7 @@ export default function DrainCard({
       <div className="flex items-center gap-3 pr-6">
         <div className="relative shrink-0"><Character type="level" level={adoption.level} size={92} /></div>
         <div className="min-w-0 flex-1">
-          <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{specialName||adoption.adoption_name}</h3>
+          <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{adoption.adoption_name}</h3>
           <p className="mt-1 text-xs font-semibold text-[#3981F7]">Lv.{adoption.level} · {adoption.stage}</p>
           <p className="mt-1 text-xs text-[#78899F]">{adoption.drain.name}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -123,13 +108,6 @@ export default function DrainCard({
         <button type="button" onClick={() => onOpen({ type: 'growth', drainId })} className="rounded-lg px-1 py-1.5 text-xs font-semibold text-[#3981F7]">성장 도감 ›</button>
       </div>
       <GrowthProgress adoption={adoption} />
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {adoption.level>=10 ? <button type="button" onClick={()=>{setEditingName(!editingName);setDraftName(specialName||adoption.adoption_name)}} className="rounded-xl bg-[#EAF4FF] px-3 py-2 text-xs font-bold text-[#337AC0]">이름 짓기</button>:
-        <span className="rounded-xl bg-[#F3F6FA] px-3 py-2 text-xs text-[#8299B0]">Lv.10부터 이름 짓기 가능</span>}
-        <button type="button" onClick={()=>setCelebrate(true)} className="ml-auto text-xs font-semibold text-[#3981F7]">레벨업 연출 보기</button>
-      </div>
-      {editingName && <form onSubmit={e=>{e.preventDefault();saveName()}} className="mt-3 flex gap-2"><input aria-label="또랑이 새 이름" required minLength={2} maxLength={16} value={draftName} onChange={e=>setDraftName(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-[#E5EEF7] px-3 text-sm"/><button className="rounded-xl bg-[#3981F7] px-4 text-xs font-bold text-white">저장</button></form>}
-      {nameMessage && <p role="status" className="mt-2 text-[11px] text-[#71889B]">{nameMessage}</p>}
       {celebrate && <LevelUpCelebration level={adoption.level} onClose={()=>setCelebrate(false)}/>}
 
 
