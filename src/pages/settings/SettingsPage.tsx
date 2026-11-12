@@ -10,10 +10,9 @@ import { useOnboardingStore } from '../../store/useOnboardingStore'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import { queryClient } from '../../apis/query-client'
 import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstRun'
-import { useDecorationStore } from '../../store/useDecorationStore'
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
 import { requestPushPermission, syncPushTokenIfAllowed, unregisterPushDevice } from '../../services/push-messaging'
-import { AccountId } from '../../features/missions/wallet'
+import { AccountId } from '../../features/account/AccountId'
 import PushOptInCard from '../../features/push/PushOptInCard'
 
 const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] = [
@@ -168,7 +167,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     clearMyDrains()
     queryClient.clear()
     clearDemoAccountData()
-    useDecorationStore.getState().reset()
   }
 
   async function handleLogout() {
