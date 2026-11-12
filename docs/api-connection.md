@@ -2,8 +2,8 @@
 
 서버 API 문서(Swagger)에 있는 API가 앱의 어느 코드에 연결되어 있는지 정리한 문서입니다.
 
-- 기준: [서버 API 문서](https://api.rainbutler.site/swagger-ui/index.html)의 전체 경로 65개
-- 연결: **65 / 65** (2026-11-12 기준)
+- 기준: [서버 API 문서](https://api.rainbutler.site/swagger-ui/index.html)의 전체 경로 66개
+- 연결: **66 / 66** (2026-11-12 기준)
 - 확인 방법: 서버 문서의 경로와 `src` 아래 코드가 부르는 `/api/v1/...` 주소를 대조했습니다.
 
 ## 화면별 요약
@@ -90,6 +90,7 @@
 | 리더보드 | GET | `/leaderboard/me` | 내 리더보드 순위 | `apis/leaderboard.ts` |
 | 사진 올리기 | POST | `/uploads/presigned-url` | 사진 업로드 URL 발급 | `apis/adoptions.ts` |
 | 관리자 | POST | `/admin/forecasts/simulate` | 가상 예보 적용 (시연용) | `apis/admin.ts` |
+| 관리자 | POST | `/admin/forecasts/simulated/cancel` | 가상 예보 일괄 취소 (시연용) | `apis/admin.ts` |
 | 관리자 | GET | `/admin/reports` | 제보 목록 조회 (관리자) | `apis/admin.ts` |
 | 관리자 | PATCH | `/admin/reports/{reportId}` | 제보 승인 · 반려 (관리자) | `apis/admin.ts` |
 | 관리자 | PATCH | `/admin/reports/{reportId}/clear` | 제보 입양 차단 해제 (관리자) | `apis/admin.ts` |
