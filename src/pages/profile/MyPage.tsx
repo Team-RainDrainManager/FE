@@ -70,8 +70,7 @@ export default function MyPage() {
       </div>
       {me.isError && <p role="alert">{getErrorMessage(me.error)} <button onClick={() => void me.refetch()}>다시 시도</button></p>}
       <dl className="mp-stats">
-        <div><dt>포인트</dt><dd>{metric(user?.point, ' P')}</dd></div>
-        <div><dt>참여 점수</dt><dd>{metric(user?.participationScore, '점')}</dd></div>
+        <div><dt>포인트</dt><dd>{metric(user?.participationScore, ' P')}</dd></div>
         <div><dt>누적 점검</dt><dd>{metric(user?.inspectionCount, '회')}</dd></div>
         <div><dt>봉사활동 시간</dt><dd>{metric(user?.volunteerMinutes, '분')}</dd></div>
       </dl>
