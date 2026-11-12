@@ -15,18 +15,27 @@ const NON_SWIPE_TARGETS = [
   '.dd-settings-modal',
 ].join(', ')
 
-// 손가락이 움직인 거리만큼 화면이 따라오다가, 넘길 때 화면 밖으로 나가는 시간
-const LEAVE_MS = 150
-const ENTER_MS = 190
-const EASE = 'cubic-bezier(.22,1,.36,1)'
+// 손을 뗀 뒤 남은 거리를 미끄러지는 시간 (손가락 속도에 맞춰 이 범위 안에서 정함)
+const MIN_SLIDE_MS = 160
+const MAX_SLIDE_MS = 300
+// 처음엔 손가락 속도로 빠르게, 끝에서 부드럽게 멈추는 곡선
+const SLIDE_EASE = 'cubic-bezier(.22,.75,.25,1)'
 
 interface SwipeGesture {
   startX: number
   startY: number
   lastX: number
   lastY: number
-  startAt: number
   axis: 'undecided' | 'horizontal' | 'vertical'
+  // 최근 움직임 (손을 뗄 때 속도 계산용)
+  samples: { x: number; t: number }[]
+}
+
+interface PendingSlide {
+  dir: 1 | -1 // 1: 다음 탭(왼쪽으로 넘김), -1: 이전 탭
+  offset: number // 손을 뗀 순간 화면이 밀려 있던 거리
+  duration: number
+  clone: HTMLElement
 }
 
 function hasVisibleModal(): boolean {
@@ -49,35 +58,70 @@ function shouldIgnoreElement(target: EventTarget | null, surface: HTMLElement): 
   return false
 }
 
-function setOffset(node: HTMLElement, x: number) {
-  node.style.transform = x === 0 ? '' : `translate3d(${x}px,0,0)`
+/**
+ * 지금 화면을 그대로 본뜬 정지 화면을 같은 자리에 띄웁니다.
+ * 새 탭을 그리는 동안에도 손을 뗀 자리에 남아 있다가, 새 탭과 나란히 밀려 나갑니다.
+ * (두 화면을 실제로 동시에 그리지 않아 API를 두 번 부르지 않습니다)
+ */
+function freezeCurrentScreen(surface: HTMLElement, offset: number): HTMLElement {
+  const rect = surface.getBoundingClientRect()
+  const frame = document.createElement('div')
+  frame.className = 'dd-tab-swipe-ghost'
+  frame.setAttribute('aria-hidden', 'true')
+  frame.inert = true
+  frame.style.left = `${rect.left}px`
+  frame.style.width = `${rect.width}px`
+  const copy = surface.cloneNode(true) as HTMLElement
+  copy.removeAttribute('data-swipe-axis')
+  copy.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'))
+  copy.style.position = 'absolute'
+  copy.style.top = `${rect.top}px`
+  copy.style.left = '0'
+  copy.style.width = `${rect.width}px`
+  copy.style.transform = `translate3d(${offset}px,0,0)`
+  frame.appendChild(copy)
+  document.body.appendChild(frame)
+  return frame
 }
 
-/** 옆으로 넘겨 이웃 탭으로 가는 화면. 한 번에 화면 하나만 그리고, 움직임은 transform만 씁니다. */
+/** 옆으로 넘겨 이웃 탭으로 가는 화면. 움직임은 transform만 씁니다. */
 export default function SwipeTabOutlet() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const outlet = useOutlet()
   const surfaceRef = useRef<HTMLDivElement>(null)
-  // 넘겨서 들어온 화면이 어느 쪽에서 들어올지 (다음 렌더 뒤 한 번 쓰고 지웁니다)
-  const enterFrom = useRef<'next' | 'previous' | null>(null)
+  const pending = useRef<PendingSlide | null>(null)
 
-  // 넘겨서 바뀐 새 화면을 맨 위에서, 들어오는 방향으로 보여 줍니다.
+  // 새 탭이 그려지면, 본뜬 이전 화면과 새 탭을 나란히 미끄러뜨립니다.
   useEffect(() => {
     const surface = surfaceRef.current
-    const dir = enterFrom.current
-    enterFrom.current = null
-    if (!surface || !dir) return
-    window.scrollTo(0, 0)
-    surface.style.transform = ''
-    surface.style.opacity = ''
-    surface.animate(
+    const slide = pending.current
+    pending.current = null
+    if (!surface || !slide) return
+    const width = surface.clientWidth
+    const copy = slide.clone.firstElementChild as HTMLElement | null
+    const options: KeyframeAnimationOptions = { duration: slide.duration, easing: SLIDE_EASE }
+    const enter = surface.animate(
       [
-        { transform: `translate3d(${dir === 'next' ? '28%' : '-28%'},0,0)`, opacity: 0.6 },
-        { transform: 'translate3d(0,0,0)', opacity: 1 },
+        { transform: `translate3d(${slide.dir * width + slide.offset}px,0,0)` },
+        { transform: 'translate3d(0,0,0)' },
       ],
-      { duration: ENTER_MS, easing: EASE },
+      options,
     )
+    surface.style.transform = ''
+    surface.style.willChange = ''
+    copy?.animate(
+      [
+        { transform: `translate3d(${slide.offset}px,0,0)` },
+        { transform: `translate3d(${-slide.dir * width}px,0,0)` },
+      ],
+      { ...options, fill: 'forwards' },
+    )
+    const cleanup = () => slide.clone.remove()
+    enter.onfinish = cleanup
+    enter.oncancel = cleanup
+    // 화면이 가려져 애니메이션이 멈춘 경우에도 본뜬 화면은 시간이 지나면 지웁니다.
+    window.setTimeout(cleanup, slide.duration + 150)
   }, [pathname])
 
   useEffect(() => {
@@ -88,19 +132,36 @@ export default function SwipeTabOutlet() {
     const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     let gesture: SwipeGesture | null = null
-    let leaving = false
+    let offset = 0
+    let frame = 0
     let suppressClick = false
 
+    // 손가락을 따라가는 위치는 화면을 그리는 주기마다 한 번만 반영합니다.
+    const paint = () => {
+      frame = 0
+      surface.style.transform = offset === 0 ? '' : `translate3d(${offset}px,0,0)`
+    }
+    const moveTo = (x: number) => {
+      offset = x
+      if (!frame) frame = requestAnimationFrame(paint)
+    }
+
     const restore = () => {
-      const from = surface.style.transform
-      setOffset(surface, 0)
-      if (!from || reduceMotion()) return
-      surface.animate([{ transform: from }, { transform: 'translate3d(0,0,0)' }], { duration: 160, easing: EASE })
+      if (frame) { cancelAnimationFrame(frame); frame = 0 }
+      const from = offset
+      offset = 0
+      surface.style.transform = ''
+      surface.style.willChange = ''
+      if (from === 0 || reduceMotion()) return
+      surface.animate(
+        [{ transform: `translate3d(${from}px,0,0)` }, { transform: 'translate3d(0,0,0)' }],
+        { duration: 200, easing: SLIDE_EASE },
+      )
     }
 
     const onStart = (event: TouchEvent) => {
       gesture = null
-      if (leaving || event.touches.length !== 1 || hasVisibleModal()) return
+      if (pending.current || event.touches.length !== 1 || hasVisibleModal()) return
       if (shouldIgnoreElement(event.target, surface)) return
       const touch = event.touches[0]
       // The map canvas must retain its own pan/zoom gestures. Allow a narrow
@@ -113,7 +174,7 @@ export default function SwipeTabOutlet() {
       gesture = {
         startX: touch.clientX, startY: touch.clientY,
         lastX: touch.clientX, lastY: touch.clientY,
-        startAt: performance.now(), axis: 'undecided',
+        axis: 'undecided', samples: [{ x: touch.clientX, t: performance.now() }],
       }
     }
 
@@ -124,19 +185,27 @@ export default function SwipeTabOutlet() {
       const dy = touch.clientY - gesture.startY
       gesture.lastX = touch.clientX
       gesture.lastY = touch.clientY
+      const now = performance.now()
+      gesture.samples.push({ x: touch.clientX, t: now })
+      while (gesture.samples.length > 2 && now - gesture.samples[0].t > 100) gesture.samples.shift()
       if (gesture.axis === 'undecided') {
-        if (Math.hypot(dx, dy) < 10) return
+        if (Math.hypot(dx, dy) < 8) return
         gesture.axis = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'horizontal' : 'vertical'
+        if (gesture.axis !== 'horizontal') return
         // 옆으로 끌기 시작했으면 손을 뗄 때 카드 · 버튼이 눌리지 않게 합니다.
-        if (gesture.axis === 'horizontal') suppressClick = true
+        suppressClick = true
+        surface.style.willChange = 'transform'
       }
       if (gesture.axis !== 'horizontal') return
       if (event.cancelable) event.preventDefault()
       const nextIndex = currentIndex + (dx < 0 ? 1 : -1)
-      const edge = nextIndex < 0 || nextIndex >= TAB_PATHS.length
-      // 끝 탭에서는 조금만 밀리고 멈춥니다.
-      const maxDistance = surface.clientWidth * (edge ? 0.08 : 0.5)
-      setOffset(surface, Math.max(-maxDistance, Math.min(maxDistance, edge ? dx * 0.3 : dx)))
+      // 첫 탭 · 마지막 탭에서는 고무줄처럼 조금만 밀립니다.
+      if (nextIndex < 0 || nextIndex >= TAB_PATHS.length) {
+        const limit = surface.clientWidth * 0.12
+        moveTo(Math.sign(dx) * limit * (1 - Math.exp(-Math.abs(dx) / (limit * 2))))
+      } else {
+        moveTo(dx)
+      }
     }
 
     const onEnd = () => {
@@ -144,35 +213,49 @@ export default function SwipeTabOutlet() {
       const finished = gesture
       gesture = null
       if (finished.axis !== 'horizontal') return
+      if (frame) { cancelAnimationFrame(frame); frame = 0; paint() }
       const dx = finished.lastX - finished.startX
       const dy = finished.lastY - finished.startY
-      const nextIndex = currentIndex + (dx < 0 ? 1 : -1)
-      const elapsed = Math.max(1, performance.now() - finished.startAt)
-      const decisive = Math.abs(dx) >= Math.min(70, surface.clientWidth * 0.18)
-        || (Math.abs(dx) >= 36 && Math.abs(dx) / elapsed >= 0.35)
-      if (nextIndex < 0 || nextIndex >= TAB_PATHS.length || !decisive || Math.abs(dx) < Math.abs(dy)) {
+      const first = finished.samples[0]
+      const last = finished.samples[finished.samples.length - 1]
+      const velocity = (last.x - first.x) / Math.max(16, last.t - first.t) // px/ms, 왼쪽이 음수
+      const width = surface.clientWidth
+      const dir: 1 | -1 = dx < 0 ? 1 : -1
+      const nextIndex = currentIndex + dir
+      // 3분의 1 넘게 끌었거나, 그 방향으로 휙 넘겼으면 넘어갑니다. 반대로 되돌리면 취소합니다.
+      const flung = Math.abs(velocity) > 0.35 && Math.sign(velocity) === -dir && Math.abs(dx) > 24
+      const decisive = (Math.abs(dx) > width * 0.33 || flung) && Math.abs(dx) > Math.abs(dy)
+      if (nextIndex < 0 || nextIndex >= TAB_PATHS.length || !decisive) {
         restore()
         return
       }
 
       const nextPath = TAB_PATHS[nextIndex]
-      const dir = dx < 0 ? 'next' : 'previous'
       if (reduceMotion()) {
-        setOffset(surface, 0)
+        offset = 0
+        surface.style.transform = ''
+        surface.style.willChange = ''
+        window.scrollTo(0, 0)
         navigate(nextPath)
         return
       }
-      // 지금 위치에서 화면 밖으로 밀어낸 뒤 새 탭을 그립니다. (두 화면을 동시에 그리지 않음)
-      leaving = true
-      const from = surface.style.transform || 'translate3d(0,0,0)'
-      const to = `translate3d(${dir === 'next' ? '-100%' : '100%'},0,0)`
-      surface.style.transform = to
-      const leave = surface.animate([{ transform: from }, { transform: to }], { duration: LEAVE_MS, easing: 'ease-in' })
-      leave.onfinish = () => {
-        surface.style.opacity = '0'
-        enterFrom.current = dir
-        navigate(nextPath)
-      }
+      const remaining = width - Math.abs(offset)
+      const duration = Math.min(MAX_SLIDE_MS, Math.max(MIN_SLIDE_MS, remaining / Math.max(Math.abs(velocity), 1.1)))
+      // 지금 화면을 손을 뗀 자리에 본떠 두고, 진짜 화면은 들어올 쪽으로 옮긴 뒤 새 탭을 그립니다.
+      const clone = freezeCurrentScreen(surface, offset)
+      pending.current = { dir, offset, duration, clone }
+      // 새 탭이 끝내 그려지지 않는 경우에도 본뜬 화면이 남지 않게 합니다.
+      window.setTimeout(() => {
+        if (pending.current?.clone !== clone) return
+        pending.current = null
+        clone.remove()
+        surface.style.transform = ''
+        surface.style.willChange = ''
+      }, 1500)
+      surface.style.transform = `translate3d(${dir * width + offset}px,0,0)`
+      offset = 0
+      window.scrollTo(0, 0)
+      navigate(nextPath)
     }
 
     const onCancel = () => {
@@ -195,6 +278,7 @@ export default function SwipeTabOutlet() {
     surface.addEventListener('touchcancel', onCancel, { passive: true })
     surface.addEventListener('click', onClick, { capture: true })
     return () => {
+      if (frame) cancelAnimationFrame(frame)
       surface.removeEventListener('touchstart', onTouchStartReset, { capture: true })
       surface.removeEventListener('touchstart', onStart)
       surface.removeEventListener('touchmove', onMove)
