@@ -123,10 +123,6 @@ export default function DrainInfo({
         {drain.adoption?.nickname ?? `빗물받이 #${drain.id}`}
       </h2>
 
-      <p className="mt-1 text-xs text-[#78899F]">
-        빗물받이 번호 #{drain.id}
-      </p>
-
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#EDF1F6] pt-3">
         <p className="min-w-0 flex-1 text-[11px] leading-5 text-[#78899F]">
           위치{' '}
