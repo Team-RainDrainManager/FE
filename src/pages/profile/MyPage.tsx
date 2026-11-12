@@ -5,8 +5,6 @@ import { getMe, getErrorMessage } from '../../apis/auth'
 import { getActivities, downloadCertificate, registerCertificateName, CertificateNameRequired, type ActivityFilter } from '../../apis/my-page'
 import { getMyAdoptions } from '../../apis/my-drains'
 import { AccountId } from '../../features/missions/wallet'
-import MyReportsSection from '../../features/account/MyReportsSection'
-import MySanctionsSection from '../../features/account/MySanctionsSection'
 import Character from '../../components/common/Character'
 import './my-page.css'
 
@@ -124,7 +122,5 @@ export default function MyPage() {
       </button>
       {certificate.isError && <p role="alert">{getErrorMessage(certificate.error)}</p>}
     </section>
-    <MyReportsSection />
-    <MySanctionsSection />
   </div>
 }
