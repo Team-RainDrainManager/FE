@@ -4,9 +4,7 @@ import { Link } from 'react-router'
 import { getMe, getErrorMessage } from '../../apis/auth'
 import { getActivities, downloadCertificate, registerCertificateName, CertificateNameRequired, type ActivityFilter } from '../../apis/my-page'
 import { getMyAdoptions } from '../../apis/my-drains'
-import { AccountId } from '../../features/missions/wallet'
-import MyReportsSection from '../../features/account/MyReportsSection'
-import MySanctionsSection from '../../features/account/MySanctionsSection'
+import { AccountId } from '../../features/account/AccountId'
 import Character from '../../components/common/Character'
 import './my-page.css'
 
@@ -72,8 +70,7 @@ export default function MyPage() {
       </div>
       {me.isError && <p role="alert">{getErrorMessage(me.error)} <button onClick={() => void me.refetch()}>다시 시도</button></p>}
       <dl className="mp-stats">
-        <div><dt>포인트</dt><dd>{metric(user?.point, ' P')}</dd></div>
-        <div><dt>참여 점수</dt><dd>{metric(user?.participationScore, '점')}</dd></div>
+        <div><dt>포인트</dt><dd>{metric(user?.participationScore, ' P')}</dd></div>
         <div><dt>누적 점검</dt><dd>{metric(user?.inspectionCount, '회')}</dd></div>
         <div><dt>봉사활동 시간</dt><dd>{metric(user?.volunteerMinutes, '분')}</dd></div>
       </dl>
@@ -124,7 +121,5 @@ export default function MyPage() {
       </button>
       {certificate.isError && <p role="alert">{getErrorMessage(certificate.error)}</p>}
     </section>
-    <MyReportsSection />
-    <MySanctionsSection />
   </div>
 }

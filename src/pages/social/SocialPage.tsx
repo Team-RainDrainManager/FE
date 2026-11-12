@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react'
 import { useMyWeeklyRank, useTopRanks, type Rank } from '../../apis/leaderboard'
 import happyCharacter from '../../assets/characters/states/happy.svg'
-import { AccountId } from '../../features/missions/wallet'
+import { AccountId } from '../../features/account/AccountId'
 
 const numbers = new Intl.NumberFormat('ko-KR')
 const weekDate = new Intl.DateTimeFormat('ko-KR', {

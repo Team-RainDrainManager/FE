@@ -5,7 +5,6 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { nextAfterLogin } from './auth-flow'
 import { beginFirstRun } from '../../utils/firstRun'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
-import { useDecorationStore } from '../../store/useDecorationStore'
 import './auth-pages.css'
 import { validateNickname } from '../../features/nickname/nickname-policy'
 
@@ -32,7 +31,6 @@ export default function EmailSignupPage() {
       const tokens = await emailSignup(email.trim(), password, nickname.trim())
       beginFirstRun()
       useMyDrainsStore.getState().reset()
-      useDecorationStore.getState().reset()
       setTokens(tokens)
       navigate(await nextAfterLogin(), { replace: true })
     } catch (err: unknown) { setError(getErrorMessage(err)) }

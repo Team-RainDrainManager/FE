@@ -1,5 +1,4 @@
-import { drops, useWallet } from '../../features/missions/wallet'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, useContext } from 'react'
 import { Link } from 'react-router'
 
 import Character from '../../components/common/Character'
@@ -13,6 +12,7 @@ import type { MyAdoptionDto } from '../../types/myDrains'
 import { getErrorMessage, getMe } from '../../apis/auth'
 import NicknameChangeDialog from '../../features/nickname/NicknameChangeDialog'
 import AdminEntryLink from '../../features/admin/AdminEntryLink'
+import { AccountId } from '../../features/account/AccountId'
 
 // The server nickname is authoritative; preview names must not override signup.
 const NAME_STORAGE_KEY = 'ddorang:demo-profile-name'
@@ -56,10 +56,10 @@ function getCareStatus(adoption: MyAdoptionDto, now: number, accountPause?: stri
 
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const wallet = useWallet()
   const [nickname, setNickname] = useState<string | null>(null)
   const [photo, setPhoto] = useState(() => loadFromStorage(PHOTO_STORAGE_KEY))
   const [editing, setEditing] = useState(false)
+  const account = useContext(AccountId)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -81,22 +81,22 @@ export default function ProfilePage() {
 
   // MainLayout's CareWarningGate already observes these account-scoped queries.
   const adoptionQuery = useQuery({
-    queryKey: ['my-adoptions', wallet.id],
+    queryKey: ['my-adoptions', account],
     queryFn: ({ signal }) => getMyAdoptions(signal),
-    enabled: wallet.id !== null,
+    enabled: account !== null,
     select: toMyAdoptionsView,
     staleTime: 30_000,
   })
   const pauseQuery = useQuery({
-    queryKey: ['pause-status', wallet.id],
+    queryKey: ['pause-status', account],
     queryFn: getPauseStatus,
-    enabled: wallet.id !== null,
+    enabled: account !== null,
     staleTime: 30_000,
   })
   const adoptions = adoptionQuery.data?.adoptions ?? []
   const listReady = adoptionQuery.isSuccess
   const careReady = listReady && (adoptions.length === 0 || pauseQuery.isSuccess)
-  const listMessage = wallet.id === null || adoptionQuery.isError
+  const listMessage = account === null || adoptionQuery.isError
     ? '입양 정보를 불러오지 못했어요.'
     : '입양 정보를 불러오는 중이에요.'
   const [now, setNow] = useState(() => Date.now())
@@ -206,13 +206,6 @@ export default function ProfilePage() {
             </div>
           </div>
           <Link to="/profile/mypage" state={{ fromProfile: true }} className="dd-profile-action shrink-0">마이페이지 <span aria-hidden="true">›</span></Link>
-        </div>
-        <div className="dd-profile-wallet">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <span>보유한 빗물 <small>(로컬 시연)</small></span>
-            <output aria-label="보유한 빗물">{wallet.id === null ? '—' : drops(wallet.balance)}</output>
-          </div>
-          <Link to="/shop" className="dd-profile-action shrink-0">꾸미기 상점 <span aria-hidden="true">›</span></Link>
         </div>
         {message && <p role="status" className="mt-3 rounded-xl bg-white px-3 py-2 text-[11px] leading-5 text-[#3A78A9]">{message}</p>}
       </section>

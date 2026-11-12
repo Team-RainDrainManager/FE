@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getMyAdoptions } from '../../apis/my-drains'
 import { getPauseStatus } from '../../apis/profile-settings'
-import { AccountId } from '../missions/wallet'
+import { AccountId } from '../account/AccountId'
 import '../account/sanctions-warning.css'
 
 /** 서버가 내려주는 releaseWarning 이 참일 때만 경고합니다. 28/35일 경과를 프론트에서 재판정하지 않습니다. */

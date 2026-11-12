@@ -44,11 +44,6 @@ const TOUR_STEPS: readonly TourStep[] = [
     title: '내 기록과 닉네임을 관리하세요',
     description: '활동 기록과 입양 현황을 볼 수 있고, 프로필에서 닉네임을 변경하거나 설정을 열 수 있어요.',
   },
-  {
-    path: '/profile', target: 'profile', label: '꾸미기',
-    title: '꾸미기 상점도 이용해 보세요',
-    description: '프로필의 MY DDORANG 오른쪽 「꾸미기 상점」 버튼을 눌러 보세요. 리그마다 꾸미기가 열리고 빗물로 구매하는 방식은 현재 시연 중이에요.',
-  },
 ]
 
 // 경로를 바꾸는 동안 MainLayout이 다시 렌더되거나 재마운트돼도 진행 상태를 유지합니다.

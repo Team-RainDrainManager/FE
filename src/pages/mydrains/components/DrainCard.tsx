@@ -4,7 +4,6 @@ import { Link } from 'react-router'
 
 import Character from '../../../components/common/Character'
 import LevelUpCelebration from '../../../components/LevelUpCelebration'
-import { DECORATIONS, useDecorationStore, type DecorationId } from '../../../store/useDecorationStore'
 
 import type {
   DrainModalType,
@@ -34,11 +33,6 @@ export default function DrainCard({
   const [editingName,setEditingName] = useState(false)
   const [nameMessage,setNameMessage] = useState('')
   const [celebrate,setCelebrate] = useState(false)
-  const [decorateOpen,setDecorateOpen] = useState(false)
-  const owned=useDecorationStore(s=>s.owned)
-  const equipped=useDecorationStore(s=>s.equipped[drainId])
-  const equip=useDecorationStore(s=>s.equip)
-  const selectedDecoration=DECORATIONS.find(d=>d.id===equipped)
 
   useEffect(() => {
     // 최초 조회는 축하 애니메이션을 재생하지 않습니다. 저장된 레벨보다 오른 경우에만 표시합니다.
@@ -114,7 +108,7 @@ export default function DrainCard({
       </details>
 
       <div className="flex items-center gap-3 pr-6">
-        <div className="relative shrink-0"><Character type="level" level={adoption.level} size={92} />{selectedDecoration&&<span aria-label={`장착한 장식: ${selectedDecoration.name}`} className="absolute -right-1 -top-1 rounded-full bg-white p-1 text-xl shadow-sm">{selectedDecoration.symbol}</span>}</div>
+        <div className="relative shrink-0"><Character type="level" level={adoption.level} size={92} /></div>
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{specialName||adoption.adoption_name}</h3>
           <p className="mt-1 text-xs font-semibold text-[#3981F7]">Lv.{adoption.level} · {adoption.stage}</p>
@@ -132,12 +126,10 @@ export default function DrainCard({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {adoption.level>=10 ? <button type="button" onClick={()=>{setEditingName(!editingName);setDraftName(specialName||adoption.adoption_name)}} className="rounded-xl bg-[#EAF4FF] px-3 py-2 text-xs font-bold text-[#337AC0]">이름 짓기</button>:
         <span className="rounded-xl bg-[#F3F6FA] px-3 py-2 text-xs text-[#8299B0]">Lv.10부터 이름 짓기 가능</span>}
-        <button type="button" onClick={()=>setDecorateOpen(v=>!v)} className="rounded-xl bg-[#EAF4FF] px-3 py-2 text-xs font-bold text-[#337AC0]">장식 변경</button>
         <button type="button" onClick={()=>setCelebrate(true)} className="ml-auto text-xs font-semibold text-[#3981F7]">레벨업 연출 보기</button>
       </div>
       {editingName && <form onSubmit={e=>{e.preventDefault();saveName()}} className="mt-3 flex gap-2"><input aria-label="또랑이 새 이름" required minLength={2} maxLength={16} value={draftName} onChange={e=>setDraftName(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-[#E5EEF7] px-3 text-sm"/><button className="rounded-xl bg-[#3981F7] px-4 text-xs font-bold text-white">저장</button></form>}
       {nameMessage && <p role="status" className="mt-2 text-[11px] text-[#71889B]">{nameMessage}</p>}
-      {decorateOpen && <div className="mt-3 rounded-xl bg-[#F4F7FC] p-3"><p className="mb-2 text-xs font-bold">보유한 장식</p><div className="flex flex-wrap gap-2"><button type="button" className="rounded-lg bg-white px-3 py-2 text-xs" onClick={()=>{equip(drainId,null);setDecorateOpen(false)}}>장식 없음</button>{owned.map((id:DecorationId)=>{const item=DECORATIONS.find(d=>d.id===id);return item?<button key={id} type="button" aria-pressed={equipped===id} onClick={()=>{equip(drainId,id);setDecorateOpen(false)}} className="rounded-lg bg-white px-3 py-2 text-xs">{item.symbol} {item.name}</button>:null})}</div>{owned.length===0 && <p className="mt-2 text-[11px] text-[#8299B0]">상점에서 장식을 구매해 주세요.</p>}<Link to="/shop" className="mt-3 inline-block text-xs font-bold text-[#3981F7]">꾸미기 상점으로 ›</Link></div>}
       {celebrate && <LevelUpCelebration level={adoption.level} onClose={()=>setCelebrate(false)}/>}
 
 

@@ -4,7 +4,7 @@ const TOUR_KEY = 'ddorang:first-tour-pending'
 export function clearDemoAccountData() {
   try {
     for (const key of Object.keys(localStorage)) {
-      if (key.startsWith('ddorang:demo-') || key.startsWith('ddorang:drain-name:') || key.startsWith('ddorang:last-level:') || key === 'ddorang:shop-demo') localStorage.removeItem(key)
+      if (key.startsWith('ddorang:demo-') || key.startsWith('ddorang:drain-name:') || key.startsWith('ddorang:last-level:') || key === 'ddorang:shop-demo' || key.startsWith('ddorang:mission-wallet:')) localStorage.removeItem(key)
     }
   } catch { /* ignore */ }
 }

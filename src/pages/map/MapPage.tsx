@@ -1,6 +1,3 @@
-import { useWallet } from '../../features/missions/wallet'
-import { getMyAdoptions } from '../../apis/my-drains'
-
 import {
   useCallback,
   useEffect,
@@ -60,9 +57,9 @@ const FILTERS: {
 const FILTER_DOTS: Record<DrainMapFilter, string> = {
   all: 'bg-[#6FAEFF]',
   unadopted: 'bg-[#98A2B3]',
-  normal: 'bg-[#4FBAA1]',
-  'inspection-needed': 'bg-[#F5B84B]',
-  blocked: 'bg-[#EF7272]',
+  normal: 'bg-[#22A45D]',
+  'inspection-needed': 'bg-[#F5B400]',
+  blocked: 'bg-[#E5484D]',
 }
 
 const FILTER_ACTIVE_STYLES: Record<
@@ -73,11 +70,11 @@ const FILTER_ACTIVE_STYLES: Record<
   unadopted:
     'border-[#B4BDC8] bg-[#B4BDC8] text-white',
   normal:
-    'border-[#62C19C] bg-[#62C19C] text-white',
+    'border-[#22A45D] bg-[#22A45D] text-white',
   'inspection-needed':
-    'border-[#6FAEFF] bg-[#6FAEFF] text-white',
+    'border-[#F5B400] bg-[#F5B400] text-[#3D2C00]',
   blocked:
-    'border-[#E97C7C] bg-[#E97C7C] text-white',
+    'border-[#E5484D] bg-[#E5484D] text-white',
 }
 
 const STATUS_LABELS = {
@@ -148,9 +145,6 @@ function KakaoMapContent({
 }: {
   appKey: string
 }) {
-  const wallet = useWallet()
-  const mine = useQuery({ queryKey: ['my-adoptions', wallet.id], enabled: wallet.id !== null, queryFn: ({ signal }) => getMyAdoptions(signal) })
-  const outfitFor = (id: number) => mine.data?.adoptions.some(a => a.drainId === id) ? wallet.outfit : null
   const navigate = useNavigate()
 
   const [loading, error] = useKakaoLoader({
@@ -656,7 +650,6 @@ const statusNotice = drainsError
                 key={drain.id}
                 drain={drain}
                 filter={filter}
-                outfit={outfitFor(drain.id)}
                 hint={zoomLevel<=3 || nearby.includes(drain.id)}
                 selected={selectedId === drain.id}
                 onSelect={drain=>{
@@ -670,7 +663,6 @@ const statusNotice = drainsError
               <DrainMarker
                 drain={selectedOverlay}
                 filter={filter}
-                outfit={outfitFor(selectedOverlay.id)}
                 selected
                 onSelect={handleSelectDrain}
               />

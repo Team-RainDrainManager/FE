@@ -15,7 +15,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/profile': '프로필',
   '/admin': '관리자 화면',
   '/settings': '설정',
-  '/shop': '꾸미기 상점',
 }
 
 export default function Header() {
@@ -29,7 +28,7 @@ export default function Header() {
   }
 
   // 설정 및 빗물받이 상세 페이지 확인
-  const isSettingsPage = pathname === '/settings' || pathname === '/shop'
+  const isSettingsPage = pathname === '/settings'
   const isDetailPage = /^\/drains\/[^/]+$/.test(pathname)
 
   // 페이지 제목
@@ -45,7 +44,7 @@ export default function Header() {
   function goBack() {
     if (isMyPage && state?.fromProfile) navigate(-1)
     else if (isMyPage || isAdminPage) navigate('/profile', { replace: true })
-    else if (isSettingsPage) navigate(pathname === '/shop' ? '/my-drains' : '/profile')
+    else if (isSettingsPage) navigate('/profile')
     else navigate(-1)
   }
 

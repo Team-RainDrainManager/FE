@@ -1,4 +1,4 @@
-import { AccountId } from '../missions/wallet'
+import { AccountId } from '../account/AccountId'
 import { useEffect, useState, type ReactNode } from 'react'
 import { getMe } from '../../apis/auth'
 import { useAuthStore } from '../../store/useAuthStore'

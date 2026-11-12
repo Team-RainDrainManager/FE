@@ -25,7 +25,7 @@
 .mp-person h2 { font-size: 20px; }
 .mp-person p { margin: 0; }
 .mp-person strong, .mp-history strong { color: var(--dd-blue); font-size: 13px; }
-.mp-stats { margin: 14px 0 6px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.mp-stats { margin: 14px 0 6px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
 .mp-stats div { padding: 8px 12px; border-radius: 12px; background: var(--dd-subtle); }
 .mp-stats dt, .mp-row span, .mp-row time { font-size: 12px; color: var(--dd-muted); }
 .mp-stats dd { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }

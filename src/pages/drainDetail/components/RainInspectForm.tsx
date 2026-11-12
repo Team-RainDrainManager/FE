@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { AccountId} from '../../../features/missions/wallet'
+import { AccountId} from '../../../features/account/AccountId'
 import {
   clearDraft,
   flowDraftKey,
