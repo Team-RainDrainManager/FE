@@ -5,7 +5,8 @@ import Character from '../../components/common/Character'
 import MySanctionsSection from '../../features/account/MySanctionsSection'
 import MyReportsSection from '../../features/account/MyReportsSection'
 import './profile-tune.css'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { changeProfileImage, removeProfileImage } from '../../apis/profile-image'
 import { getMyAdoptions, toMyAdoptionsView } from '../../apis/my-drains'
 import { getPauseStatus } from '../../apis/profile-settings'
 import type { MyAdoptionDto } from '../../types/myDrains'
@@ -16,15 +17,8 @@ import { AccountId } from '../../features/account/AccountId'
 
 // The server nickname is authoritative; preview names must not override signup.
 const NAME_STORAGE_KEY = 'ddorang:demo-profile-name'
-const PHOTO_STORAGE_KEY = 'ddorang:demo-profile-photo'
-
-function loadFromStorage(key: string, fallback = '') {
-  try {
-    return window.localStorage.getItem(key) ?? fallback
-  } catch {
-    return fallback
-  }
-}
+// 예전에 이 브라우저에만 저장하던 프로필 사진 (서버 저장으로 바뀌어 지웁니다)
+const LEGACY_PHOTO_KEY = 'ddorang:demo-profile-photo'
 
 function saveToStorage(key: string, value: string) {
   try {
@@ -57,7 +51,9 @@ function getCareStatus(adoption: MyAdoptionDto, now: number, accountPause?: stri
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [nickname, setNickname] = useState<string | null>(null)
-  const [photo, setPhoto] = useState(() => loadFromStorage(PHOTO_STORAGE_KEY))
+  const [photo, setPhoto] = useState('')
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const account = useContext(AccountId)
   const [message, setMessage] = useState('')
@@ -68,6 +64,7 @@ export default function ProfilePage() {
       if (!active) return
       const serverName = me.nickname?.trim() || '또랑이집사'
       setNickname(serverName)
+      setPhoto(me.profileImage ?? '')
       // Existing social mock UI also reads this value; do not invent another name.
       saveToStorage(NAME_STORAGE_KEY, serverName)
     }).catch((err: unknown) => {
@@ -76,6 +73,7 @@ export default function ProfilePage() {
         setMessage(getErrorMessage(err))
       }
     })
+    try { window.localStorage.removeItem(LEGACY_PHOTO_KEY) } catch { /* 저장소 접근 불가 */ }
     return () => { active = false }
   }, [])
 
@@ -112,64 +110,51 @@ export default function ProfilePage() {
   }).length
   const needsCare = adoptions.filter((adoption) => getCareStatus(adoption, now, pauseQuery.data?.activeUntil) === 'overdue')
 
-  const changePhoto = (event: ChangeEvent<HTMLInputElement>) => {
+  // 프로필 사진은 서버에 저장해 마이페이지 · 소셜 랭킹에도 같이 보입니다.
+  const refreshProfileViews = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['mypage', 'me'] }),
+    queryClient.invalidateQueries({ queryKey: ['weekly-rankings'] }),
+  ])
+
+  const changePhoto = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file) return
+    if (!file || photoBusy) return
     if (!file.type.startsWith('image/')) {
       setMessage('이미지 파일을 선택해 주세요.')
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage('사진은 5MB 이하만 사용할 수 있어요.')
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage('사진은 10MB 이하만 사용할 수 있어요.')
       return
     }
-
-    const reader = new FileReader()
-    reader.onerror = () => setMessage('사진을 불러오지 못했어요.')
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') return
-      const image = new Image()
-      image.onerror = () => setMessage('이 사진 형식은 읽을 수 없어요.')
-      image.onload = () => {
-        const canvas = document.createElement('canvas')
-        const context = canvas.getContext('2d')
-        if (!context) {
-          setMessage('사진을 처리할 수 없어요.')
-          return
-        }
-        canvas.width = 256
-        canvas.height = 256
-        const length = Math.min(image.width, image.height)
-        context.drawImage(
-          image,
-          (image.width - length) / 2,
-          (image.height - length) / 2,
-          length,
-          length,
-          0,
-          0,
-          256,
-          256,
-        )
-        const resized = canvas.toDataURL('image/jpeg', 0.78)
-        setPhoto(resized)
-        const saved = saveToStorage(PHOTO_STORAGE_KEY, resized)
-        setMessage(saved ? '프로필 사진을 이 브라우저에 저장했어요.' : '사진이 변경됐지만 브라우저에는 저장하지 못했어요.')
-      }
-      image.src = reader.result
+    setPhotoBusy(true)
+    setMessage('프로필 사진을 올리는 중이에요.')
+    try {
+      const result = await changeProfileImage(file)
+      setPhoto(result.profileImage ?? '')
+      setMessage('프로필 사진을 바꿨어요.')
+      void refreshProfileViews()
+    } catch (err) {
+      setMessage(getErrorMessage(err))
+    } finally {
+      setPhotoBusy(false)
     }
-    reader.readAsDataURL(file)
   }
 
-  const removePhoto = () => {
-    setPhoto('')
+  const removePhoto = async () => {
+    if (photoBusy) return
+    setPhotoBusy(true)
     try {
-      window.localStorage.removeItem(PHOTO_STORAGE_KEY)
-    } catch {
-      // 저장이 차단된 브라우저에서도 현재 화면의 사진은 제거합니다.
+      await removeProfileImage()
+      setPhoto('')
+      setMessage('기본 프로필 이미지로 변경했어요.')
+      void refreshProfileViews()
+    } catch (err) {
+      setMessage(getErrorMessage(err))
+    } finally {
+      setPhotoBusy(false)
     }
-    setMessage('기본 프로필 이미지로 변경했어요.')
   }
 
   return (
@@ -181,11 +166,13 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
+              disabled={photoBusy}
+              aria-busy={photoBusy}
               aria-label="프로필 사진 변경"
               className="relative flex size-16 items-center justify-center overflow-hidden rounded-full border-2 border-[#DCECF9] bg-[#EEF8FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#338CF0]"
             >
               {photo ? (
-                <img src={photo} alt="내 프로필 사진" className="h-full w-full object-cover" />
+                <img src={photo} alt="내 프로필 사진" className="h-full w-full object-cover" onError={() => setPhoto('')} />
               ) : (
                 <Character type="state" state="happy" size={64} />
               )}
@@ -195,14 +182,14 @@ export default function ProfilePage() {
                 <path d="M4 7h4l2-2h4l2 2h4v12H4z" /><circle cx="12" cy="13" r="3" />
               </svg>
             </span>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={changePhoto} className="sr-only" tabIndex={-1} />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={(event) => { void changePhoto(event) }} className="sr-only" tabIndex={-1} />
           </div>
 
           <div className="min-w-0 flex-1">
             <h2 className="break-words text-lg font-extrabold leading-tight tracking-tight">{nickname === null ? '불러오는 중…' : nickname || '회원'}</h2>
             <div className="flex flex-wrap gap-x-3">
               <button type="button" onClick={() => { setEditing(true); setMessage('') }} className="dd-profile-action">닉네임 수정</button>
-              {photo && <button type="button" onClick={removePhoto} className="dd-profile-action">사진 삭제</button>}
+              {photo && <button type="button" disabled={photoBusy} onClick={() => { void removePhoto() }} className="dd-profile-action disabled:opacity-50">사진 삭제</button>}
             </div>
           </div>
           <Link to="/profile/mypage" state={{ fromProfile: true }} className="dd-profile-action shrink-0">마이페이지 <span aria-hidden="true">›</span></Link>
