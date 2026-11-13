@@ -69,16 +69,20 @@ html[data-dd-theme='dark'] .dd-map-overlay .drain-disc::after {
 }
 
 /*
- * 다크모드 미입양 마커: 흰 원 대신 중간 톤 회색 원.
- * 그림의 밝은 바탕은 multiply로 원 색에 섞이고, 캐릭터는 바탕보다 어두운 그림이라 원을 너무 어둡게 하면 캐릭터가 묻혀서 이 정도로 맞춤.
+ * 미입양 마커: 입양 전 캐릭터는 바탕이 투명한 그림이라 원 색과 섞지 않고(multiply 해제) 그대로 그립니다.
+ * 다크모드에서는 안쪽을 어두운 회색으로 해도 캐릭터가 묻히지 않습니다.
  */
+.dd-map-overlay .drain-available .dd-face img {
+  mix-blend-mode: normal;
+}
+
 html[data-dd-theme='dark'] .drain-available {
-  background: #9aa1ab;
+  background: #4f5662;
 }
 
 html[data-dd-theme='dark'] .drain-available .dd-face {
   border-color: #6b7482;
-  background: #9aa1ab;
+  background: #4f5662;
 }
 
 /*
@@ -150,4 +154,33 @@ html[data-dd-theme='dark'] .drain-tail {
 
 html[data-dd-theme='dark'] .drain-dot {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* 빗물받이를 눌렀을 때 정보 카드 위에 둥둥 떠 있는 캐릭터 */
+.dd-float {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: -4px;
+}
+
+.dd-float-body {
+  animation: dd-float-bob 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 4px 6px rgba(23, 37, 58, 0.18));
+}
+
+.dd-float-whisper {
+  font-size: 11px;
+  line-height: 15px;
+}
+
+@keyframes dd-float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-float-body {
+    animation: none;
+  }
 }

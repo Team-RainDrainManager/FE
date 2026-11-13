@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react'
-import { REACTIONS } from '../../login/reactions'
-import Character from '../../../components/common/Character'
-import '../../login/LoginPage.css'
 import '../map-dark.css'
-import waiting from '../../../assets/characters/unadopted.png'
+// 입양 전 캐릭터 (바탕이 투명한 그림)
+import waiting from '../../../assets/characters/levels/level-0.svg'
 import happy from '../../../assets/characters/states/happy.svg'
 import { greet } from './greet'
 
@@ -77,14 +74,6 @@ export default function DrainMarker({
   const inspectionBadge = getInspectionBadge(drain, filter)
   // 막힘 제보가 있는 빗물받이는 입양할 수 없어 미입양 모양 대신 빨간 마커로 보입니다.
   const available = drainCategory(drain) === 'unadopted'
-  const [tick, setTick] = useState(0)
-  const [playing, setPlaying] = useState(false)
-  const reaction = REACTIONS[(Math.max(tick, 1) - 1) % REACTIONS.length]
-  useEffect(() => {
-    if (!playing) return
-    const timer = window.setTimeout(() => setPlaying(false), 1250)
-    return () => clearTimeout(timer)
-  }, [tick, playing])
   const dot = variant === 'dot' && !selected
   const label = `${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`
   return (
@@ -112,13 +101,9 @@ export default function DrainMarker({
       <button
         type="button"
         onClick={(event) => {
-          if (selected && available) {
-            setTick((t) => t + 1)
-            setPlaying(true)
-          } else {
-            greet(event)
-            onSelect(drain)
-          }
+          // 선택한 뒤의 반응은 정보 카드 위에 떠 있는 캐릭터가 합니다.
+          greet(event)
+          onSelect(drain)
         }}
 
         aria-label={label}
@@ -134,12 +119,12 @@ export default function DrainMarker({
             {inspectionBadge.label}
           </span>
         )}
-        {available && ((hint && !selected) || (selected && playing)) && (
+        {available && hint && !selected && (
           <span
             className="drain-whisper"
             style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
           >
-            {selected ? reaction.text : '저를 입양해 주세요!'}
+            저를 입양해 주세요!
           </span>
         )}
         <span
@@ -148,26 +133,14 @@ export default function DrainMarker({
             rounded-full border-[3px] dd-marker-ring
             shadow-[0_3px_12px_rgba(0,0,0,0.22)]
             transition-transform
-            ${selected && available ? 'drain-focus' : hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : markerColor(drain)}
-            ${selected && !available ? 'scale-125 ring-4 ring-white/60' : ''}
+            ${!selected && hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : markerColor(drain)}
+            ${selected ? 'scale-125 ring-4 ring-white/60' : ''}
           `}
         >
-          <span
-            key={tick}
-            className={
-              selected && available
-                ? 'drain-actor dd-login-character-action--' +
-                  (playing ? reaction.motion : 'idle')
-                : 'drain-actor'
-            }
-          >
-            {selected && playing && available ? (
-              <Character type="state" state={reaction.face} size={128} />
-            ) : (
-              <span className="dd-face" aria-hidden="true">
-                <img src={available ? waiting : happy} alt="" draggable={false} />
-              </span>
-            )}
+          <span className="drain-actor">
+            <span className="dd-face" aria-hidden="true">
+              <img src={available ? waiting : happy} alt="" draggable={false} />
+            </span>
           </span>
         </span>
         <span aria-hidden="true" className="drain-tail" />
