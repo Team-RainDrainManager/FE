@@ -21,7 +21,7 @@ import {
   mergeDrainDetail,
   type DrainSearchItem,
 } from '../../apis/drains'
-import { hasCoordinates, needsInspection } from '../../types/map'
+import { hasCoordinates, matchesFilter } from '../../types/map'
 import type {
   DrainMapFilter,
   DrainMapItem,
@@ -418,9 +418,8 @@ function KakaoMapContent({
 
   // 지도 마커·목록은 기존 지도 영역 API만 사용
   const filteredDrains = useMemo(() => {
-    if (filter === 'all') return drains
-    if (filter === 'inspection-needed') return drains.filter(needsInspection)
-    return drains.filter((drain) => drain.status === filter)
+    // 마커 색과 같은 분류로 거릅니다 (예: 미입양 막힘 제보는 막힘 제보에만)
+    return drains.filter((drain) => matchesFilter(drain, filter))
   }, [drains, filter])
 
   // 좌표가 있는 빗물받이만 마커 표시
@@ -453,7 +452,7 @@ function KakaoMapContent({
   const selectedOverlay =
     selectedDrain &&
     hasCoordinates(selectedDrain) &&
-    (filter !== 'inspection-needed' || needsInspection(selectedDrain)) &&
+    matchesFilter(selectedDrain, filter) &&
     !visibleDrains.some(
       (drain) => drain.id === selectedDrain.id,
     )
@@ -478,7 +477,7 @@ function KakaoMapContent({
   // /list 검색 결과 선택: 현재 지도에 없는 빗물받이도 상세 API로 찾음
   const handleSelectSearchResult = (item: DrainSearchItem) => {
     const existing = drains.find((drain) => drain.id === item.id)
-    if (filter === 'inspection-needed' && (!existing || !needsInspection(existing))) {
+    if (filter !== 'all' && (!existing || !matchesFilter(existing, filter))) {
       setFilter('all')
     }
     if (existing) {

@@ -1,15 +1,31 @@
 /*
- * 지도 다크모드.
- * 카카오맵은 지도 색을 바꾸는 기능이 없어서, 다크모드일 때 지도 그림(타일 이미지)만 색을 뒤집고
- * 밝기 · 대비 · 채도를 낮춰 어두운 회색 지도로 만듭니다. (네이버 지도 다크 톤 기준: 바탕 밝기 약 19%)
- * 마커 · 현재 위치는 필터를 받지 않아 아래에서 정한 색 그대로 보입니다.
+ * 지도 바탕 · 다크모드 · 빗물받이 마커 색.
+ *
+ * 카카오맵은 타일이 아직 안 그려진 자리에 회색 격자 그림(bg_tile.png)을 깔아 둡니다.
+ * 확대 · 축소할 때나 축소해서 바깥쪽이 보일 때 이 격자가 드러나므로, 단색 바탕으로 바꿉니다.
  */
-html[data-dd-theme='dark'] .dd-kakao-map {
-  background-color: #2a2c31 !important;
+.dd-kakao-map {
+  background: #f3f1ec !important;
 }
 
-html[data-dd-theme='dark'] .dd-kakao-map img:not(.dd-map-overlay img) {
+/*
+ * 다크모드: 카카오맵은 지도 색을 바꾸는 기능이 없어서, 지도 그림(타일)만 색을 뒤집고
+ * 밝기 · 대비 · 채도를 낮춰 어두운 회색 지도로 만듭니다. (네이버 지도 다크 톤 기준: 바탕 밝기 약 19%)
+ * 타일 묶음 전체에 한 번에 걸어 타일 사이 이음매가 생기지 않게 하고, 마커는 필터를 받지 않습니다.
+ */
+html[data-dd-theme='dark'] .dd-kakao-map {
+  background: #2c2d30 !important;
+}
+
+html[data-dd-theme='dark'] .dd-kakao-map div:has(> img[src*='/tile/']) {
   filter: invert(1) hue-rotate(180deg) saturate(0.6) contrast(0.7) brightness(1.1);
+}
+
+/* :has를 모르는 오래된 브라우저는 타일 이미지마다 겁니다. */
+@supports not selector(:has(a)) {
+  html[data-dd-theme='dark'] .dd-kakao-map img:not(.dd-map-overlay img) {
+    filter: invert(1) hue-rotate(180deg) saturate(0.6) contrast(0.7) brightness(1.1);
+  }
 }
 
 /* 빗물받이 마커 · 필터 점 색: 정상 초록 · 점검 필요 노랑 · 막힘 제보 빨강 · 상태 미확인 회색 */
@@ -19,23 +35,45 @@ html[data-dd-theme='dark'] .dd-kakao-map img:not(.dd-map-overlay img) {
 .dd-marker-unknown { background-color: #98a2b3; }
 .dd-marker-ring { border-color: #fff; }
 
-/* 다크모드: 어두운 지도에서 눈이 덜 부시게 채도를 조금 낮추고, 테두리는 지도 바탕에 맞춘 어두운 색 */
+/* 다크모드: 어두운 지도에서 눈이 덜 부시게 채도를 조금 낮춤 */
 html[data-dd-theme='dark'] .dd-marker-normal { background-color: #2fa866; }
 html[data-dd-theme='dark'] .dd-marker-inspection { background-color: #e3a92a; }
 html[data-dd-theme='dark'] .dd-marker-blocked { background-color: #db585c; }
 html[data-dd-theme='dark'] .dd-marker-unknown { background-color: #7c8594; }
-html[data-dd-theme='dark'] .dd-marker-ring { border-color: #1f2228; }
+html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
 
-/* 다크모드 미입양 마커: 흰 원 대신 밝은 회색 원 + 어두운 회색 테두리 */
+/*
+ * 마커 테두리: 흰 테두리 바깥에 진한 선을 한 겹 더 둘러, 밝은 지도 · 어두운 지도 모두에서 마커 경계가 보이게 합니다.
+ * (box-shadow는 선택된 마커의 강조 링이 쓰고 있어서 겹치지 않게 ::after로 그림)
+ */
+.dd-map-overlay .drain-disc {
+  position: relative;
+}
+
+.dd-map-overlay .drain-disc::after {
+  content: '';
+  position: absolute;
+  inset: -4.5px;
+  border: 1.5px solid rgba(23, 37, 58, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+html[data-dd-theme='dark'] .dd-map-overlay .drain-disc::after {
+  border-color: rgba(0, 0, 0, 0.8);
+}
+
+/* 미입양 마커: 안쪽 회색 테두리를 진하게 */
+.drain-available .dd-face {
+  border-color: #8a94a3;
+}
+
+/* 다크모드 미입양 마커: 흰 원 대신 밝은 회색 원 */
 html[data-dd-theme='dark'] .drain-available {
   background: #d9dde3;
 }
 
 html[data-dd-theme='dark'] .drain-available .dd-face {
-  border-color: #5b6472;
+  border-color: #6b7482;
   background: #d9dde3;
-}
-
-html[data-dd-theme='dark'] .dd-map-overlay .drain-disc {
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
 }

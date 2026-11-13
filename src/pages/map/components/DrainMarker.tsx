@@ -8,7 +8,7 @@ import happy from '../../../assets/characters/states/happy.svg'
 import { greet } from './greet'
 
 import { CustomOverlayMap } from 'react-kakao-maps-sdk'
-import { needsInspection, type DrainMapFilter, type PositionedDrainMapItem } from '../../../types/map'
+import { drainCategory, type DrainMapFilter, type PositionedDrainMapItem } from '../../../types/map'
 
 interface DrainMarkerProps {
   drain: PositionedDrainMapItem
@@ -27,9 +27,10 @@ const MARKER_COLORS = {
 }
 
 function markerColor(drain: PositionedDrainMapItem) {
-  if (drain.status === 'blocked') return MARKER_COLORS.blocked
-  if (needsInspection(drain)) return MARKER_COLORS.inspection
-  if (drain.status === 'normal') return MARKER_COLORS.normal
+  const category = drainCategory(drain)
+  if (category === 'blocked') return MARKER_COLORS.blocked
+  if (category === 'inspection-needed') return MARKER_COLORS.inspection
+  if (category === 'normal') return MARKER_COLORS.normal
   return MARKER_COLORS.unknown
 }
 
@@ -65,8 +66,8 @@ export default function DrainMarker({
   onSelect,
 }: DrainMarkerProps) {
   const inspectionBadge = getInspectionBadge(drain, filter)
-  const available =
-    drain.adoptionStatus === 'AVAILABLE' || drain.status === 'unadopted'
+  // 막힘 제보가 있는 빗물받이는 입양할 수 없어 미입양 모양 대신 빨간 마커로 보입니다.
+  const available = drainCategory(drain) === 'unadopted'
   const [tick, setTick] = useState(0)
   const [playing, setPlaying] = useState(false)
   const reaction = REACTIONS[(Math.max(tick, 1) - 1) % REACTIONS.length]
