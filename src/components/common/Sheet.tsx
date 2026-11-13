@@ -57,7 +57,7 @@ export default function Sheet({ title, onClose, children }: {
           sheet.current?.style.removeProperty('transform')
         }}
         onPointerCancel={() => { start.current = null; sheet.current?.style.removeProperty('transform') }}><span /></div>
-      <header className="dd21-sanctions-heading"><h2 id={titleId}>{title}</h2><button type="button" onClick={dismiss} aria-label="닫기">×</button></header>
+      <header className="dd21-sanctions-heading"><h2 id={titleId}>{title}</h2></header>
       <div className="dd21-sanctions-body dd-shared-body">{children}</div>
     </section>
   </div>, document.body)

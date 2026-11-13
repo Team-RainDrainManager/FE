@@ -84,7 +84,11 @@ function ResultMessage({
   return (
     <div
       role="status"
-      className={`space-y-3 rounded-xl p-5 text-center text-sm ${isPending ? 'bg-[#FFF4E3] text-[#956222]' : 'bg-[#E8F7EF] text-[#259B68]'}`}
+      className={`space-y-3 rounded-xl p-5 text-center text-sm ${
+        isPending
+          ? 'bg-[#FFF4E3] text-[#956222] [html[data-dd-theme=dark]_&]:bg-[#40321f] [html[data-dd-theme=dark]_&]:text-[#ffda98]'
+          : 'bg-[color:#E8F7EF] text-[#259B68] [html[data-dd-theme=dark]_&]:bg-[#203b34] [html[data-dd-theme=dark]_&]:text-[#8fe0b8]'
+      }`}
     >
       <p className="font-bold">{message}</p>
 
@@ -104,7 +108,7 @@ function ResultMessage({
       <button
         type="button"
         onClick={onClose}
-        className={`mt-3 rounded-full bg-white px-5 py-2 text-xs font-bold ${isPending ? 'text-[#956222]' : 'text-[#259B68]'}`}
+        className={`mt-3 rounded-full bg-[var(--dd-surface)] px-5 py-2 text-xs font-bold ${isPending ? 'text-[#956222] [html[data-dd-theme=dark]_&]:text-[#ffda98]' : 'text-[#259B68] [html[data-dd-theme=dark]_&]:text-[#8fe0b8]'}`}
       >
         확인
       </button>
@@ -423,7 +427,7 @@ const refreshData = async () => {
   const submitError = (startMutation.isError || completeMutation.isError || stalePhoto) && (
     <p
       role="alert"
-      className="rounded-xl bg-[#FFF1F1] p-3 text-sm leading-relaxed text-[#B84D4D]"
+      className="rounded-xl bg-[#FFF1F1] [html[data-dd-theme=dark]_&]:bg-[#4a2834] p-3 text-sm leading-relaxed text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]"
     >
       {stalePhoto
         ? STALE_PHOTO_MESSAGE
@@ -434,7 +438,7 @@ const refreshData = async () => {
   // 자격 확인 전에는 카메라·사진 업로드를 진행하지 않음
   if (!eligibilityEnabled) {
     return (
-      <div role="alert" className="space-y-3 rounded-xl bg-[#FFF4DC] p-4 text-xs text-[#956222]">
+      <div role="alert" className="space-y-3 rounded-xl bg-[#FFF4DC] [html[data-dd-theme=dark]_&]:bg-[#40321f] p-4 text-xs text-[#956222] [html[data-dd-theme=dark]_&]:text-[#ffda98]">
         <p>점검할 빗물받이 또는 비 예보 요청 정보가 올바르지 않아요.</p>
         <button type="button" onClick={onCancel} className="font-bold underline">닫기</button>
       </div>
@@ -481,7 +485,7 @@ const refreshData = async () => {
         {resumeNotice}
 
         {needsCleaning && (
-          <p className="rounded-xl bg-[#FFF4DC] p-3 text-sm leading-relaxed text-[#7A5310]">
+          <p className="rounded-xl bg-[#FFF4DC] [html[data-dd-theme=dark]_&]:bg-[#40321f] p-3 text-sm leading-relaxed text-[#7A5310] [html[data-dd-theme=dark]_&]:text-[#ffda98]">
             {startResult.cleanNotice ?? 'AI 판정 결과 청소가 필요해요.'}
             {' '}흰 점선 범위까지 치워 주세요.
           </p>
@@ -512,14 +516,14 @@ const refreshData = async () => {
             <button
               type="button"
               onClick={() => openCamera('after')}
-              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+              className="min-h-12 w-full rounded-full bg-[#329BEC] [html[data-dd-theme=dark]_&]:bg-[#2b61a3] p-3 text-base font-bold text-white"
             >
               청소 후 사진 찍기
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="w-full rounded-full border border-[#DCE8F1] bg-white p-3 text-sm font-semibold text-[#3E5670]"
+              className="w-full rounded-full border border-[#DCE8F1] bg-[var(--dd-surface)] p-3 text-sm font-semibold text-[#3E5670]"
             >
               청소하고 나서 이어서 하기
             </button>
@@ -535,7 +539,7 @@ const refreshData = async () => {
 
   if (eligibilityError || !eligibility) {
     return (
-      <div className="space-y-3 rounded-xl bg-[#FFF1F1] p-4 text-xs text-[#B84D4D]">
+      <div className="space-y-3 rounded-xl bg-[#FFF1F1] [html[data-dd-theme=dark]_&]:bg-[#4a2834] p-4 text-xs text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]">
         <p role="alert">{getErrorMessage(eligibilityQueryError)}</p>
         <div className="flex gap-4">
           <button type="button" onClick={() => void refetchEligibility()} className="font-bold underline">다시 확인</button>
@@ -547,7 +551,7 @@ const refreshData = async () => {
 
   if (!eligibility.eligible) {
     return (
-      <div className="space-y-3 rounded-xl bg-[#FFF4DC] p-4 text-xs text-[#956222]">
+      <div className="space-y-3 rounded-xl bg-[#FFF4DC] [html[data-dd-theme=dark]_&]:bg-[#40321f] p-4 text-xs text-[#956222] [html[data-dd-theme=dark]_&]:text-[#ffda98]">
         <p role="alert" className="font-bold">현재 점검할 수 없어요.</p>
         <p>{getInspectionEligibilityMessage(eligibility)}</p>
         <div className="flex gap-4">
@@ -603,7 +607,7 @@ const refreshData = async () => {
             <button
               type="button"
               onClick={() => openCamera('before')}
-              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+              className="min-h-12 w-full rounded-full bg-[#329BEC] [html[data-dd-theme=dark]_&]:bg-[#2b61a3] p-3 text-base font-bold text-white"
             >
               카메라로 촬영하기
             </button>
@@ -619,7 +623,7 @@ const refreshData = async () => {
           <button
             type="button"
             onClick={onCancel}
-            className="w-full rounded-full border border-[#DCE8F1] bg-white p-3 text-sm font-semibold text-[#3E5670]"
+            className="w-full rounded-full border border-[#DCE8F1] bg-[var(--dd-surface)] p-3 text-sm font-semibold text-[#3E5670]"
           >
             점검 취소
           </button>

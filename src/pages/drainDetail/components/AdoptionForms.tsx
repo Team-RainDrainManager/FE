@@ -365,7 +365,7 @@ export function AdoptForm({
   if (phase === 'success') {
     return (
       <div className="space-y-4 text-center">
-        <p className="text-lg font-bold text-[#259B68]">
+        <p className="text-lg font-bold text-[#259B68] [html[data-dd-theme=dark]_&]:text-[#8fe0b8]">
           입양이 완료됐어요!
         </p>
 
@@ -376,7 +376,7 @@ export function AdoptForm({
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white"
+          className="w-full rounded-full bg-[#329BEC] [html[data-dd-theme=dark]_&]:bg-[#2b61a3] p-3 text-sm font-bold text-white"
         >
           확인
         </button>
@@ -387,7 +387,7 @@ export function AdoptForm({
   if (phase === 'blocked') {
     return (
       <div className="space-y-4">
-        <p className="rounded-xl bg-[#FFF4E3] p-4 text-xs leading-relaxed text-[#956222]">
+        <p className="rounded-xl bg-[#FFF4E3] [html[data-dd-theme=dark]_&]:bg-[#40321f] p-4 text-xs leading-relaxed text-[#956222] [html[data-dd-theme=dark]_&]:text-[#ffda98]">
           덮개 안쪽까지 막혀 시민이 치우기 어려운 빗물받이예요.
           지자체에서 확인하도록 제보를 자동으로 접수했어요.
           지금은 입양을 진행하지 않아요.
@@ -396,7 +396,7 @@ export function AdoptForm({
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white"
+          className="w-full rounded-full bg-[#329BEC] [html[data-dd-theme=dark]_&]:bg-[#2b61a3] p-3 text-sm font-bold text-white"
         >
           닫기
         </button>
@@ -432,7 +432,7 @@ export function AdoptForm({
       {error && (
         <p
           role="alert"
-          className="rounded-xl bg-[#FDECEC] p-3 text-sm leading-relaxed text-[#B84D4D]"
+          className="rounded-xl bg-[#FDECEC] [html[data-dd-theme=dark]_&]:bg-[#4a2834] p-3 text-sm leading-relaxed text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]"
         >
           {error}
         </p>
@@ -465,7 +465,7 @@ export function AdoptForm({
             <button
               type="button"
               onClick={() => openCamera('before')}
-              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+              className="min-h-12 w-full rounded-full bg-[#329BEC] [html[data-dd-theme=dark]_&]:bg-[#2b61a3] p-3 text-base font-bold text-white"
             >
               카메라로 촬영
             </button>
@@ -511,7 +511,7 @@ export function AdoptForm({
             <button
               type="button"
               onClick={() => openCamera('after')}
-              className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white"
+              className="min-h-12 w-full rounded-full bg-[#329BEC] [html[data-dd-theme=dark]_&]:bg-[#2b61a3] p-3 text-base font-bold text-white"
             >
               청소 후 사진 촬영
             </button>
@@ -558,7 +558,7 @@ export function AdoptForm({
           <button
             type="submit"
             disabled={!canRegister}
-            className="min-h-12 w-full rounded-full bg-[#329BEC] p-3 text-base font-bold text-white disabled:opacity-40"
+            className="min-h-12 w-full rounded-full bg-[#329BEC] [html[data-dd-theme=dark]_&]:bg-[#2b61a3] p-3 text-base font-bold text-white disabled:opacity-40"
           >
             {busy
               ? '입양 등록 중...'
@@ -642,13 +642,13 @@ export function ReleaseForm({
       </p>
 
       {error && (
-        <p role="alert" className="rounded-xl bg-[#FFF1F1] p-3 text-[13px] leading-5 text-[#B84D4D]">
+        <p role="alert" className="rounded-xl bg-[#FFF1F1] [html[data-dd-theme=dark]_&]:bg-[#4a2834] p-3 text-[13px] leading-5 text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]">
           {error}
         </p>
       )}
 
       {confirming && !pending && (
-        <p role="status" className="text-[14px] font-bold text-[#B84D4D]">
+        <p role="status" className="text-[14px] font-bold text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]">
           정말 그만둘까요? 한 번 더 누르면 입양이 해제돼요.
         </p>
       )}
@@ -658,14 +658,14 @@ export function ReleaseForm({
           type="button"
           disabled={pending}
           onClick={onCancel}
-          className="min-h-11 rounded-full border border-[#DCE5F0] bg-white p-3 text-sm font-bold text-[#53647E] disabled:opacity-50"
+          className="min-h-11 rounded-full border border-[#DCE5F0] bg-[var(--dd-surface)] p-3 text-sm font-bold text-[#53647E] disabled:opacity-50"
         >
-          계속 돌볼게요
+          취소
         </button>
         <button
           type="submit"
           disabled={pending}
-          className="min-h-11 rounded-full bg-[#C85D5D] p-3 text-sm font-bold text-white disabled:opacity-50"
+          className="min-h-11 rounded-full bg-[#C85D5D] [html[data-dd-theme=dark]_&]:bg-[#9b4451] p-3 text-sm font-bold text-white disabled:opacity-50"
         >
           {pending ? '해제하는 중…' : confirming ? '입양 해제 확정' : '입양 그만두기'}
         </button>
