@@ -95,7 +95,7 @@ export default function DrainMarker({
           aria-label={label}
           className="dd-map-overlay drain-dot-hit cursor-pointer"
         >
-          <span aria-hidden="true" className={`drain-dot dd-marker-ring ${available ? 'dd-marker-unknown' : markerColor(drain)}`} />
+          <span aria-hidden="true" className={`drain-dot dd-marker-ring ${available ? 'dd-marker-unknown drain-dot-unadopted' : markerColor(drain)}`} />
         </button>
       ) : (
       <button

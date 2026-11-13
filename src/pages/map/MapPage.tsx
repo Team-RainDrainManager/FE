@@ -943,7 +943,7 @@ const statusNotice = drainsError
             <div className="absolute bottom-[122px] left-3 right-3 z-20">
             {/* 카드 위에 둥둥 떠 있는 이 빗물받이의 캐릭터 */}
             <FloatingDrainCharacter key={selectedDrain.id} drain={selectedDrain} />
-            <div className="max-h-[calc(100dvh-440px)] overflow-y-auto rounded-[24px] border border-[#E8EDF5] bg-white p-4 shadow-[0_12px_40px_rgba(23,43,77,0.16)]">
+            <div className="max-h-[calc(100dvh-470px)] overflow-y-auto rounded-[24px] border border-[#E8EDF5] bg-white p-4 shadow-[0_12px_40px_rgba(23,43,77,0.16)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
