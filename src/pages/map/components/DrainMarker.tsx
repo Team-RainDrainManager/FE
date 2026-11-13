@@ -50,7 +50,12 @@ const INSPECTION_BADGES = {
   overdue: { label: '점검 지연', className: 'bg-[#FFF2D3] text-[#805719]' },
 }
 
+// 비 예보 대신 점검 표시는 입양된 빗물받이에만 띄웁니다.
+// - 도움 필요: 입양자가 점검을 못 해 이웃의 대신 점검이 필요한 곳
+// - 입양 안 된 빗물받이(서버가 비 예보 때 모두 대신 점검 대상으로 엶)와 막힘 제보(시민이 치울 수 없음)에는 띄우지 않음
 function getInspectionBadge(drain: PositionedDrainMapItem, filter: DrainMapFilter) {
+  const category = drainCategory(drain)
+  if (category !== 'inspection-needed' && category !== 'normal') return null
   const rainStatus = drain.rainRequest?.status
   if (filter === 'all') return rainStatus ? INSPECTION_BADGES[rainStatus] : null
   if (filter !== 'inspection-needed') return null
