@@ -68,12 +68,15 @@ html[data-dd-theme='dark'] .dd-map-overlay .drain-disc::after {
   border-color: #8a94a3;
 }
 
-/* 다크모드 미입양 마커: 흰 원 대신 밝은 회색 원 */
+/*
+ * 다크모드 미입양 마커: 흰 원 대신 중간 톤 회색 원.
+ * 그림의 밝은 바탕은 multiply로 원 색에 섞이고, 캐릭터는 바탕보다 어두운 그림이라 원을 너무 어둡게 하면 캐릭터가 묻혀서 이 정도로 맞춤.
+ */
 html[data-dd-theme='dark'] .drain-available {
-  background: #d9dde3;
+  background: #9aa1ab;
 }
 
 html[data-dd-theme='dark'] .drain-available .dd-face {
   border-color: #6b7482;
-  background: #d9dde3;
+  background: #9aa1ab;
 }
