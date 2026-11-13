@@ -80,3 +80,28 @@ html[data-dd-theme='dark'] .drain-available .dd-face {
   border-color: #6b7482;
   background: #9aa1ab;
 }
+
+/* 축소했을 때 빗물받이 묶음 원 (앱 파란색) */
+.dd-cluster {
+  background: rgba(57, 129, 247, 0.92);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.dd-cluster::after {
+  content: '';
+  position: absolute;
+  inset: -4.5px;
+  border: 1.5px solid rgba(23, 37, 58, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+html[data-dd-theme='dark'] .dd-cluster {
+  background: rgba(59, 122, 224, 0.95);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.55);
+}
+
+html[data-dd-theme='dark'] .dd-cluster::after {
+  border-color: rgba(0, 0, 0, 0.8);
+}
