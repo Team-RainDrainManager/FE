@@ -44,10 +44,9 @@ const DEFAULT_CENTER = {
 
 const DEFAULT_LEVEL = 4
 // 이 단계 이하(가까이)로 확대하면 모두 캐릭터, 그보다 멀면 모두 상태 색 점 (카카오맵은 숫자가 클수록 넓게 보임)
-// 1단계 20m · 2단계 30m · 3단계 50m · 4단계 100m 축척. 3단계는 1px이 약 1m라 34px 캐릭터가 34m를 덮어
-// 길 건너편 빗물받이끼리 겹치므로, 0.5m/px인 2단계(30m)부터 캐릭터로 보여 줍니다.
+// 1단계 20m · 2단계 30m · 3단계 50m · 4단계 100m · 5단계 250m 축척. 50m 축척(3단계)부터 캐릭터로 보여 줍니다.
 // 화면 속 빗물받이 개수와 상관없이 확대 단계만으로 정해서, 같은 거리면 어느 동네를 보든 같은 모양입니다.
-const PINS_UP_TO_LEVEL = 2
+const PINS_UP_TO_LEVEL = 3
 const EMPTY_DRAINS: DrainMapItem[] = []
 
 const FILTERS: {
