@@ -29,6 +29,7 @@ import type {
 } from '../../types/map'
 
 import DrainMarker from './components/DrainMarker'
+import DrainCluster, { type DrainClusterItem } from './components/DrainCluster'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
 import CreateDrainModal from './components/CreateDrainModal'
@@ -41,6 +42,10 @@ const DEFAULT_CENTER = {
 }
 
 const DEFAULT_LEVEL = 4
+// 이 레벨 이상으로 축소하면 가까운 빗물받이를 묶어서 원 하나로 보여 줍니다 (카카오맵은 숫자가 클수록 넓게 보임)
+const CLUSTER_FROM_LEVEL = 3
+// 화면에서 이 거리(px) 안에 있는 빗물받이를 한 묶음으로 봅니다 (마커 지름 48px 기준)
+const CLUSTER_DISTANCE_PX = 56
 const EMPTY_DRAINS: DrainMapItem[] = []
 
 const FILTERS: {
@@ -161,6 +166,8 @@ function KakaoMapContent({
 
   const [bounds, setBounds] =
     useState<MapBoundsParams | null>(null)
+  // 위도 · 경도 1도가 화면에서 몇 px인지 (묶음 거리 계산용, 지도가 멈출 때마다 갱신)
+  const [pxPerDegree, setPxPerDegree] = useState<{ lat: number; lng: number } | null>(null)
 
   const [requestBounds, setRequestBounds] =
     useState<MapBoundsParams | null>(null)
@@ -386,6 +393,15 @@ function KakaoMapContent({
           ? prev
           : next,
       )
+      setZoomLevel(map.getLevel())
+      const projection = map.getProjection()
+      const southwest = projection.containerPointFromCoords(new kakao.maps.LatLng(next.minLatitude, next.minLongitude))
+      const northeast = projection.containerPointFromCoords(new kakao.maps.LatLng(next.maxLatitude, next.maxLongitude))
+      const lat = (southwest.y - northeast.y) / Math.max(1e-9, next.maxLatitude - next.minLatitude)
+      const lng = (northeast.x - southwest.x) / Math.max(1e-9, next.maxLongitude - next.minLongitude)
+      if (Number.isFinite(lat) && Number.isFinite(lng) && lat > 0 && lng > 0) {
+        setPxPerDegree((prev) => (prev && Math.abs(prev.lat - lat) < 1e-6 && Math.abs(prev.lng - lng) < 1e-6 ? prev : { lat, lng }))
+      }
     },
     [],
   )
@@ -436,6 +452,43 @@ function KakaoMapContent({
           drain.longitude <= bounds.maxLongitude,
       )
   }, [filteredDrains, bounds])
+
+  // 축소했을 때 가까운 빗물받이 묶기. 선택한 빗물받이는 묶지 않고 따로 보여 줍니다.
+  const { clusters, singles } = useMemo(() => {
+    const drainsOnMap = visibleDrains.filter((drain) => drain.id !== selectedId)
+    const selectedOnMap = visibleDrains.filter((drain) => drain.id === selectedId)
+    if (zoomLevel < CLUSTER_FROM_LEVEL || !pxPerDegree) {
+      return { clusters: [] as DrainClusterItem[], singles: visibleDrains }
+    }
+    const groups: { x: number; y: number; drains: typeof drainsOnMap }[] = []
+    for (const drain of drainsOnMap) {
+      const x = drain.longitude * pxPerDegree.lng
+      const y = -drain.latitude * pxPerDegree.lat
+      const group = groups.find((g) => Math.hypot(g.x - x, g.y - y) <= CLUSTER_DISTANCE_PX)
+      if (group) group.drains.push(drain)
+      else groups.push({ x, y, drains: [drain] })
+    }
+    const nextClusters: DrainClusterItem[] = []
+    const nextSingles = [...selectedOnMap]
+    for (const group of groups) {
+      if (group.drains.length === 1) { nextSingles.push(group.drains[0]); continue }
+      nextClusters.push({
+        key: group.drains.map((drain) => drain.id).sort((a, b) => a - b).join('-'),
+        latitude: group.drains.reduce((sum, drain) => sum + drain.latitude, 0) / group.drains.length,
+        longitude: group.drains.reduce((sum, drain) => sum + drain.longitude, 0) / group.drains.length,
+        drains: group.drains,
+      })
+    }
+    return { clusters: nextClusters, singles: nextSingles }
+  }, [visibleDrains, selectedId, zoomLevel, pxPerDegree])
+
+  // 묶음을 누르면 그 자리로 두 단계 확대
+  const openCluster = (cluster: DrainClusterItem) => {
+    const map = mapRef.current
+    if (!map) return
+    map.setCenter(new kakao.maps.LatLng(cluster.latitude, cluster.longitude))
+    map.setLevel(Math.max(1, map.getLevel() - 2), { animate: true })
+  }
 
   function hintNear(map:kakao.maps.Map, position:kakao.maps.LatLng) {
     const projection=map.getProjection()
@@ -644,7 +697,11 @@ const statusNotice = drainsError
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
             onClick={(map,event)=>hintNear(map,event.latLng)}
           >
-            {visibleDrains.map((drain) => (
+            {clusters.map((cluster) => (
+              <DrainCluster key={cluster.key} cluster={cluster} onOpen={openCluster} />
+            ))}
+
+            {singles.map((drain) => (
               <DrainMarker
                 key={drain.id}
                 drain={drain}
