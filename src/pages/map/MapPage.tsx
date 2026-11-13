@@ -21,7 +21,7 @@ import {
   mergeDrainDetail,
   type DrainSearchItem,
 } from '../../apis/drains'
-import { drainCategory, hasCoordinates, matchesFilter, type DrainCategory } from '../../types/map'
+import { hasCoordinates, matchesFilter } from '../../types/map'
 import type {
   DrainMapFilter,
   DrainMapItem,
@@ -29,6 +29,7 @@ import type {
 } from '../../types/map'
 
 import DrainMarker from './components/DrainMarker'
+import FloatingDrainCharacter from './components/FloatingDrainCharacter'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
 import CreateDrainModal from './components/CreateDrainModal'
@@ -41,19 +42,13 @@ const DEFAULT_CENTER = {
 }
 
 const DEFAULT_LEVEL = 4
-// 캐릭터 핀이 화면에서 차지하는 크기 (원 34px + 꼬리, 여백 포함). 이보다 가까이 붙은 빗물받이는 점으로 표시합니다.
-const PIN_SPACE_X_PX = 40
-const PIN_SPACE_Y_PX = 46
-// 이 단계 이상(멀리)으로 축소하면 겹치지 않아도 모두 상태 색 점으로 보여 줍니다 (카카오맵은 숫자가 클수록 넓게 보임)
+// 캐릭터 핀(원 34px + 꼬리 7px)끼리 이보다 가까우면 눈에 띄게 겹친다고 봅니다 (살짝 닿는 정도는 허용).
+const PIN_SPACE_X_PX = 30
+const PIN_SPACE_Y_PX = 36
+// 이 단계 이상(멀리)으로 축소하면 모두 상태 색 점으로 보여 줍니다 (카카오맵은 숫자가 클수록 넓게 보임)
 const ALL_DOTS_FROM_LEVEL = 6
-// 핀이 겹칠 때 먼저 캐릭터로 보여 줄 순서 (중요한 상태부터)
-const PIN_PRIORITY: Record<DrainCategory, number> = {
-  blocked: 0,
-  'inspection-needed': 1,
-  normal: 2,
-  unadopted: 3,
-  unknown: 4,
-}
+// 화면 안 빗물받이 중 겹치는 것이 이 비율 이하이면 모두 캐릭터, 넘으면 모두 점 (한 화면에서 섞지 않음)
+const PIN_OVERLAP_TOLERANCE = 0.25
 const EMPTY_DRAINS: DrainMapItem[] = []
 
 const FILTERS: {
@@ -463,30 +458,22 @@ function KakaoMapContent({
       )
   }, [filteredDrains, bounds])
 
-  // 핀(캐릭터)으로 보여 줄 빗물받이: 중요한 상태부터 하나씩 놓아 보고, 이미 놓인 핀과 겹치면 점으로 표시합니다.
-  // 확대할수록 서로 떨어져 보여 점이 캐릭터로 바뀝니다. 선택한 빗물받이는 항상 캐릭터입니다.
-  const pinIds = useMemo(() => {
-    const ids = new Set<number>()
-    if (zoomLevel >= ALL_DOTS_FROM_LEVEL) {
-      if (selectedId !== null) ids.add(selectedId)
-      return ids
+  // 한 화면에서는 모두 캐릭터이거나 모두 점입니다. 캐릭터로 그렸을 때 서로 겹치는 빗물받이가 많으면 점으로 보여 줍니다.
+  // (선택한 빗물받이는 항상 캐릭터)
+  const showPins = useMemo(() => {
+    if (zoomLevel >= ALL_DOTS_FROM_LEVEL || !pxPerDegree) return false
+    const points = visibleDrains.map((drain) => ({ x: drain.longitude * pxPerDegree.lng, y: -drain.latitude * pxPerDegree.lat }))
+    let overlapping = 0
+    for (let i = 0; i < points.length; i++) {
+      for (let j = 0; j < points.length; j++) {
+        if (i !== j && Math.abs(points[i].x - points[j].x) < PIN_SPACE_X_PX && Math.abs(points[i].y - points[j].y) < PIN_SPACE_Y_PX) {
+          overlapping++
+          break
+        }
+      }
     }
-    if (!pxPerDegree) return ids
-    const ordered = [...visibleDrains].sort((a, b) =>
-      (a.id === selectedId ? -1 : 0) - (b.id === selectedId ? -1 : 0)
-      || PIN_PRIORITY[drainCategory(a)] - PIN_PRIORITY[drainCategory(b)]
-      || a.id - b.id)
-    const placed: { x: number; y: number }[] = []
-    for (const drain of ordered) {
-      const x = drain.longitude * pxPerDegree.lng
-      const y = -drain.latitude * pxPerDegree.lat
-      const overlaps = placed.some((p) => Math.abs(p.x - x) < PIN_SPACE_X_PX && Math.abs(p.y - y) < PIN_SPACE_Y_PX)
-      if (overlaps && drain.id !== selectedId) continue
-      placed.push({ x, y })
-      ids.add(drain.id)
-    }
-    return ids
-  }, [visibleDrains, selectedId, pxPerDegree, zoomLevel])
+    return overlapping <= points.length * PIN_OVERLAP_TOLERANCE
+  }, [visibleDrains, pxPerDegree, zoomLevel])
 
   function hintNear(map:kakao.maps.Map, position:kakao.maps.LatLng) {
     const projection=map.getProjection()
@@ -701,7 +688,7 @@ const statusNotice = drainsError
                 drain={drain}
                 filter={filter}
                 hint={zoomLevel<=3 || nearby.includes(drain.id)}
-                variant={pinIds.has(drain.id) ? 'pin' : 'dot'}
+                variant={showPins ? 'pin' : 'dot'}
                 selected={selectedId === drain.id}
                 onSelect={drain=>{
                   if(mapRef.current && hasCoordinates(drain)) hintNear(mapRef.current,new kakao.maps.LatLng(drain.latitude,drain.longitude))
@@ -953,7 +940,10 @@ const statusNotice = drainsError
 
           {/* 선택된 빗물받이 카드 */}
           {selectedDrain && (
-            <div className="absolute bottom-[202px] left-3 right-3 z-20 max-h-[calc(100%-286px)] overflow-y-auto rounded-[24px] border border-[#E8EDF5] bg-white p-4 shadow-[0_12px_40px_rgba(23,43,77,0.16)]">
+            <div className="absolute bottom-[122px] left-3 right-3 z-20">
+            {/* 카드 위에 둥둥 떠 있는 이 빗물받이의 캐릭터 */}
+            <FloatingDrainCharacter key={selectedDrain.id} drain={selectedDrain} />
+            <div className="max-h-[calc(100dvh-440px)] overflow-y-auto rounded-[24px] border border-[#E8EDF5] bg-white p-4 shadow-[0_12px_40px_rgba(23,43,77,0.16)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -969,7 +959,7 @@ const statusNotice = drainsError
                     </span>
                     {selectedRainRequest?.status === 'NEEDS_HELP' && (
                       <span className="rounded-full bg-[#FFEDC4] px-2 py-1 text-xs font-bold text-[#80490B]">
-                        도움 필요
+                        점검 필요
                       </span>
                     )}
                   </div>
@@ -1041,6 +1031,7 @@ const statusNotice = drainsError
                   빗물받이 상세 보기
                 </button>
               </div>
+            </div>
             </div>
           )}
 
