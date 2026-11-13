@@ -6,7 +6,7 @@ import {
   useState,
   type FormEvent,
 } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import {
   CustomOverlayMap,
@@ -21,7 +21,7 @@ import {
   mergeDrainDetail,
   type DrainSearchItem,
 } from '../../apis/drains'
-import { hasCoordinates, matchesFilter } from '../../types/map'
+import { drainCategory, hasCoordinates, matchesFilter, type DrainCategory } from '../../types/map'
 import type {
   DrainMapFilter,
   DrainMapItem,
@@ -29,7 +29,6 @@ import type {
 } from '../../types/map'
 
 import DrainMarker from './components/DrainMarker'
-import DrainCluster, { type DrainClusterItem } from './components/DrainCluster'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
 import CreateDrainModal from './components/CreateDrainModal'
@@ -42,12 +41,19 @@ const DEFAULT_CENTER = {
 }
 
 const DEFAULT_LEVEL = 4
-// 확대 단계별 마커 (카카오맵은 숫자가 클수록 넓게 보임)
-// - 1~3: 큰 캐릭터 마커 (48px)
-// - 4~5: 작은 캐릭터 마커, 하나씩 (묶지 않음)
-// - 6 이상: 화면 안 빗물받이 전체를 원 하나로 묶음
-const COMPACT_FROM_LEVEL = 4
-const GROUP_ALL_FROM_LEVEL = 6
+// 캐릭터 핀이 화면에서 차지하는 크기 (원 34px + 꼬리, 여백 포함). 이보다 가까이 붙은 빗물받이는 점으로 표시합니다.
+const PIN_SPACE_X_PX = 40
+const PIN_SPACE_Y_PX = 46
+// 이 단계 이상(멀리)으로 축소하면 겹치지 않아도 모두 상태 색 점으로 보여 줍니다 (카카오맵은 숫자가 클수록 넓게 보임)
+const ALL_DOTS_FROM_LEVEL = 6
+// 핀이 겹칠 때 먼저 캐릭터로 보여 줄 순서 (중요한 상태부터)
+const PIN_PRIORITY: Record<DrainCategory, number> = {
+  blocked: 0,
+  'inspection-needed': 1,
+  normal: 2,
+  unadopted: 3,
+  unknown: 4,
+}
 const EMPTY_DRAINS: DrainMapItem[] = []
 
 const FILTERS: {
@@ -168,6 +174,8 @@ function KakaoMapContent({
 
   const [bounds, setBounds] =
     useState<MapBoundsParams | null>(null)
+  // 위도 · 경도 1도가 화면에서 몇 px인지 (핀이 겹치는지 계산용, 지도가 멈출 때마다 갱신)
+  const [pxPerDegree, setPxPerDegree] = useState<{ lat: number; lng: number } | null>(null)
 
   const [requestBounds, setRequestBounds] =
     useState<MapBoundsParams | null>(null)
@@ -242,6 +250,8 @@ function KakaoMapContent({
     enabled: requestBounds !== null,
     staleTime: 30_000,
     retry: 1,
+    // 확대 · 축소 · 이동으로 영역이 바뀌어 새로 불러오는 동안 이전 마커를 그대로 둡니다 (사라졌다 나타나는 깜박임 방지)
+    placeholderData: keepPreviousData,
   })
 
   // 입력 중 불필요한 요청 방지를 위한 검색어 디바운스
@@ -394,6 +404,14 @@ function KakaoMapContent({
           : next,
       )
       setZoomLevel(map.getLevel())
+      const projection = map.getProjection()
+      const southwest = projection.containerPointFromCoords(new kakao.maps.LatLng(next.minLatitude, next.minLongitude))
+      const northeast = projection.containerPointFromCoords(new kakao.maps.LatLng(next.maxLatitude, next.maxLongitude))
+      const lat = (southwest.y - northeast.y) / Math.max(1e-9, next.maxLatitude - next.minLatitude)
+      const lng = (northeast.x - southwest.x) / Math.max(1e-9, next.maxLongitude - next.minLongitude)
+      if (Number.isFinite(lat) && Number.isFinite(lng) && lat > 0 && lng > 0) {
+        setPxPerDegree((prev) => (prev && Math.abs(prev.lat / lat - 1) < 1e-4 && Math.abs(prev.lng / lng - 1) < 1e-4 ? prev : { lat, lng }))
+      }
     },
     [],
   )
@@ -445,28 +463,30 @@ function KakaoMapContent({
       )
   }, [filteredDrains, bounds])
 
-  // 멀리 축소해서 마커가 난잡해지면 화면 안 빗물받이 전체를 원 하나로 묶습니다. 선택한 빗물받이는 따로 보여 줍니다.
-  const { clusters, singles } = useMemo(() => {
-    const others = visibleDrains.filter((drain) => drain.id !== selectedId)
-    if (zoomLevel < GROUP_ALL_FROM_LEVEL || others.length < 2) {
-      return { clusters: [] as DrainClusterItem[], singles: visibleDrains }
+  // 핀(캐릭터)으로 보여 줄 빗물받이: 중요한 상태부터 하나씩 놓아 보고, 이미 놓인 핀과 겹치면 점으로 표시합니다.
+  // 확대할수록 서로 떨어져 보여 점이 캐릭터로 바뀝니다. 선택한 빗물받이는 항상 캐릭터입니다.
+  const pinIds = useMemo(() => {
+    const ids = new Set<number>()
+    if (zoomLevel >= ALL_DOTS_FROM_LEVEL) {
+      if (selectedId !== null) ids.add(selectedId)
+      return ids
     }
-    const all: DrainClusterItem = {
-      key: 'all',
-      latitude: others.reduce((sum, drain) => sum + drain.latitude, 0) / others.length,
-      longitude: others.reduce((sum, drain) => sum + drain.longitude, 0) / others.length,
-      drains: others,
+    if (!pxPerDegree) return ids
+    const ordered = [...visibleDrains].sort((a, b) =>
+      (a.id === selectedId ? -1 : 0) - (b.id === selectedId ? -1 : 0)
+      || PIN_PRIORITY[drainCategory(a)] - PIN_PRIORITY[drainCategory(b)]
+      || a.id - b.id)
+    const placed: { x: number; y: number }[] = []
+    for (const drain of ordered) {
+      const x = drain.longitude * pxPerDegree.lng
+      const y = -drain.latitude * pxPerDegree.lat
+      const overlaps = placed.some((p) => Math.abs(p.x - x) < PIN_SPACE_X_PX && Math.abs(p.y - y) < PIN_SPACE_Y_PX)
+      if (overlaps && drain.id !== selectedId) continue
+      placed.push({ x, y })
+      ids.add(drain.id)
     }
-    return { clusters: [all], singles: visibleDrains.filter((drain) => drain.id === selectedId) }
-  }, [visibleDrains, selectedId, zoomLevel])
-
-  // 묶음을 누르면 그 자리로 확대해 하나씩 보이게 합니다.
-  const openCluster = (cluster: DrainClusterItem) => {
-    const map = mapRef.current
-    if (!map) return
-    map.setCenter(new kakao.maps.LatLng(cluster.latitude, cluster.longitude))
-    map.setLevel(GROUP_ALL_FROM_LEVEL - 1, { animate: true })
-  }
+    return ids
+  }, [visibleDrains, selectedId, pxPerDegree, zoomLevel])
 
   function hintNear(map:kakao.maps.Map, position:kakao.maps.LatLng) {
     const projection=map.getProjection()
@@ -675,17 +695,13 @@ const statusNotice = drainsError
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
             onClick={(map,event)=>hintNear(map,event.latLng)}
           >
-            {clusters.map((cluster) => (
-              <DrainCluster key={cluster.key} cluster={cluster} onOpen={openCluster} />
-            ))}
-
-            {singles.map((drain) => (
+            {visibleDrains.map((drain) => (
               <DrainMarker
                 key={drain.id}
                 drain={drain}
                 filter={filter}
                 hint={zoomLevel<=3 || nearby.includes(drain.id)}
-                compact={zoomLevel >= COMPACT_FROM_LEVEL}
+                variant={pinIds.has(drain.id) ? 'pin' : 'dot'}
                 selected={selectedId === drain.id}
                 onSelect={drain=>{
                   if(mapRef.current && hasCoordinates(drain)) hintNear(mapRef.current,new kakao.maps.LatLng(drain.latitude,drain.longitude))
