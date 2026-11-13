@@ -147,14 +147,24 @@ html[data-dd-theme='dark'] .drain-tail {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  border-width: 2px;
+  border-width: 2.5px;
   border-style: solid;
-  box-shadow: 0 0 0 1px rgba(23, 37, 58, 0.55), 0 1px 3px rgba(0, 0, 0, 0.3);
+  /* 흰 테두리 바깥에 진한 선 + 그림자로 지도 바탕과 확실히 구분 */
+  box-shadow: 0 0 0 1.5px rgba(23, 37, 58, 0.8), 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
+/* 점은 작아서 마커보다 진하고 선명한 색을 씁니다. 미입양 회색은 밝은 지도에서 묻히지 않게 진하게 */
+.drain-dot.drain-dot-unadopted { background-color: #6b7482; }
+
 html[data-dd-theme='dark'] .drain-dot {
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6);
 }
+
+/* 다크모드: 어두운 지도 위에서 잘 보이게 밝고 선명한 색 */
+html[data-dd-theme='dark'] .drain-dot.dd-marker-normal { background-color: #3ccf7c; }
+html[data-dd-theme='dark'] .drain-dot.dd-marker-inspection { background-color: #ffc23d; }
+html[data-dd-theme='dark'] .drain-dot.dd-marker-blocked { background-color: #ff6b6f; }
+html[data-dd-theme='dark'] .drain-dot.drain-dot-unadopted { background-color: #c3c9d2; }
 
 /* 빗물받이를 눌렀을 때 정보 카드 위에 둥둥 떠 있는 캐릭터 */
 .dd-float {

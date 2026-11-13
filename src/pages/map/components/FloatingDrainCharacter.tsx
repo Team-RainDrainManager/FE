@@ -35,9 +35,9 @@ export default function FloatingDrainCharacter({ drain }: { drain: DrainMapItem 
       >
         <span key={tick} className={`block ${playing ? `dd-login-character-action--${reaction.motion}` : ''}`}>
           {playing ? (
-            <Character type="state" state={reaction.face} size={84} alt="" />
+            <Character type="state" state={reaction.face} size={120} alt="" />
           ) : (
-            <img src={image} alt="" width={84} height={84} draggable={false} className="block h-[84px] w-[84px]" />
+            <img src={image} alt="" width={120} height={120} draggable={false} className="block h-[120px] w-[120px]" />
           )}
         </span>
       </button>
