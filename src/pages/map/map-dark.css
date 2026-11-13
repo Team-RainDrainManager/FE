@@ -1,11 +1,41 @@
 /*
- * 지도 다크모드. 카카오맵은 지도 색을 바꾸는 기능이 없어서, 다크모드일 때 지도 전체 색을 뒤집고
- * (밝은 바탕 → 어두운 바탕, 색상은 hue-rotate로 원래 계열 유지) 마커 · 현재 위치는 한 번 더 뒤집어 원래 색으로 되돌립니다.
+ * 지도 다크모드.
+ * 카카오맵은 지도 색을 바꾸는 기능이 없어서, 다크모드일 때 지도 그림(타일 이미지)만 색을 뒤집고
+ * 밝기 · 대비 · 채도를 낮춰 어두운 회색 지도로 만듭니다. (네이버 지도 다크 톤 기준: 바탕 밝기 약 19%)
+ * 마커 · 현재 위치는 필터를 받지 않아 아래에서 정한 색 그대로 보입니다.
  */
 html[data-dd-theme='dark'] .dd-kakao-map {
-  filter: invert(1) hue-rotate(180deg);
+  background-color: #2a2c31 !important;
 }
 
-html[data-dd-theme='dark'] .dd-kakao-map .dd-map-overlay {
-  filter: invert(1) hue-rotate(180deg);
+html[data-dd-theme='dark'] .dd-kakao-map img:not(.dd-map-overlay img) {
+  filter: invert(1) hue-rotate(180deg) saturate(0.6) contrast(0.7) brightness(1.1);
+}
+
+/* 빗물받이 마커 · 필터 점 색: 정상 초록 · 점검 필요 노랑 · 막힘 제보 빨강 · 상태 미확인 회색 */
+.dd-marker-normal { background-color: #22a45d; }
+.dd-marker-inspection { background-color: #f5b400; }
+.dd-marker-blocked { background-color: #e5484d; }
+.dd-marker-unknown { background-color: #98a2b3; }
+.dd-marker-ring { border-color: #fff; }
+
+/* 다크모드: 어두운 지도에서 눈이 덜 부시게 채도를 조금 낮추고, 테두리는 지도 바탕에 맞춘 어두운 색 */
+html[data-dd-theme='dark'] .dd-marker-normal { background-color: #2fa866; }
+html[data-dd-theme='dark'] .dd-marker-inspection { background-color: #e3a92a; }
+html[data-dd-theme='dark'] .dd-marker-blocked { background-color: #db585c; }
+html[data-dd-theme='dark'] .dd-marker-unknown { background-color: #7c8594; }
+html[data-dd-theme='dark'] .dd-marker-ring { border-color: #1f2228; }
+
+/* 다크모드 미입양 마커: 흰 원 대신 밝은 회색 원 + 어두운 회색 테두리 */
+html[data-dd-theme='dark'] .drain-available {
+  background: #d9dde3;
+}
+
+html[data-dd-theme='dark'] .drain-available .dd-face {
+  border-color: #5b6472;
+  background: #d9dde3;
+}
+
+html[data-dd-theme='dark'] .dd-map-overlay .drain-disc {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
 }

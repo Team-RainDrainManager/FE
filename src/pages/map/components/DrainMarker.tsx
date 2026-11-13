@@ -18,12 +18,12 @@ interface DrainMarkerProps {
   onSelect: (drain: PositionedDrainMapItem) => void
 }
 
-// 지도 마커 색: 정상 초록 · 점검 필요 노랑 · 막힘 제보 빨강 · 미입양 회색 (필터 점 색과 같음)
+// 지도 마커 색: 정상 초록 · 점검 필요 노랑 · 막힘 제보 빨강 · 미입양 회색 (필터 점 색과 같음, 다크모드 색은 map-dark.css)
 const MARKER_COLORS = {
-  normal: 'bg-[#22A45D]',
-  inspection: 'bg-[#F5B400]',
-  blocked: 'bg-[#E5484D]',
-  unknown: 'bg-[#98A2B3]',
+  normal: 'dd-marker-normal',
+  inspection: 'dd-marker-inspection',
+  blocked: 'dd-marker-blocked',
+  unknown: 'dd-marker-unknown',
 }
 
 function markerColor(drain: PositionedDrainMapItem) {
@@ -106,7 +106,7 @@ export default function DrainMarker({
         {inspectionBadge && (
           <span
             aria-hidden="true"
-            className={`pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-full border border-white px-1.5 py-0.5 text-[10px] font-bold leading-tight shadow-sm ${inspectionBadge.className}`}
+            className={`pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-full border dd-marker-ring px-1.5 py-0.5 text-[10px] font-bold leading-tight shadow-sm ${inspectionBadge.className}`}
           >
             {inspectionBadge.label}
           </span>
@@ -122,7 +122,7 @@ export default function DrainMarker({
         <span
           className={`
             drain-disc flex items-center justify-center
-            rounded-full border-[3px] border-white
+            rounded-full border-[3px] dd-marker-ring
             shadow-[0_3px_12px_rgba(0,0,0,0.22)]
             transition-transform
             ${selected && available ? 'drain-focus' : hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : markerColor(drain)}

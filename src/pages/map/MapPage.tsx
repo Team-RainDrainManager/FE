@@ -56,10 +56,10 @@ const FILTERS: {
 
 const FILTER_DOTS: Record<DrainMapFilter, string> = {
   all: 'bg-[#6FAEFF]',
-  unadopted: 'bg-[#98A2B3]',
-  normal: 'bg-[#22A45D]',
-  'inspection-needed': 'bg-[#F5B400]',
-  blocked: 'bg-[#E5484D]',
+  unadopted: 'dd-marker-unknown',
+  normal: 'dd-marker-normal',
+  'inspection-needed': 'dd-marker-inspection',
+  blocked: 'dd-marker-blocked',
 }
 
 const FILTER_ACTIVE_STYLES: Record<
