@@ -1,7 +1,5 @@
 
-import type {
-  DrainMapItem,
-} from '../../../types/map'
+import { drainCategory, type DrainCategory, type DrainMapItem } from '../../../types/map'
 
 interface DrainListPanelProps {
   drains: DrainMapItem[]
@@ -9,28 +7,21 @@ interface DrainListPanelProps {
   onClose: () => void
 }
 
-const STATUS_TEXT = {
+// 지도 마커와 같은 분류로 표시합니다.
+const CATEGORY_TEXT: Record<DrainCategory, string> = {
   unadopted: '미입양',
   normal: '정상',
-  overdue: '점검 지연',
+  'inspection-needed': '점검 필요',
   blocked: '막힘 제보',
-  risk: '주의',
   unknown: '상태 미확인',
 }
 
-const STATUS_STYLE = {
-  unadopted:
-    'bg-[#E6F1E9] text-[#58816B]',
-  normal:
-    'bg-[#DAF5ED] text-[#268B76]',
-  overdue:
-    'bg-[#FFF1D8] text-[#B78025]',
-  blocked:
-    'bg-[#FFE2E2] text-[#C85858]',
-  risk:
-    'bg-[#FFF1D8] text-[#B78025]',
-  unknown:
-    'bg-[#EDF1F5] text-[#8294A5]',
+const CATEGORY_STYLE: Record<DrainCategory, string> = {
+  unadopted: 'bg-[#EDF1F5] text-[#5B6472]',
+  normal: 'bg-[#DAF5E6] text-[#1E7A47]',
+  'inspection-needed': 'bg-[#FFF1D8] text-[#8A5B00]',
+  blocked: 'bg-[#FFE2E2] text-[#B23A3E]',
+  unknown: 'bg-[#EDF1F5] text-[#5B6472]',
 }
 
 export default function DrainListPanel({
@@ -90,11 +81,10 @@ export default function DrainListPanel({
                   <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
-                        STATUS_STYLE[drain.status]
+                        CATEGORY_STYLE[drainCategory(drain)]
                       }`}
                     >
-                      {drain.displayStatusLabel ??
-                        STATUS_TEXT[drain.status]}
+                      {CATEGORY_TEXT[drainCategory(drain)]}
                     </span>
 
                     <span className="text-sm font-bold text-[#284B66]">
