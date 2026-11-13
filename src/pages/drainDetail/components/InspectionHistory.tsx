@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
@@ -10,32 +9,70 @@ import { getErrorMessage } from '../../../apis/auth'
 import { getInspectionDetail } from '../../../apis/inspections'
 import { gradeLabel } from '../../../utils/dirtGrade'
 
-type Props = {
-  adoptionId: number
+const KIND_LABELS: Record<string, string> = {
+  ROUTINE: '정기 점검',
+  FORECAST: '비 예보 점검',
+  SUBSTITUTE: '대신 점검',
 }
 
-function getKindLabel(kind: string) {
-  const labels: Record<string, string> = {
-    ROUTINE: '정기 점검',
-    FORECAST: '비 예보 점검',
-    SUBSTITUTE: '대신 점검',
+const REVIEW_LABELS: Record<string, string> = {
+  NOT_REQUIRED: '인증 완료',
+  PENDING: '검토 중',
+  APPROVED: '승인됨',
+  REJECTED: '반려됨',
+}
+
+type InspectionPhotosProps = {
+  beforePhotoUrl?: string | null
+  afterPhotoUrl?: string | null
+  photoDeleted?: boolean
+}
+
+function InspectionPhotos({
+  beforePhotoUrl,
+  afterPhotoUrl,
+  photoDeleted,
+}: InspectionPhotosProps) {
+  if (photoDeleted) {
+    return (
+      <p className="mt-3 rounded-lg bg-[#F4F7FC] p-3 text-xs text-[#637790]">
+        사진 보존 기간(365일)이 지나 삭제되었어요.
+      </p>
+    )
   }
 
-  return labels[kind] ?? '점검'
-}
-
-function getReviewLabel(review: string) {
-  const labels: Record<string, string> = {
-    NOT_REQUIRED: '인증 완료',
-    PENDING: '검토 중',
-    APPROVED: '승인됨',
-    REJECTED: '반려됨',
+  if (!beforePhotoUrl && !afterPhotoUrl) {
+    return <p className="mt-3 text-xs text-[#637790]">표시할 사진이 없어요.</p>
   }
 
-  return labels[review] ?? review
+  return (
+    <div className={`mt-3 grid gap-2 ${beforePhotoUrl && afterPhotoUrl ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      {beforePhotoUrl && (
+        <figure className="min-w-0">
+          <img
+            src={beforePhotoUrl}
+            alt="점검 전 빗물받이"
+            loading="lazy"
+            className="block aspect-video w-full rounded-lg object-cover"
+          />
+          <figcaption className="mt-1 text-[11px] text-[#637790]">점검 전</figcaption>
+        </figure>
+      )}
+      {afterPhotoUrl && (
+        <figure className="min-w-0">
+          <img
+            src={afterPhotoUrl}
+            alt="청소 후 빗물받이"
+            loading="lazy"
+            className="block aspect-video w-full rounded-lg object-cover"
+          />
+          <figcaption className="mt-1 text-[11px] text-[#637790]">청소 후</figcaption>
+        </figure>
+      )}
+    </div>
+  )
 }
 
-// 사용자가 상세 보기를 열 때에만 점검 상세 API를 호출합니다.
 function InspectionDetailPanel({ inspectionId }: { inspectionId: number }) {
   const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ['inspection-detail', inspectionId],
@@ -45,139 +82,152 @@ function InspectionDetailPanel({ inspectionId }: { inspectionId: number }) {
   })
 
   if (isPending) {
-    return <p role="status" className="mt-3 text-xs text-[#78899F]">점검 상세 정보를 불러오는 중이에요.</p>
+    return (
+      <p role="status" className="mt-3 text-xs text-[#637790]">
+        점검 상세 정보를 불러오는 중이에요.
+      </p>
+    )
   }
 
   if (isError || !data) {
     return (
       <div className="mt-3 space-y-2 text-xs text-[#B84D4D]">
         <p role="alert">{getErrorMessage(error)}</p>
-        <button type="button" onClick={() => void refetch()} className="font-bold underline">다시 조회</button>
+        <button type="button" onClick={() => void refetch()} className="font-bold underline">
+          다시 조회
+        </button>
       </div>
     )
   }
 
-  return (
-    <section aria-label="점검 상세 정보" className="mt-3 space-y-2 rounded-xl bg-[#F4F7FC] p-3 text-xs leading-5 text-[#53647E]">
-      <p>빗물받이: {data.drain.name}</p>
-      <p>점검 종류: {getKindLabel(data.kind)}</p>
-      <p>점검 일시: {new Date(data.createdAt).toLocaleString('ko-KR')}</p>
-      <p>검토 상태: {getReviewLabel(data.review)}</p>
-      {data.reviewReason && <p className="whitespace-pre-wrap break-words">검토 사유: {data.reviewReason}</p>}
-      <p>점검 전 등급: {gradeLabel(data.beforeGrade)}</p>
-      <p>점검 후 등급: {gradeLabel(data.afterGrade)}</p>
-      <p>청소 여부: {data.cleaned ? '청소함' : '청소하지 않음'}</p>
-      <p>점검 위치 거리: {data.distanceM === null ? '정보 없음' : `${data.distanceM}m`}</p>
-      <p>획득 경험치: {data.xp} XP</p>
-      {data.level !== null && <p>점검 당시 레벨: Lv.{data.level}</p>}
-      {data.displayStatus && <p>빗물받이 상태: {data.displayStatus}</p>}
-      <p>막힘 제보 여부: {data.hasBlockageReport ? '있음' : '없음'}</p>
-      {data.note && <p className="whitespace-pre-wrap break-words">메모: {data.note}</p>}
-      {data.photoDeleted ? (
-        <p className="rounded-lg bg-white p-2 text-[#8297AC]">사진 보존 기간(365일)이 지나 삭제되었어요.</p>
-      ) : data.beforePhotoUrl || data.afterPhotoUrl ? (
-        <div className="grid grid-cols-2 gap-2">
-          {data.beforePhotoUrl && <div><p className="mb-1">점검 전</p><img src={data.beforePhotoUrl} alt="점검 전 사진" loading="lazy" className="h-28 w-full rounded-lg object-cover" /></div>}
-          {data.afterPhotoUrl && <div><p className="mb-1">청소 후</p><img src={data.afterPhotoUrl} alt="청소 후 사진" loading="lazy" className="h-28 w-full rounded-lg object-cover" /></div>}
+    return (
+    <section
+      aria-label="점검 상세 정보"
+      className="mt-3 rounded-xl bg-[#F4F7FC] px-3 py-2 text-xs leading-5"
+    >
+      <dl className="divide-y divide-[#E1E8F1]">
+        <div className="flex justify-between gap-3 py-2">
+          <dt className="text-[#53647E]">오염 등급 변화</dt>
+          <dd className="text-right font-semibold text-[#17344C]">
+            {gradeLabel(data.beforeGrade)} → {gradeLabel(data.afterGrade)}
+          </dd>
         </div>
-      ) : <p className="text-[#8297AC]">상세 기록에 표시할 사진이 없어요.</p>}
+
+        <div className="flex justify-between gap-3 py-2">
+          <dt className="text-[#53647E]">점검 위치 거리</dt>
+          <dd className="text-right font-semibold text-[#17344C]">
+            {data.distanceM == null ? '정보 없음' : `${data.distanceM}m`}
+          </dd>
+        </div>
+
+        <div className="flex justify-between gap-3 py-2">
+          <dt className="text-[#53647E]">막힘 제보</dt>
+          <dd className="text-right font-semibold text-[#17344C]">
+            {data.hasBlockageReport ? '제보 있음' : '제보 없음'}
+          </dd>
+        </div>
+      </dl>
+
+      {data.reviewReason && (
+        <p className="mt-2 whitespace-pre-wrap break-words border-t border-[#E1E8F1] pt-2 text-[#53647E]">
+          검토 사유: {data.reviewReason}
+        </p>
+      )}
+
+      {data.note && (
+        <p className="mt-2 whitespace-pre-wrap break-words border-t border-[#E1E8F1] pt-2 text-[#53647E]">
+          메모: {data.note}
+        </p>
+      )}
     </section>
   )
 }
 
-function InspectionItem({
-  item,
-}: {
-  item: AdoptionInspection
-}) {
+function InspectionItem({ item }: { item: AdoptionInspection }) {
   const [detailOpen, setDetailOpen] = useState(false)
 
-  const hasBeforePhoto =
-    !item.photoDeleted && Boolean(item.beforePhotoUrl)
-
-  const hasAfterPhoto =
-    !item.photoDeleted && Boolean(item.afterPhotoUrl)
-
   return (
-    <article className="rounded-xl border border-[#E4EDF7] bg-white p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <strong className="text-xs text-[#203451]">
-          {getKindLabel(item.kind)}
+    <details className="group border-b border-[#EDF2F6] last:border-b-0">
+      <summary className="flex min-h-[69px] cursor-pointer list-none items-center gap-[11px] py-[11px] [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden="true"
+          className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#EBF5FC] text-[#276C9B]"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="size-[18px]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {item.kind === 'FORECAST' || item.kind === 'SUBSTITUTE' ? (
+              <path d="M6 15h11a4 4 0 0 0 0-8h-1a5 5 0 0 0-9 1H6a3.5 3.5 0 0 0 0 7ZM9 18l-1 2m5-2-1 2m5-2-1 2" />
+            ) : (
+              <path d="M8 4h8m-8 3h8m-9-3H5v16h14V4h-2M8 13l2 2 5-5" />
+            )}
+          </svg>
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <strong className="block text-[13px] text-[#17344C]">
+            {KIND_LABELS[item.kind] ?? '점검'}
+          </strong>
+          <span className="mt-1 block text-[11px] tabular-nums text-[#536A7A]">
+            {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+          </span>
+        </span>
+
+        <strong className="shrink-0 rounded-lg bg-[#EDF7F0] px-2 py-1.5 text-[11px] text-[#267557]">
+          {item.xp > 0 ? '+' : ''}{item.xp} XP
         </strong>
 
-        <span className="rounded-lg bg-[#EAF2FF] px-2 py-1 text-[10px] font-semibold text-[#3981F7]">
-          {getReviewLabel(item.review)}
-        </span>
-      </div>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-3.5 shrink-0 text-[#276C9B] group-open:rotate-180"
+        >
+          <path d="m4 6 4 4 4-4" />
+        </svg>
+      </summary>
 
-      <p className="mt-2 text-[11px] text-[#78899F]">
-        {new Date(item.createdAt).toLocaleString('ko-KR')}
-      </p>
-
-      <div className="mt-2 flex items-center justify-between text-xs text-[#607C99]">
-        <span>
-          {item.cleaned ? '청소 완료' : '상태 점검'}
-        </span>
-
-        <strong className="text-[#2784C9]">
-          +{item.xp} XP
-        </strong>
-      </div>
-
-      {item.photoDeleted ? (
-        <p className="mt-3 rounded-lg bg-[#F4F7FC] p-3 text-center text-[11px] text-[#8297AC]">
-          사진 보관 기간이 종료됐어요.
-        </p>
-      ) : (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {hasBeforePhoto && (
-            <div>
-              <p className="mb-1 text-[10px] text-[#78899F]">
-                점검 전
-              </p>
-              <img
-                src={item.beforePhotoUrl ?? ''}
-                alt="점검 전 사진"
-                loading="lazy"
-                className="h-28 w-full rounded-lg object-cover"
-              />
-            </div>
-          )}
-
-          {hasAfterPhoto && (
-            <div>
-              <p className="mb-1 text-[10px] text-[#78899F]">
-                청소 후
-              </p>
-              <img
-                src={item.afterPhotoUrl ?? ''}
-                alt="청소 후 사진"
-                loading="lazy"
-                className="h-28 w-full rounded-lg object-cover"
-              />
-            </div>
-          )}
+      <div className="border-t border-[#EDF2F6] pt-3 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <strong className="text-[#17344C]">{item.cleaned ? '청소 완료' : '상태 점검'}</strong>
+          <span className="rounded-lg bg-[#E6F3FD] px-2 py-1 font-semibold text-[#185881]">
+            {REVIEW_LABELS[item.review] ?? item.review}
+          </span>
         </div>
-      )}
+        <p className="mt-2 text-[11px] text-[#637790]">
+          {new Date(item.createdAt).toLocaleString('ko-KR')}
+        </p>
 
-      <button
-        type="button"
-        aria-expanded={detailOpen}
-        onClick={() => setDetailOpen((current) => !current)}
-        className="mt-3 w-full rounded-lg border border-[#E4EDF7] bg-[#F7FAFF] px-3 py-2 text-xs font-semibold text-[#3981F7]"
-      >
-        {detailOpen ? '점검 상세 접기 −' : '점검 상세 보기 +'}
-      </button>
-      {detailOpen && <InspectionDetailPanel inspectionId={item.inspectionId} />}
-    </article>
+        <InspectionPhotos
+          beforePhotoUrl={item.beforePhotoUrl}
+          afterPhotoUrl={item.afterPhotoUrl}
+          photoDeleted={Boolean(item.photoDeleted)}
+        />
+
+        <button
+          type="button"
+          aria-expanded={detailOpen}
+          onClick={() => setDetailOpen((current) => !current)}
+          className="mt-3 min-h-10 w-full rounded-lg bg-[#E6F3FD] px-3 py-2 text-xs font-semibold text-[#185881]"
+        >
+          {detailOpen ? '점검 상세 접기 −' : '점검 상세 보기 +'}
+        </button>
+
+        {detailOpen && <InspectionDetailPanel inspectionId={item.inspectionId} />}
+      </div>
+    </details>
   )
 }
 
-export default function InspectionHistory({
-  adoptionId,
-}: Props) {
-  const [open, setOpen] = useState(false)
-
+export default function InspectionHistory({ adoptionId }: { adoptionId: number }) {
   const {
     data,
     isPending,
@@ -191,93 +241,67 @@ export default function InspectionHistory({
     queryKey: ['adoption-inspections', adoptionId],
     initialPageParam: null as number | null,
     queryFn: ({ pageParam, signal }) =>
-      getAdoptionInspections(
-        adoptionId,
-        pageParam,
-        10,
-        signal,
-      ),
+      getAdoptionInspections(adoptionId, pageParam, 10, signal),
     getNextPageParam: (lastPage) =>
       lastPage.inspections.length > 0
-        ? (lastPage.nextCursor ?? undefined)
+        ? lastPage.nextCursor ?? undefined
         : undefined,
-    enabled: open && adoptionId > 0,
+    enabled: adoptionId > 0,
     staleTime: 30_000,
     retry: 1,
   })
 
-  const inspections =
-    data?.pages.flatMap((page) => page.inspections) ?? []
+  const inspections = data?.pages.flatMap((page) => page.inspections) ?? []
 
   return (
-    <section className="rounded-[24px] border border-[#E8EDF5] bg-white p-4">
-      <button
-        type="button"
-        onClick={() => setOpen((previous) => !previous)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between text-left"
-      >
-        <h3 className="text-sm font-bold text-[#203451]">
-          점검 이력
-        </h3>
+    <section aria-label="최근 돌봄 기록">
+      <h3 className="mx-px mb-[11px] text-base font-extrabold tracking-tight text-[#17344C]">
+        최근 돌봄 기록
+      </h3>
 
-        <span className="text-xs font-semibold text-[#3981F7]">
-          {open ? '접기 −' : '기록 보기 +'}
-        </span>
-      </button>
+      <div className="rounded-[22px] border border-[#DFEBF3] bg-white px-4 py-0.5 shadow-[0_10px_30px_rgba(40,81,111,0.055)]">
+        {isPending && (
+          <p role="status" className="py-5 text-center text-xs text-[#536A7A]">
+            점검 이력을 불러오는 중이에요.
+          </p>
+        )}
 
-      {open && (
-        <div className="mt-4 space-y-3">
-          {isPending ? (
-            <p className="py-5 text-center text-xs text-[#78899F]">
-              점검 이력을 불러오는 중이에요.
-            </p>
-          ) : isError && inspections.length === 0 ? (
-            <div className="py-4 text-center">
-              <p
-                role="alert"
-                className="text-xs text-[#B84D4D]"
-              >
-                {getErrorMessage(error)}
-              </p>
+        {isError && inspections.length === 0 && (
+          <div className="py-4 text-center text-xs">
+            <p role="alert" className="text-[#B84D4D]">{getErrorMessage(error)}</p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="mt-3 font-semibold text-[#276C9B]"
+            >
+              다시 시도
+            </button>
+          </div>
+        )}
 
-              <button
-                type="button"
-                onClick={() => void refetch()}
-                className="mt-3 text-xs font-semibold text-[#3981F7]"
-              >
-                다시 시도
-              </button>
-            </div>
-          ) : inspections.length === 0 ? (
-            <p className="py-6 text-center text-xs text-[#8C9AB0]">
-              아직 점검 기록이 없어요.
-            </p>
-          ) : (
-            <>
-              {inspections.map((item) => (
-                <InspectionItem
-                  key={item.inspectionId}
-                  item={item}
-                />
-              ))}
+        {!isPending && !isError && inspections.length === 0 && (
+          <p className="py-5 text-center text-xs text-[#536A7A]">
+            아직 점검 기록이 없어요.
+          </p>
+        )}
 
-              {hasNextPage && (
-                <button
-                  type="button"
-                  disabled={isFetchingNextPage}
-                  onClick={() => void fetchNextPage()}
-                  className="w-full rounded-xl bg-[#EAF2FF] p-3 text-xs font-semibold text-[#3981F7] disabled:opacity-50"
-                >
-                  {isFetchingNextPage
-                    ? '불러오는 중...'
-                    : '점검 이력 더 보기'}
-                </button>
-              )}
-            </>
-          )}
+        <div>
+          {inspections.map((item) => (
+            <InspectionItem key={item.inspectionId} item={item} />
+          ))}
         </div>
-      )}
+
+        {hasNextPage && (
+          <button
+            type="button"
+            disabled={isFetchingNextPage}
+            onClick={() => void fetchNextPage()}
+            className="my-3 w-full rounded-xl bg-[#E6F3FD] p-3 text-xs font-semibold text-[#185881] disabled:opacity-50"
+          >
+            {isFetchingNextPage ? '불러오는 중...' : '점검 이력 더 보기'}
+          </button>
+        )}
+      </div>
     </section>
   )
 }

@@ -1,172 +1,71 @@
-
-import { useState } from 'react'
 import Character from '../../../components/common/Character'
-import ModalShell from '../../../components/common/Modalshell'
-import type {
-  DrainAdoption,
-  DrainGrowthDto,
-} from '../../../types/drainDetail'
+import type { DrainAdoption, DrainGrowthDto } from '../../../types/drainDetail'
 
 type Props = {
   adoption: DrainAdoption | null
   growth?: DrainGrowthDto
 }
 
-export default function DrainGrowth({
-  adoption,
-  growth,
-}: Props) {
-  const [catalogOpen, setCatalogOpen] = useState(false)
-  const [previewLevel, setPreviewLevel] =
-    useState<number | null>(null)
-
+export default function DrainGrowth({ adoption, growth }: Props) {
   if (!adoption) return null
 
   const level = growth?.level ?? adoption.level
   const xp = growth?.xp ?? adoption.score
-
-  const getStageName = (targetLevel: number) => {
-    if (!growth) return '성장 단계'
-
-    const stage = [...growth.stages]
-      .filter((item) => item.from_level <= targetLevel)
-      .sort((a, b) => b.from_level - a.from_level)[0]
-
-    return stage?.name ?? '성장 단계'
-  }
-
-  const closeCatalog = () => {
-    setCatalogOpen(false)
-    setPreviewLevel(null)
-  }
+  const progress = Math.min(100, Math.max(0, growth?.progress_percent ?? 0))
 
   return (
-    <>
-      <section className="border-t border-[#EDF1F6] bg-[#F7FAFF] p-4">
-        <div className="flex items-center gap-3">
-          <Character
-            type="level"
-            level={level}
-            size={101}
-          />
+    <section
+      aria-label="또랑이 캐릭터와 성장 상태"
+      className="overflow-hidden rounded-[24px] border border-[#D9EAF4] bg-white shadow-[0_10px_30px_rgba(40,81,111,0.055)]"
+    >
+      <div className="relative isolate grid h-[250px] place-items-center overflow-hidden bg-[linear-gradient(162deg,#EDF8FF_2%,#DCEEFB_85%,#E6F5FB_100%)] max-[360px]:h-[226px]">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-[86px] left-1/2 h-[148px] w-[292px] -translate-x-1/2 rounded-full bg-white/40"
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[15px] left-1/2 h-[21px] w-[195px] -translate-x-1/2 rounded-full bg-[#4880A0]/10 blur-md"
+        />
+        <div className="absolute top-[15px] left-[15px] z-10 rounded-[11px] border border-[#D7EAF5] bg-white/90 px-2.5 py-[7px] text-xs font-extrabold text-[#245B7D]">
+          Lv. {level}{growth?.stage ? ` · ${growth.stage}` : ''}
+        </div>
+        <div className="relative translate-y-2">
+          <Character type="level" level={level} size={218} />
+        </div>
+      </div>
 
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold text-[#3488CB]">
-              이 빗물받이의 성장
-            </p>
-
-            <h3 className="mt-2 text-base font-bold text-[#203451]">
-              Lv.{level}
-            </h3>
-
-            <p className="mt-1 text-xs text-[#607C99]">
-              {growth?.stage ?? '성장 중'}
-            </p>
-
-            <p className="mt-2 text-xs font-semibold text-[#2784C9]">
-              {xp} XP
-            </p>
-          </div>
+      <div className="px-[17px] pt-[17px] pb-[19px]">
+        <div className="flex items-baseline justify-between gap-2.5">
+          <h3 className="text-sm font-extrabold tracking-tight text-[#17344C]">
+            또랑이 성장
+          </h3>
+          <strong className="text-sm font-extrabold text-[#185881]">{xp} XP</strong>
         </div>
 
         {growth && (
-          <div className="mt-4">
-            <div className="flex justify-between text-[11px] text-[#7896AD]">
-              <span>성장 진행률</span>
-              <span>
-                {level >= growth.max_level
-                  ? '최고 레벨'
-                  : `다음 레벨까지 ${growth.next_level_xp} XP`}
-              </span>
-            </div>
-
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
+          <>
+            <div
+              role="progressbar"
+              aria-label="다음 레벨까지 성장 진행률"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+              className="mt-[11px] h-[9px] overflow-hidden rounded-full bg-[#E7F0F6]"
+            >
               <div
-                className="h-full rounded-full bg-[#6099E8]"
-                style={{
-                  width: `${Math.min(100, Math.max(0, growth.progress_percent))}%`,
-                }}
+                className="h-full rounded-full bg-[linear-gradient(90deg,#69B6DE,#2C7CAA)]"
+                style={{ width: `${progress}%` }}
               />
             </div>
-          </div>
+            <p className="mt-2 text-[11px] text-[#546D7E]">
+              {level >= growth.max_level
+                ? '최고 레벨'
+                : `다음 레벨까지 ${growth.next_level_xp} XP`}
+            </p>
+          </>
         )}
-
-        <p className="mt-3 text-[11px] text-[#7896AD]">
-          집사가 바뀌어도 성장 기록은 이어져요.
-        </p>
-      </section>
-
-      {growth && (
-        <button
-          type="button"
-          onClick={() => setCatalogOpen(true)}
-          className="w-full border-t border-[#EDF1F6] bg-white px-4 py-3 text-right text-xs font-semibold text-[#3981F7]"
-        >
-          성장 도감 보기 →
-        </button>
-      )}
-
-      {catalogOpen && growth && (
-        <ModalShell
-          title={
-            previewLevel === null
-              ? 'Lv.0~50 성장 도감'
-              : `Lv.${previewLevel} 미리보기`
-          }
-          onClose={closeCatalog}
-        >
-          {previewLevel === null ? (
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from(
-                { length: growth.max_level + 1 },
-                (_, i) => i,
-              ).map((itemLevel) => (
-                <button
-                  type="button"
-                  key={itemLevel}
-                  onClick={() => setPreviewLevel(itemLevel)}
-                  className={`flex flex-col items-center rounded-xl border p-2 ${
-                    itemLevel === level
-                      ? 'border-[#57ABE8] bg-[#EEFAFF]'
-                      : 'border-[#DFEAF4]'
-                  }`}
-                >
-                  <Character
-                    type="level"
-                    level={itemLevel}
-                    size={86}
-                  />
-                  <strong className="mt-1 text-xs">
-                    Lv.{itemLevel}
-                  </strong>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center">
-              <div className="flex justify-center">
-                <Character
-                  type="level"
-                  level={previewLevel}
-                  size={218}
-                />
-              </div>
-
-              <p className="mt-3 text-sm font-bold text-[#203451]">
-                Lv.{previewLevel} · {getStageName(previewLevel)}
-              </p>
-
-              <button
-                type="button"
-                onClick={() => setPreviewLevel(null)}
-                className="mt-5 w-full rounded-full bg-[#EAF2FF] p-3 text-xs font-bold text-[#3981F7]"
-              >
-                도감으로 돌아가기
-              </button>
-            </div>
-          )}
-        </ModalShell>
-      )}
-    </>
+      </div>
+    </section>
   )
 }

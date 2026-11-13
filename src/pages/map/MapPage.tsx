@@ -639,7 +639,7 @@ const statusNotice = drainsError
           <Map
             center={DEFAULT_CENTER}
             level={DEFAULT_LEVEL}
-            className="h-full w-full"
+            className="dd-kakao-map h-full w-full"
             onCreate={handleMapCreate}
             onIdle={updateBounds}
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
@@ -679,7 +679,7 @@ const statusNotice = drainsError
                 <span
                   aria-label="현재 위치"
                   role="img"
-                  className="block h-4 w-4 rounded-full border-[3px] border-white bg-[#338CF0] shadow-[0_0_0_7px_rgba(51,140,240,0.18)]"
+                  className="dd-map-overlay block h-4 w-4 rounded-full border-[3px] border-white bg-[#338CF0] shadow-[0_0_0_7px_rgba(51,140,240,0.18)]"
                 />
               </CustomOverlayMap>
             )}

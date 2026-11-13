@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { REACTIONS } from '../../login/reactions'
 import Character from '../../../components/common/Character'
 import '../../login/LoginPage.css'
+import '../map-dark.css'
 import waiting from '../../../assets/characters/unadopted.png'
 import happy from '../../../assets/characters/states/happy.svg'
 import { greet } from './greet'
@@ -100,7 +101,7 @@ export default function DrainMarker({
         aria-label={`${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`}
 
         aria-pressed={selected}
-        className="relative flex cursor-pointer flex-col items-center"
+        className="dd-map-overlay relative flex cursor-pointer flex-col items-center"
       >
         {inspectionBadge && (
           <span

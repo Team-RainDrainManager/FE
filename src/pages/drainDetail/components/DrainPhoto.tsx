@@ -1,39 +1,50 @@
-
 import type { DrainDetailDto } from '../../../types/drainDetail'
 import { dirtLevelLabel } from '../../../utils/dirtGrade'
 
-export default function DrainPhoto({
-  drain,
-}: {
-  drain: DrainDetailDto
-}) {
+export default function DrainPhoto({ drain }: { drain: DrainDetailDto }) {
+  const { photoUrl, dirtLevel } = drain
+  const tone =
+    dirtLevel >= 3
+      ? { badge: 'bg-[#FDECEC] text-[#A63F3F]', bar: 'bg-[#E48787]' }
+      : dirtLevel >= 2
+        ? { badge: 'bg-[#FFF2D6] text-[#81560F]', bar: 'bg-[#E9B34F]' }
+        : { badge: 'bg-[#E9F6EF] text-[#24765A]', bar: 'bg-[#70AE94]' }
+
   return (
-    <section className="rounded-[24px] border border-[#E8EDF5] bg-white p-4">
-      <h3 className="mb-3 text-sm font-bold text-[#203451]">
-        빗물받이 사진
+    <section aria-label="현장 사진">
+      <h3 className="mx-px mb-[11px] text-base font-extrabold tracking-tight text-[#17344C]">
+        현장 사진
       </h3>
 
-      {drain.photoUrl ? (
-        <img
-          src={drain.photoUrl}
-          alt={`빗물받이 ${drain.id}번 사진`}
-          className="aspect-[16/9] w-full rounded-xl object-cover"
-        />
-      ) : (
-        <div className="flex aspect-[16/9] w-full items-center justify-center rounded-xl bg-[#F1F6FB]">
-          <p className="text-xs text-[#9AAFC1]">
-            등록된 사진이 없어요.
-          </p>
-        </div>
-      )}
+      <div className="rounded-[22px] border border-[#DFEBF3] bg-white p-3 shadow-[0_10px_30px_rgba(40,81,111,0.055)]">
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt="빗물받이 현장 사진"
+            loading="lazy"
+            className="block aspect-video w-full rounded-xl object-cover"
+          />
+        ) : (
+          <div className="grid aspect-video place-items-center rounded-xl bg-[#F1F6FB]">
+            <p className="text-xs text-[#637790]">등록된 사진이 없어요.</p>
+          </div>
+        )}
 
-      <div className="mt-4 rounded-2xl bg-[#F4F7FC] p-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="mt-2.5 grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-2 rounded-xl bg-[#F5F9FC] px-2.5 py-2">
           <span className="text-xs font-semibold text-[#53647E]">오염 등급</span>
-          <strong className={`rounded-full px-2.5 py-1 text-xs ${drain.dirtLevel >= 3 ? 'bg-[#FDECEC] text-[#C85D5D]' : drain.dirtLevel >= 2 ? 'bg-[#FFF2D6] text-[#A87420]' : 'bg-[#EAF7EF] text-[#32865A]'}`}>{dirtLevelLabel(drain.dirtLevel)}</strong>
-        </div>
-        <div className="mt-2 flex gap-1.5" aria-hidden="true">
-          {[1, 2, 3].map((step) => <span key={step} className={`h-1.5 flex-1 rounded-full ${step <= drain.dirtLevel ? drain.dirtLevel >= 3 ? 'bg-[#E48787]' : drain.dirtLevel >= 2 ? 'bg-[#E9B34F]' : 'bg-[#70B89A]' : 'bg-[#E1E8F1]'}`} />)}
+          <strong className={`rounded-full px-2 py-1 text-[11px] ${tone.badge}`}>
+            {dirtLevelLabel(dirtLevel)}
+          </strong>
+          <div className="flex gap-1" aria-hidden="true">
+            {[1, 2, 3].map((step) => (
+              <span
+                key={step}
+                className={`h-1 flex-1 rounded-full ${
+                  step <= dirtLevel ? tone.bar : 'bg-[#DFEBF3]'
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
