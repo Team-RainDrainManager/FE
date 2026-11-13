@@ -14,8 +14,8 @@ interface DrainMarkerProps {
   drain: PositionedDrainMapItem
   filter: DrainMapFilter
   hint?: boolean
-  // 중간 단계로 축소했을 때 작은 마커 (캐릭터는 그대로 보임)
-  compact?: boolean
+  // pin: 작은 캐릭터 + 꼬리(꼬리 끝이 정확한 위치) · dot: 다른 마커와 겹칠 때 상태 색 점
+  variant?: 'pin' | 'dot'
   selected: boolean
   onSelect: (drain: PositionedDrainMapItem) => void
 }
@@ -71,7 +71,7 @@ export default function DrainMarker({
   filter,
   selected,
   hint = false,
-  compact = false,
+  variant = 'pin',
   onSelect,
 }: DrainMarkerProps) {
   const inspectionBadge = getInspectionBadge(drain, filter)
@@ -85,7 +85,10 @@ export default function DrainMarker({
     const timer = window.setTimeout(() => setPlaying(false), 1250)
     return () => clearTimeout(timer)
   }, [tick, playing])
+  const dot = variant === 'dot' && !selected
+  const label = `${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`
   return (
+    // 기준점은 항상 마커 아래 끝(핀은 꼬리 끝, 점은 CSS로 가운데를 맞춤). 점 ↔ 핀이 바뀌어도 같은 오버레이라 깜박이지 않습니다.
     <CustomOverlayMap
       position={{
         lat: drain.latitude,
@@ -93,9 +96,19 @@ export default function DrainMarker({
       }}
       clickable
       xAnchor={0.5}
-      yAnchor={0.9}
-      zIndex={selected ? 20 : inspectionBadge ? 3 : 2}
+      yAnchor={1}
+      zIndex={selected ? 20 : dot ? 1 : inspectionBadge ? 3 : 2}
     >
+      {dot ? (
+        <button
+          type="button"
+          onClick={() => onSelect(drain)}
+          aria-label={label}
+          className="dd-map-overlay drain-dot-hit cursor-pointer"
+        >
+          <span aria-hidden="true" className={`drain-dot dd-marker-ring ${available ? 'dd-marker-unknown' : markerColor(drain)}`} />
+        </button>
+      ) : (
       <button
         type="button"
         onClick={(event) => {
@@ -108,10 +121,10 @@ export default function DrainMarker({
           }
         }}
 
-        aria-label={`${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`}
+        aria-label={label}
 
         aria-pressed={selected}
-        className={`dd-map-overlay relative flex cursor-pointer flex-col items-center ${compact && !selected ? 'drain-compact' : ''}`}
+        className="dd-map-overlay drain-pin relative flex cursor-pointer flex-col items-center"
       >
         {inspectionBadge && (
           <span
@@ -157,7 +170,9 @@ export default function DrainMarker({
             )}
           </span>
         </span>
+        <span aria-hidden="true" className="drain-tail" />
       </button>
+      )}
     </CustomOverlayMap>
   )
 }
