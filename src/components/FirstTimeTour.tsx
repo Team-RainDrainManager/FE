@@ -30,14 +30,14 @@ const TOUR_STEPS: readonly TourStep[] = [
     description: '입양한 또랑이의 성장과 점검 기록이 모여요. 처음 입양 수가 0개인 것은 정상이에요.',
   },
   {
-    path: '/notifications', target: 'notifications', label: '알림',
-    title: '점검 요청과 활동 소식을 확인하세요',
-    description: '새 알림이 있으면 아래 종 아이콘에서 확인할 수 있어요. 알림 탭에서 점검 요청과 소식을 살펴보세요.',
-  },
-  {
     path: '/social', target: 'social', label: '소셜',
     title: '친구를 초대하고 주간 순위를 확인해요',
     description: '친구에게 또랑 링크를 공유하고, 내 주간 기록과 전체 TOP 10을 확인할 수 있어요.',
+  },
+  {
+    path: '/notifications', target: 'notifications', label: '알림',
+    title: '점검 요청과 활동 소식을 확인하세요',
+    description: '새 알림이 있으면 아래 종 아이콘에서 확인할 수 있어요. 알림 탭에서 점검 요청과 소식을 살펴보세요.',
   },
   {
     path: '/profile', target: 'profile', label: '프로필',

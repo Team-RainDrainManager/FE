@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { getRainNotice, type RainNotice } from '../../../apis/rain-notice'
+import type { Coordinates } from '../../../apis/requests'
 import { formatKstDayAndTime, getKstDayLabel } from '../../../utils/kstDateTime'
 
 function shortLabel(notice: RainNotice, now: number): string {
@@ -15,12 +16,12 @@ function shortLabel(notice: RainNotice, now: number): string {
  * 지도 위 비 예보 배너 (GET /api/v1/rain-notice).
  * 지금 비가 오는지, 오늘 · 내일 비 예보가 있는지와 대신 점검 진행 상황을 보여 줍니다.
  */
-export default function RainNoticeBanner() {
+export default function RainNoticeBanner({ coordinates }: { coordinates: Coordinates }) {
   const [open, setOpen] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const { data: notice } = useQuery({
-    queryKey: ['rain-notice'],
-    queryFn: ({ signal }) => getRainNotice(signal),
+    queryKey: ['rain-notice', coordinates],
+    queryFn: ({ signal }) => getRainNotice(signal, coordinates),
     staleTime: 30_000,
     refetchInterval: 60_000,
   })

@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { useLocation, useOutlet } from 'react-router'
 
 // 아래 탭바 순서. 이 화면들 사이를 오갈 때만 전환 효과를 줍니다.
-const TAB_PATHS = ['/my-drains', '/notifications', '/map', '/social', '/profile']
+const TAB_PATHS = ['/my-drains', '/social', '/map', '/notifications', '/profile']
 
 // 새 탭이 누른 쪽에서 살짝 밀려 들어오며 나타나는 거리와 시간
 const ENTER_DISTANCE_PX = 24
