@@ -21,6 +21,7 @@ import {
   mergeDrainDetail,
   type DrainSearchItem,
 } from '../../apis/drains'
+import type { Coordinates } from '../../apis/requests'
 import { hasCoordinates, matchesFilter } from '../../types/map'
 import type {
   DrainMapFilter,
@@ -167,6 +168,7 @@ function KakaoMapContent({
 
   const [bounds, setBounds] =
     useState<MapBoundsParams | null>(null)
+  const [mapCenter, setMapCenter] = useState<Coordinates | null>(null)
 
   const [requestBounds, setRequestBounds] =
     useState<MapBoundsParams | null>(null)
@@ -384,15 +386,23 @@ function KakaoMapContent({
           ? `위도 ${selectedLatitude.toFixed(5)} · 경도 ${selectedLongitude.toFixed(5)}`
           : '주소 정보 없음')
 
-  // 지도 영역 업데이트
+  // 지도 영역과 중심 좌표 업데이트
   const updateBounds = useCallback(
     (map: kakao.maps.Map) => {
       const next = readMapBounds(map)
+      const center = map.getCenter()
+      const latitude = center.getLat()
+      const longitude = center.getLng()
 
       setBounds((prev) =>
         prev && hasSameBounds(prev, next)
           ? prev
           : next,
+      )
+      setMapCenter((prev) =>
+        prev?.latitude === latitude && prev.longitude === longitude
+          ? prev
+          : { latitude, longitude },
       )
       setZoomLevel(map.getLevel())
     },
@@ -842,7 +852,7 @@ const statusNotice = drainsError
           )}
 
           {/* 비 예보 배너: GET /api/v1/rain-notice */}
-          <RainNoticeBanner />
+          {mapCenter && <RainNoticeBanner coordinates={mapCenter} />}
 
           <button
             type="button"

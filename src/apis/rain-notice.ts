@@ -1,4 +1,5 @@
 import { apiClient } from './axios-instance'
+import type { Coordinates } from './requests'
 
 type ApiResponse<T> = {
   success: boolean
@@ -30,11 +31,14 @@ export type RainNotice = {
   message: string | null
 }
 
-// GET /api/v1/rain-notice
-export async function getRainNotice(signal?: AbortSignal): Promise<RainNotice> {
+// GET /api/v1/rain-notice (좌표를 생략하면 기본 격자 기준)
+export async function getRainNotice(
+  signal?: AbortSignal,
+  coordinates?: Coordinates,
+): Promise<RainNotice> {
   const { data: body } = await apiClient.get<ApiResponse<RainNotice>>(
     '/api/v1/rain-notice',
-    { signal },
+    { params: coordinates, signal },
   )
   if (!body.success || !body.data || typeof body.data.state !== 'string') {
     throw new Error(body.error?.message ?? '비 예보 정보를 불러오지 못했어요.')
