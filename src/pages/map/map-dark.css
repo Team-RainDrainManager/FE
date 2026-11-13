@@ -1,0 +1,11 @@
+/*
+ * 지도 다크모드. 카카오맵은 지도 색을 바꾸는 기능이 없어서, 다크모드일 때 지도 전체 색을 뒤집고
+ * (밝은 바탕 → 어두운 바탕, 색상은 hue-rotate로 원래 계열 유지) 마커 · 현재 위치는 한 번 더 뒤집어 원래 색으로 되돌립니다.
+ */
+html[data-dd-theme='dark'] .dd-kakao-map {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html[data-dd-theme='dark'] .dd-kakao-map .dd-map-overlay {
+  filter: invert(1) hue-rotate(180deg);
+}
