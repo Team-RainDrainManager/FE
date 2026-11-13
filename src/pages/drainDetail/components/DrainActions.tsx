@@ -5,10 +5,10 @@ import type { DrainDetailDto } from '../../../types/drainDetail'
 import type { InspectionRequest } from '../../../types/notifications'
 
 import { InspectForm } from '../../mydrains/components/ActionForms'
-import { AdoptForm, ReleaseForm } from './AdoptionForms'
+import { AdoptForm } from './AdoptionForms'
 import RainInspectForm from './RainInspectForm'
 
-type Action = 'adopt' | 'release' | 'inspect' | 'rain-inspect'
+type Action = 'adopt' | 'inspect' | 'rain-inspect'
 
 type Props = {
   drain: DrainDetailDto
@@ -18,7 +18,6 @@ type Props = {
 
 const TITLES: Record<Action, string> = {
   adopt: '빗물받이 입양하기',
-  release: '입양 그만두기',
   inspect: '사진으로 점검 기록',
   'rain-inspect': '비 예보 점검 인증',
 }
@@ -57,43 +56,33 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
         className={
           isMyAdoption
             ? 'w-full'
-            : 'rounded-[22px] border border-[#DFEBF3] bg-white p-4'
+            : 'rounded-[22px] border border-[#DFEBF3] bg-[var(--dd-surface)] p-4'
         }
       >
         {isMyAdoption ? (
-          <div className="flex flex-col gap-1">
-  <button
-    type="button"
-    onClick={() => setAction('inspect')}
-    className="flex min-h-[51px] w-full items-center justify-center gap-2 rounded-[15px] bg-[#276C9B] px-3 text-[15px] font-extrabold text-white shadow-[0_7px_17px_rgba(39,108,155,0.2)]"
-  >
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="size-[19px] shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
-      <circle cx="12" cy="13" r="3.5" />
-    </svg>
-    점검 시작하기
-  </button>
-
-  <button
-    type="button"
-    onClick={() => setAction('release')}
-    className="min-h-11 self-end rounded-lg px-3 text-xs font-semibold text-[#53647E]"
-  >
-    입양 해제
-  </button>
-</div>
+          <button
+            type="button"
+            onClick={() => setAction('inspect')}
+            className="flex min-h-[51px] w-full items-center justify-center gap-2 rounded-[15px] bg-[#276C9B] px-3 text-[15px] font-extrabold text-white shadow-[0_7px_17px_rgba(39,108,155,0.2)] [html[data-dd-theme=dark]_&]:bg-[#2b61a3]"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="size-[19px] shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+              <circle cx="12" cy="13" r="3.5" />
+            </svg>
+            점검 시작하기
+          </button>
         ) : (
           <>
-            <h3 className="mb-3 text-sm font-bold text-[#17344C]">돌봄 정보</h3>
+            <h3 className="mb-3 text-sm font-bold text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">돌봄 정보</h3>
             {adoption ? (
               <div className="space-y-2 rounded-2xl bg-[#F4F7FC] p-3 text-xs leading-5 text-[#637790]">
                 <p>현재 입양 중인 빗물받이예요.</p>
@@ -120,7 +109,7 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
           <button
             type="button"
             onClick={() => setAction('adopt')}
-            className="mt-4 min-h-11 w-full rounded-xl bg-[#276C9B] px-3 text-sm font-bold text-white"
+            className="mt-4 min-h-11 w-full rounded-xl bg-[#276C9B] px-3 text-sm font-bold text-white [html[data-dd-theme=dark]_&]:bg-[#2b61a3]"
           >
             이 빗물받이 입양하기
           </button>
@@ -133,7 +122,7 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
               setDismissedRequestId(rainRequest.requestId)
               setAction('rain-inspect')
             }}
-            className="mt-3 min-h-11 w-full rounded-xl border border-[#B9D7FF] bg-[#E6F3FD] px-3 text-xs font-bold text-[#185881]"
+            className="mt-3 min-h-11 w-full rounded-xl border border-[#B9D7FF] [html[data-dd-theme=dark]_&]:border-[var(--dd-line)] bg-[#E6F3FD] [html[data-dd-theme=dark]_&]:bg-[#283f5b] px-3 text-xs font-bold text-[#185881] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]"
           >
             {rainRequest.role === 'CLAIMANT' ? '대신 점검 인증하기' : '비 예보 점검 인증하기'}
           </button>
@@ -151,14 +140,6 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
         >
           {activeAction === 'adopt' && (
             <AdoptForm drainId={drain.id} onClose={closeModal} />
-          )}
-
-          {activeAction === 'release' && adoption && (
-            <ReleaseForm
-              adoptionId={adoption.adoptionId}
-              drainId={drain.id}
-              onCancel={closeModal}
-            />
           )}
 
           {activeAction === 'inspect' && adoption && isMyAdoption && (

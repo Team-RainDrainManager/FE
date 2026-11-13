@@ -91,7 +91,7 @@ function InspectionDetailPanel({ inspectionId }: { inspectionId: number }) {
 
   if (isError || !data) {
     return (
-      <div className="mt-3 space-y-2 text-xs text-[#B84D4D]">
+      <div className="mt-3 space-y-2 text-xs text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]">
         <p role="alert">{getErrorMessage(error)}</p>
         <button type="button" onClick={() => void refetch()} className="font-bold underline">
           다시 조회
@@ -108,21 +108,21 @@ function InspectionDetailPanel({ inspectionId }: { inspectionId: number }) {
       <dl className="divide-y divide-[#E1E8F1]">
         <div className="flex justify-between gap-3 py-2">
           <dt className="text-[#53647E]">오염 등급 변화</dt>
-          <dd className="text-right font-semibold text-[#17344C]">
+          <dd className="text-right font-semibold text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
             {gradeLabel(data.beforeGrade)} → {gradeLabel(data.afterGrade)}
           </dd>
         </div>
 
         <div className="flex justify-between gap-3 py-2">
           <dt className="text-[#53647E]">점검 위치 거리</dt>
-          <dd className="text-right font-semibold text-[#17344C]">
+          <dd className="text-right font-semibold text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
             {data.distanceM == null ? '정보 없음' : `${data.distanceM}m`}
           </dd>
         </div>
 
         <div className="flex justify-between gap-3 py-2">
           <dt className="text-[#53647E]">막힘 제보</dt>
-          <dd className="text-right font-semibold text-[#17344C]">
+          <dd className="text-right font-semibold text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
             {data.hasBlockageReport ? '제보 있음' : '제보 없음'}
           </dd>
         </div>
@@ -151,7 +151,7 @@ function InspectionItem({ item }: { item: AdoptionInspection }) {
       <summary className="flex min-h-[69px] cursor-pointer list-none items-center gap-[11px] py-[11px] [&::-webkit-details-marker]:hidden">
         <span
           aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#EBF5FC] text-[#276C9B]"
+          className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#EBF5FC] [html[data-dd-theme=dark]_&]:bg-[#283f5b] text-[#276C9B] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]"
         >
           <svg
             viewBox="0 0 24 24"
@@ -171,15 +171,15 @@ function InspectionItem({ item }: { item: AdoptionInspection }) {
         </span>
 
         <span className="min-w-0 flex-1">
-          <strong className="block text-[13px] text-[#17344C]">
+          <strong className="block text-[13px] text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
             {KIND_LABELS[item.kind] ?? '점검'}
           </strong>
-          <span className="mt-1 block text-[11px] tabular-nums text-[#536A7A]">
+          <span className="mt-1 block text-[11px] tabular-nums text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
             {new Date(item.createdAt).toLocaleDateString('ko-KR')}
           </span>
         </span>
 
-        <strong className="shrink-0 rounded-lg bg-[#EDF7F0] px-2 py-1.5 text-[11px] text-[#267557]">
+        <strong className="shrink-0 rounded-lg bg-[#EDF7F0] [html[data-dd-theme=dark]_&]:bg-[#203b34] px-2 py-1.5 text-[11px] text-[#267557] [html[data-dd-theme=dark]_&]:text-[#8fe0b8]">
           {item.xp > 0 ? '+' : ''}{item.xp} XP
         </strong>
 
@@ -189,7 +189,7 @@ function InspectionItem({ item }: { item: AdoptionInspection }) {
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
-          className="size-3.5 shrink-0 text-[#276C9B] group-open:rotate-180"
+          className="size-3.5 shrink-0 text-[#276C9B] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)] group-open:rotate-180"
         >
           <path d="m4 6 4 4 4-4" />
         </svg>
@@ -197,8 +197,8 @@ function InspectionItem({ item }: { item: AdoptionInspection }) {
 
       <div className="border-t border-[#EDF2F6] pt-3 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <strong className="text-[#17344C]">{item.cleaned ? '청소 완료' : '상태 점검'}</strong>
-          <span className="rounded-lg bg-[#E6F3FD] px-2 py-1 font-semibold text-[#185881]">
+          <strong className="text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">{item.cleaned ? '청소 완료' : '상태 점검'}</strong>
+          <span className="rounded-lg bg-[#E6F3FD] [html[data-dd-theme=dark]_&]:bg-[#283f5b] px-2 py-1 font-semibold text-[#185881] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]">
             {REVIEW_LABELS[item.review] ?? item.review}
           </span>
         </div>
@@ -216,7 +216,7 @@ function InspectionItem({ item }: { item: AdoptionInspection }) {
           type="button"
           aria-expanded={detailOpen}
           onClick={() => setDetailOpen((current) => !current)}
-          className="mt-3 min-h-10 w-full rounded-lg bg-[#E6F3FD] px-3 py-2 text-xs font-semibold text-[#185881]"
+          className="mt-3 min-h-10 w-full rounded-lg bg-[#E6F3FD] [html[data-dd-theme=dark]_&]:bg-[#283f5b] px-3 py-2 text-xs font-semibold text-[#185881] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]"
         >
           {detailOpen ? '점검 상세 접기 −' : '점검 상세 보기 +'}
         </button>
@@ -255,24 +255,24 @@ export default function InspectionHistory({ adoptionId }: { adoptionId: number }
 
   return (
     <section aria-label="최근 돌봄 기록">
-      <h3 className="mx-px mb-[11px] text-base font-extrabold tracking-tight text-[#17344C]">
+      <h3 className="mx-px mb-[11px] text-base font-extrabold tracking-tight text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
         최근 돌봄 기록
       </h3>
 
-      <div className="rounded-[22px] border border-[#DFEBF3] bg-white px-4 py-0.5 shadow-[0_10px_30px_rgba(40,81,111,0.055)]">
+      <div className="rounded-[22px] border border-[#DFEBF3] bg-[var(--dd-surface)] px-4 py-0.5 shadow-[0_10px_30px_rgba(40,81,111,0.055)]">
         {isPending && (
-          <p role="status" className="py-5 text-center text-xs text-[#536A7A]">
+          <p role="status" className="py-5 text-center text-xs text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
             점검 이력을 불러오는 중이에요.
           </p>
         )}
 
         {isError && inspections.length === 0 && (
           <div className="py-4 text-center text-xs">
-            <p role="alert" className="text-[#B84D4D]">{getErrorMessage(error)}</p>
+            <p role="alert" className="text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]">{getErrorMessage(error)}</p>
             <button
               type="button"
               onClick={() => void refetch()}
-              className="mt-3 font-semibold text-[#276C9B]"
+              className="mt-3 font-semibold text-[#276C9B] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]"
             >
               다시 시도
             </button>
@@ -280,7 +280,7 @@ export default function InspectionHistory({ adoptionId }: { adoptionId: number }
         )}
 
         {!isPending && !isError && inspections.length === 0 && (
-          <p className="py-5 text-center text-xs text-[#536A7A]">
+          <p className="py-5 text-center text-xs text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
             아직 점검 기록이 없어요.
           </p>
         )}
@@ -296,7 +296,7 @@ export default function InspectionHistory({ adoptionId }: { adoptionId: number }
             type="button"
             disabled={isFetchingNextPage}
             onClick={() => void fetchNextPage()}
-            className="my-3 w-full rounded-xl bg-[#E6F3FD] p-3 text-xs font-semibold text-[#185881] disabled:opacity-50"
+            className="my-3 w-full rounded-xl bg-[#E6F3FD] [html[data-dd-theme=dark]_&]:bg-[#283f5b] p-3 text-xs font-semibold text-[#185881] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)] disabled:opacity-50"
           >
             {isFetchingNextPage ? '불러오는 중...' : '점검 이력 더 보기'}
           </button>

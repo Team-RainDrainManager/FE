@@ -7,8 +7,10 @@ import { getDrainGrowth } from '../../apis/growth'
 import { getPauseStatus } from '../../apis/profile-settings'
 import { getMyRainRequests } from '../../apis/requests'
 import { useAuthStore } from '../../store/useAuthStore'
+import ModalShell from '../../components/common/Modalshell'
 
 import AdoptionCare from './components/AdoptionCare'
+import { ReleaseForm } from './components/AdoptionForms'
 import DrainActions from './components/DrainActions'
 import DrainGrowth from './components/DrainGrowth'
 import DrainInfo from './components/DrainInfo'
@@ -28,6 +30,7 @@ export default function DrainDetailPage() {
   const queryClient = useQueryClient()
   const accessToken = useAuthStore((state) => state.accessToken)
   const [now, setNow] = useState(() => Date.now())
+  const [releaseOpen, setReleaseOpen] = useState(false)
   const { drainId } = useParams()
   const [searchParams] = useSearchParams()
 
@@ -130,14 +133,14 @@ export default function DrainDetailPage() {
     return (
       <div className="px-5 py-16 text-center">
         <p>올바르지 않은 빗물받이 번호예요.</p>
-        <Link to="/map" className="text-[#276C9B]">지도로 돌아가기</Link>
+        <Link to="/map" className="text-[#276C9B] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]">지도로 돌아가기</Link>
       </div>
     )
   }
 
   if (isPending) {
     return (
-      <div role="status" className="px-5 py-16 text-center text-sm text-[#536A7A]">
+      <div role="status" className="px-5 py-16 text-center text-sm text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
         빗물받이 정보를 불러오는 중이에요.
       </div>
     )
@@ -146,10 +149,10 @@ export default function DrainDetailPage() {
   if (isError || !drain) {
     return (
       <div className="px-5 py-16 text-center">
-        <h2 className="text-base font-bold text-[#17344C]">
+        <h2 className="text-base font-bold text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
           빗물받이 정보를 불러오지 못했어요.
         </h2>
-        <p className="mt-2 text-xs text-[#536A7A]">
+        <p className="mt-2 text-xs text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
           {error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.'}
         </p>
         <button
@@ -159,7 +162,7 @@ export default function DrainDetailPage() {
         >
           다시 시도
         </button>
-        <Link to="/map" className="ml-3 text-xs text-[#276C9B]">
+        <Link to="/map" className="ml-3 text-xs text-[#276C9B] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]">
           지도로 돌아가기
         </Link>
       </div>
@@ -175,48 +178,51 @@ export default function DrainDetailPage() {
   )
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F5F9FC]">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-[18px] pt-[21px] pb-6">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[color:#F5F9FC] [html[data-dd-theme=dark]_&]:bg-[var(--dd-canvas)]">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-[18px] pt-[21px] pb-6 [scrollbar-width:thin] [scrollbar-color:var(--dd-line)_transparent]">
         <section
           aria-label="또랑이 정보"
           className="mb-[17px] flex flex-wrap items-start justify-between gap-x-3 gap-y-2"
         >
           <div className="min-w-0 flex-[1_1_8rem]">
             {isMine && (
-              <p className="mb-1.5 text-xs font-bold text-[#536A7A]">
+              <p className="mb-1.5 text-xs font-bold text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
                 내가 돌보는 또랑이
               </p>
             )}
-            <h2 className="text-[29px] leading-[1.23] font-extrabold tracking-tight text-[#17344C] [overflow-wrap:anywhere]">
+            <h2 className="text-[29px] leading-[1.23] font-extrabold tracking-tight text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)] [overflow-wrap:anywhere]">
               {adoption?.nickname || '빗물받이'}
             </h2>
           </div>
 
-          <div className="flex max-w-full flex-wrap gap-1.5">
-            <span
-              className={`${BADGE_CLASS} ${
-                adopted ? 'bg-[#E9F6EF] text-[#24765A]' : 'bg-[#EEF4FA] text-[#536A7A]'
-              }`}
-            >
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-              {adopted ? '입양 중' : '미입양'}
-            </span>
-            <span
-              className={`${BADGE_CLASS} ${
-                drain.status === 'ACTIVE'
-                  ? 'bg-[#E9F6EF] text-[#24765A]'
-                  : 'bg-[#EEF4FA] text-[#536A7A]'
-              }`}
-            >
-              {STATUS_LABELS[drain.status]}
-            </span>
+          <div className="flex max-w-full flex-col items-end gap-2">
+            <div className="flex max-w-full flex-wrap justify-end gap-1.5">
+              <span
+                className={`${BADGE_CLASS} ${
+                  adopted ? 'bg-[#E9F6EF] [html[data-dd-theme=dark]_&]:bg-[#203b34] text-[#24765A] [html[data-dd-theme=dark]_&]:text-[#8fe0b8]' : 'bg-[#EEF4FA] [html[data-dd-theme=dark]_&]:bg-[var(--dd-subtle)] text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]'
+                }`}
+              >
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+                {adopted ? '입양 중' : '미입양'}
+              </span>
+              <span
+                className={`${BADGE_CLASS} ${
+                  drain.status === 'ACTIVE'
+                    ? 'bg-[#E9F6EF] [html[data-dd-theme=dark]_&]:bg-[#203b34] text-[#24765A] [html[data-dd-theme=dark]_&]:text-[#8fe0b8]'
+                    : 'bg-[#EEF4FA] [html[data-dd-theme=dark]_&]:bg-[var(--dd-subtle)] text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]'
+                }`}
+              >
+                {STATUS_LABELS[drain.status]}
+              </span>
+            </div>
+
           </div>
         </section>
 
         <DrainGrowth adoption={adoption} growth={growth} />
 
         {growthError && adoption && (
-          <p role="alert" className="mt-2 text-xs text-[#B84D4D]">
+          <p role="alert" className="mt-2 text-xs text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]">
             최신 성장 정보를 불러오지 못했어요. 기본 입양 정보로 표시하고 있어요.
           </p>
         )}
@@ -228,6 +234,7 @@ export default function DrainDetailPage() {
             activePauseUntil={activePauseUntil}
             nextManagementAt={adoption.nextManagementAt}
             lastManagedAt={adoption.lastManagedAt}
+            onRelease={showActionBar ? () => setReleaseOpen(true) : undefined}
           />
         )}
 
@@ -238,7 +245,7 @@ export default function DrainDetailPage() {
         </div>
 
         {validRequestId && !rainRequestPending && !rainRequest && (
-          <p role="alert" className="mt-4 rounded-xl bg-[#FFF4DC] p-3 text-xs text-[#8A6510]">
+          <p role="alert" className="mt-4 rounded-xl bg-[#FFF4DC] [html[data-dd-theme=dark]_&]:bg-[#40321f] p-3 text-xs text-[#8A6510] [html[data-dd-theme=dark]_&]:text-[#ffda98]">
             {rainRequestError
               ? '비 예보 요청 정보를 불러오지 못했어요. 알림함에서 다시 시도해 주세요.'
               : '현재 이 빗물받이에서 진행 가능한 비 예보 점검 요청이 없어요.'}
@@ -255,10 +262,19 @@ export default function DrainDetailPage() {
       </div>
 
       {showActionBar && (
-  <footer className="shrink-0 border-t border-[#DFEBF3] bg-[#F5F9FC] px-[18px] pt-3 pb-[max(12px,env(safe-area-inset-bottom,0px))]">
-    {actions}
-  </footer>
-)}
+        <footer className="shrink-0 border-t border-[#DFEBF3] bg-[color:#F5F9FC] px-[18px] pt-3 pb-[max(12px,env(safe-area-inset-bottom,0px))] [html[data-dd-theme=dark]_&]:bg-[var(--dd-surface)]">
+          {actions}
+        </footer>
+      )}
+      {releaseOpen && showActionBar && adoption && (
+        <ModalShell title="입양 그만두기" onClose={() => setReleaseOpen(false)}>
+          <ReleaseForm
+            adoptionId={adoption.adoptionId}
+            drainId={drain.id}
+            onCancel={() => setReleaseOpen(false)}
+          />
+        </ModalShell>
+      )}
     </div>
   )
 }
