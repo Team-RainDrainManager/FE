@@ -42,13 +42,11 @@ const DEFAULT_CENTER = {
 }
 
 const DEFAULT_LEVEL = 4
-// 캐릭터 핀(원 34px + 꼬리 7px)끼리 이보다 가까우면 눈에 띄게 겹친다고 봅니다 (살짝 닿는 정도는 허용).
-const PIN_SPACE_X_PX = 30
-const PIN_SPACE_Y_PX = 36
-// 이 단계 이상(멀리)으로 축소하면 모두 상태 색 점으로 보여 줍니다 (카카오맵은 숫자가 클수록 넓게 보임)
-const ALL_DOTS_FROM_LEVEL = 6
-// 화면 안 빗물받이 중 겹치는 것이 이 비율 이하이면 모두 캐릭터, 넘으면 모두 점 (한 화면에서 섞지 않음)
-const PIN_OVERLAP_TOLERANCE = 0.25
+// 이 단계 이하(가까이)로 확대하면 모두 캐릭터, 그보다 멀면 모두 상태 색 점 (카카오맵은 숫자가 클수록 넓게 보임)
+// 1단계 20m · 2단계 30m · 3단계 50m · 4단계 100m 축척. 3단계는 1px이 약 1m라 34px 캐릭터가 34m를 덮어
+// 길 건너편 빗물받이끼리 겹치므로, 0.5m/px인 2단계(30m)부터 캐릭터로 보여 줍니다.
+// 화면 속 빗물받이 개수와 상관없이 확대 단계만으로 정해서, 같은 거리면 어느 동네를 보든 같은 모양입니다.
+const PINS_UP_TO_LEVEL = 2
 const EMPTY_DRAINS: DrainMapItem[] = []
 
 const FILTERS: {
@@ -169,8 +167,6 @@ function KakaoMapContent({
 
   const [bounds, setBounds] =
     useState<MapBoundsParams | null>(null)
-  // 위도 · 경도 1도가 화면에서 몇 px인지 (핀이 겹치는지 계산용, 지도가 멈출 때마다 갱신)
-  const [pxPerDegree, setPxPerDegree] = useState<{ lat: number; lng: number } | null>(null)
 
   const [requestBounds, setRequestBounds] =
     useState<MapBoundsParams | null>(null)
@@ -399,14 +395,6 @@ function KakaoMapContent({
           : next,
       )
       setZoomLevel(map.getLevel())
-      const projection = map.getProjection()
-      const southwest = projection.containerPointFromCoords(new kakao.maps.LatLng(next.minLatitude, next.minLongitude))
-      const northeast = projection.containerPointFromCoords(new kakao.maps.LatLng(next.maxLatitude, next.maxLongitude))
-      const lat = (southwest.y - northeast.y) / Math.max(1e-9, next.maxLatitude - next.minLatitude)
-      const lng = (northeast.x - southwest.x) / Math.max(1e-9, next.maxLongitude - next.minLongitude)
-      if (Number.isFinite(lat) && Number.isFinite(lng) && lat > 0 && lng > 0) {
-        setPxPerDegree((prev) => (prev && Math.abs(prev.lat / lat - 1) < 1e-4 && Math.abs(prev.lng / lng - 1) < 1e-4 ? prev : { lat, lng }))
-      }
     },
     [],
   )
@@ -458,22 +446,8 @@ function KakaoMapContent({
       )
   }, [filteredDrains, bounds])
 
-  // 한 화면에서는 모두 캐릭터이거나 모두 점입니다. 캐릭터로 그렸을 때 서로 겹치는 빗물받이가 많으면 점으로 보여 줍니다.
-  // (선택한 빗물받이는 항상 캐릭터)
-  const showPins = useMemo(() => {
-    if (zoomLevel >= ALL_DOTS_FROM_LEVEL || !pxPerDegree) return false
-    const points = visibleDrains.map((drain) => ({ x: drain.longitude * pxPerDegree.lng, y: -drain.latitude * pxPerDegree.lat }))
-    let overlapping = 0
-    for (let i = 0; i < points.length; i++) {
-      for (let j = 0; j < points.length; j++) {
-        if (i !== j && Math.abs(points[i].x - points[j].x) < PIN_SPACE_X_PX && Math.abs(points[i].y - points[j].y) < PIN_SPACE_Y_PX) {
-          overlapping++
-          break
-        }
-      }
-    }
-    return overlapping <= points.length * PIN_OVERLAP_TOLERANCE
-  }, [visibleDrains, pxPerDegree, zoomLevel])
+  // 한 화면에서는 모두 캐릭터이거나 모두 점이고, 확대 단계로만 정합니다. (선택한 빗물받이는 항상 캐릭터)
+  const showPins = zoomLevel <= PINS_UP_TO_LEVEL
 
   function hintNear(map:kakao.maps.Map, position:kakao.maps.LatLng) {
     const projection=map.getProjection()
