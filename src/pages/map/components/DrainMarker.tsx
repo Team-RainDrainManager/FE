@@ -14,6 +14,8 @@ interface DrainMarkerProps {
   drain: PositionedDrainMapItem
   filter: DrainMapFilter
   hint?: boolean
+  // 중간 단계로 축소했을 때 작은 마커 (캐릭터는 그대로 보임)
+  compact?: boolean
   selected: boolean
   onSelect: (drain: PositionedDrainMapItem) => void
 }
@@ -69,6 +71,7 @@ export default function DrainMarker({
   filter,
   selected,
   hint = false,
+  compact = false,
   onSelect,
 }: DrainMarkerProps) {
   const inspectionBadge = getInspectionBadge(drain, filter)
@@ -108,7 +111,7 @@ export default function DrainMarker({
         aria-label={`${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`}
 
         aria-pressed={selected}
-        className="dd-map-overlay relative flex cursor-pointer flex-col items-center"
+        className={`dd-map-overlay relative flex cursor-pointer flex-col items-center ${compact && !selected ? 'drain-compact' : ''}`}
       >
         {inspectionBadge && (
           <span
