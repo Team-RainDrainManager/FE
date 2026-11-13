@@ -237,6 +237,24 @@ export async function registerAdoption(
   return unwrap(body)
 }
 
+type AdoptionNicknameResponse = {
+  adoptionId: number
+  nickname: string
+  updatedAt: string
+}
+
+export async function updateAdoptionNickname(
+  adoptionId: number,
+  nickname: string,
+): Promise<AdoptionNicknameResponse> {
+  const { data: body } = await apiClient.patch<ApiResponse<AdoptionNicknameResponse>>(
+    `/api/v1/adoptions/${adoptionId}/nickname`,
+    { nickname },
+  )
+
+  return unwrap(body)
+}
+
 // 본인의 입양 해제 - Swagger 요청 본문은 reason만 받음
 export type AdoptionReleaseReason = 'MOVED' | 'NO_TIME' | 'OTHER'
 

@@ -82,17 +82,7 @@ export default function DrainCard({
 
   return (
     <article className="relative rounded-[24px] border border-[#E8EDF5] bg-white p-4 shadow-[0_4px_18px_rgba(23,43,77,0.04)]">
-      <details className="absolute right-3 top-3 z-10" onKeyDown={(event) => {
-        if (event.key === 'Escape') event.currentTarget.open = false
-      }}>
-        <summary aria-label={`${adoption.adoption_name} 관리`} className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-full text-xl leading-none text-[#8795AA] hover:bg-[#F3F6FA] [&::-webkit-details-marker]:hidden">···</summary>
-        <button type="button" onClick={(event) => {
-          event.currentTarget.closest('details')?.removeAttribute('open')
-          onOpen({ type: 'release', drainId })
-        }} className="absolute right-0 mt-1 whitespace-nowrap rounded-xl border border-[#E8EDF5] bg-white px-4 py-3 text-xs font-semibold text-[#C85D5D] shadow-lg">입양 그만두기</button>
-      </details>
-
-      <div className="flex items-center gap-3 pr-6">
+      <div className="flex items-center gap-3">
         <div className="relative shrink-0"><Character type="level" level={adoption.level} size={92} /></div>
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{adoption.adoption_name}</h3>
@@ -105,7 +95,14 @@ export default function DrainCard({
         </div>
       </div>
       <div className="mt-1 flex justify-end">
-        <button type="button" onClick={() => onOpen({ type: 'growth', drainId })} className="rounded-lg px-1 py-1.5 text-xs font-semibold text-[#3981F7]">성장 도감 ›</button>
+        <button
+          type="button"
+          aria-label={`${adoption.adoption_name} 이름 변경`}
+          onClick={() => onOpen({ type: 'rename', drainId })}
+          className="rounded-lg px-1 py-1.5 text-xs font-semibold text-[#3981F7]"
+        >
+          이름 변경
+        </button>
       </div>
       <GrowthProgress adoption={adoption} />
       {celebrate && <LevelUpCelebration level={adoption.level} onClose={()=>setCelebrate(false)}/>}
@@ -135,7 +132,12 @@ export default function DrainCard({
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="M4 6h4l2-3h4l2 3h4v14H4z" strokeLinejoin="round"/><circle cx="12" cy="13" r="4"/></svg>
         사진으로 점검 기록
       </button>
-      <Link to={`/drains/${drainId}`} className="mt-1 flex min-h-10 items-center justify-center text-xs font-semibold text-[#3981F7]">상세 보기 ›</Link>
+      <Link
+  to={`/drains/${drainId}`}
+  className="mt-2 flex min-h-11 w-full items-center justify-center rounded-full bg-[#EAF2FF] px-3 text-sm font-bold text-[#3981F7] transition hover:bg-[#DCE9FF] active:scale-[0.99]"
+>
+  상세 보기
+</Link>
     </article>
   )
 }

@@ -48,6 +48,7 @@ export type DrainModalType =
   | { type: 'growth'; drainId: number | null }
   | { type: 'preview'; drainId: number | null; level: number }
   | { type: 'inspect'; drainId: number }
+  | { type: 'rename'; drainId: number }
   | { type: 'release'; drainId: number }
 
 export type PageModal = DrainModalType | null

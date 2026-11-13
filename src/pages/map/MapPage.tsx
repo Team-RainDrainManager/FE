@@ -7,7 +7,7 @@ import {
   type FormEvent,
 } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
   CustomOverlayMap,
   Map,
@@ -34,6 +34,7 @@ import FloatingDrainCharacter from './components/FloatingDrainCharacter'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
 import CreateDrainModal from './components/CreateDrainModal'
+import NearbyRequestSheet from './components/NearbyRequestSheet'
 import RainNoticeBanner from './components/RainNoticeBanner'
 import { isStaffRole, useMyRole } from '../../features/admin/useMyRole'
 
@@ -152,6 +153,11 @@ function KakaoMapContent({
   appKey: string
 }) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const nearbyParam = searchParams.get('nearby')
+  const nearbyId = Number(nearbyParam)
+  const nearbyRequestId = Number.isSafeInteger(nearbyId) && nearbyId > 0 ? nearbyId : null
+  const nearbyOpen = nearbyParam === 'all' || nearbyRequestId !== null
 
   const [loading, error] = useKakaoLoader({
     appkey: appKey,
@@ -532,15 +538,19 @@ function KakaoMapContent({
     setNotice('')
   }
 
-  const openHelpRequest = (requestId: number) => {
-    navigate(`/notifications?requestId=${requestId}`, {
-      state: {
-        mapRequestCoordinates: currentPosition && {
-          latitude: currentPosition.lat,
-          longitude: currentPosition.lng,
-        },
-      },
-    })
+  const setNearbyRequest = (request: number | 'all' | null) => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (request === null) next.delete('nearby')
+      else next.set('nearby', String(request))
+      return next
+    }, { replace: true })
+  }
+
+  const openNearbyRequests = (request: number | 'all') => {
+    setSearchOpen(false)
+    setListOpen(false)
+    setNearbyRequest(request)
   }
 
   // 내 위치 이동
@@ -993,7 +1003,8 @@ const statusNotice = drainsError
                 {selectedRainRequest?.status === 'NEEDS_HELP' && (
                   <button
                     type="button"
-                    onClick={() => openHelpRequest(selectedRainRequest.requestId)}
+                    aria-haspopup="dialog"
+                    onClick={() => openNearbyRequests(selectedRainRequest.requestId)}
                     className="col-span-2 min-h-11 rounded-2xl bg-[#6384EF] px-2 py-3 text-xs font-bold text-white transition hover:bg-[#5476E3]"
                   >
                     도움 요청 보기
@@ -1016,6 +1027,17 @@ const statusNotice = drainsError
               </div>
             </div>
             </div>
+          )}
+
+          {!selectedDrain && (
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => openNearbyRequests('all')}
+              className="absolute bottom-[146px] left-3 z-10 min-h-11 rounded-2xl border border-[#E8EDF5] bg-white px-3 text-xs font-bold text-[#3981F7] shadow-[0_4px_16px_rgba(23,43,77,0.10)]"
+            >
+              주변 요청 보기
+            </button>
           )}
 
           {/* 현재 위치 버튼 */}
@@ -1150,6 +1172,17 @@ const statusNotice = drainsError
             />
           )}
         </>
+      )}
+      {nearbyOpen && (
+        <NearbyRequestSheet
+          key={nearbyRequestId ?? 'all'}
+          requestId={nearbyRequestId}
+          initialCoordinates={currentPosition && {
+            latitude: currentPosition.lat,
+            longitude: currentPosition.lng,
+          }}
+          onClose={() => setNearbyRequest(null)}
+        />
       )}
     </main>
   )

@@ -1,7 +1,9 @@
 import { useContext, useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router'
+import { isAxiosError } from 'axios'
 import { logout, getErrorMessage } from '../../apis/auth'
+import { createBugReport, type BugReportCategory } from '../../apis/bug-reports'
 import { getNotificationSettings, updateNotificationSettings, getPauseStatus, requestPause, type NotificationSettings, type PauseStatus } from '../../apis/profile-settings'
 import { withdrawMyAccount } from '../../apis/account'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -21,6 +23,13 @@ const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] =
   {id:'sun',title:'일출·일몰',description:'해 뜨면 라이트 · 해 지면 다크',symbol:'◐'},
 ]
 const card = 'dd-settings-card rounded-[22px] border border-[#E5EEF7] bg-white p-5'
+const BUG_REPORT_CATEGORIES: Record<BugReportCategory, string> = {
+  UI: '화면·디자인 오류',
+  ERROR: '오류·멈춤',
+  FEATURE: '기능 동작 오류',
+  PERFORMANCE: '속도 저하',
+  OTHER: '기타',
+}
 
 export default function SettingsPage({ embedded = false, reportButtonRef }: { embedded?: boolean; reportButtonRef?: RefObject<HTMLButtonElement | null> }) {
   const navigate = useNavigate()
@@ -37,10 +46,13 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
   const sun = useThemeStore(s => s.sun)
   const setRegion = useThemeStore(s => s.setLocation)
   const [regionMessage,setRegionMessage] = useState('')
-  const [reportOpen,setReportOpen] = useState(false)
-  const [reportCategory,setReportCategory] = useState('화면·디자인 오류')
-  const [reportText,setReportText] = useState('')
-  const [reportDone,setReportDone] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportCategory, setReportCategory] = useState<BugReportCategory>('UI')
+  const [reportTitle, setReportTitle] = useState('')
+  const [reportText, setReportText] = useState('')
+  const [reportId, setReportId] = useState<number | null>(null)
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportError, setReportError] = useState('')
   // Server-backed settings. We never show a guessed default as a saved preference.
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null)
   const [notificationLoading, setNotificationLoading] = useState(true)
@@ -220,22 +232,57 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     )
   }
 
-  function submitReport(e:FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (reportText.trim().length < 5) return
-    // 서버 신고 엔드포인트가 없는 UI 시연: 실제 제출을 암시하지 않습니다.
-    setReportDone(true)
+  function openReport() {
+    setReportId(null)
+    setReportError('')
+    setReportOpen(true)
+  }
+
+  function closeReport() {
+    if (!reportBusy) setReportOpen(false)
+  }
+
+  async function submitReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (reportBusy) return
+
+    const title = reportTitle.trim()
+    const content = reportText.trim()
+    if (title.length < 2 || title.length > 100) {
+      setReportError('제목을 2~100자로 입력해 주세요.')
+      return
+    }
+    if (content.length < 5 || content.length > 2000) {
+      setReportError('내용을 5~2,000자로 입력해 주세요.')
+      return
+    }
+
+    setReportBusy(true)
+    setReportError('')
+    try {
+      const result = await createBugReport({ category: reportCategory, title, content })
+      setReportId(result.bugReportId)
+      setReportCategory('UI')
+      setReportTitle('')
+      setReportText('')
+    } catch (error: unknown) {
+      setReportError(isAxiosError(error) && error.code === 'ECONNABORTED'
+        ? '서버 응답이 늦어 접수 여부를 확인할 수 없어요.'
+        : getErrorMessage(error))
+    } finally {
+      setReportBusy(false)
+    }
   }
 
   return <div className={`${embedded ? "dd-settings-page--embedded" : "min-h-[calc(100dvh-128px)]"} dd-settings-page space-y-4 bg-[#F7FAFE] px-[18px] pb-8 pt-5 text-[#24496B]`}>
     <button ref={reportButtonRef} tabIndex={-1} type="button" className="sr-only" aria-label="버그 신고 열기"
-      onClick={() => {setReportDone(false);setReportOpen(true)}}>버그 신고 열기</button>
+      onClick={openReport}>버그 신고 열기</button>
     {notificationMessage && createPortal(
       <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-24 left-1/2 z-[350] max-w-[calc(100vw-32px)] -translate-x-1/2 whitespace-nowrap rounded-xl bg-[#18324C] px-5 py-3 text-center text-[13px] font-bold text-white shadow-xl">
         {notificationMessage}
       </div>, document.body
     )}
-    {!embedded && <button type="button" className="dd-settings-page__report-standalone" onClick={() => {setReportDone(false);setReportOpen(true)}}>버그 신고하기</button>}
+    {!embedded && <button type="button" className="dd-settings-page__report-standalone" onClick={openReport}>버그 신고하기</button>}
     {!embedded && <div className="px-1">
       <p className="text-[11px] font-extrabold tracking-widest text-[#338CF0]">MY DDORANG</p>
       <h2 className="mt-1 text-xl font-extrabold">설정</h2>
@@ -345,11 +392,98 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
         </section>
       </div>, document.body
     )}
-    {reportOpen && createPortal(<div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 p-4" onClick={e=>{if(e.target===e.currentTarget)setReportOpen(false)}}>
-      <section role="dialog" aria-modal="true" aria-labelledby="bug-report-title" className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl">
-        {reportDone ? <div className="py-5 text-center"><p className="text-3xl">✓</p><h3 id="bug-report-title" className="mt-3 text-lg font-bold">신고 내용을 작성했습니다</h3><p className="mt-2 text-sm leading-6 text-[#8299B0]">신고 화면 시연이 완료되었습니다. 실제 서버로 전송되지는 않았습니다.</p><button onClick={()=>{setReportOpen(false);setReportText('')}} className="mt-5 min-h-11 w-full rounded-xl bg-[#3981F7] text-sm font-bold text-white">닫기</button></div>:
-        <form onSubmit={submitReport} className="space-y-3"><div className="flex items-center justify-between"><h3 id="bug-report-title" className="text-lg font-extrabold">버그 신고</h3><button type="button" aria-label="닫기" onClick={()=>setReportOpen(false)}>✕</button></div><label className="block text-xs font-bold" htmlFor="report-category">오류 종류</label><select id="report-category" className="min-h-11 w-full rounded-xl border border-[#E5EEF7] bg-white px-3 text-sm" value={reportCategory} onChange={e=>setReportCategory(e.target.value)}><option>화면·디자인 오류</option><option>로그인 오류</option><option>빗물받이·지도 오류</option><option>기타</option></select><label htmlFor="report-description" className="block text-xs font-bold">어떤 문제가 있었나요?</label><textarea id="report-description" rows={5} minLength={5} maxLength={1000} required value={reportText} onChange={e=>setReportText(e.target.value)} placeholder="문제가 발생한 화면과 상황을 알려주세요." className="w-full rounded-xl border border-[#E5EEF7] p-3 text-sm"/><p className="text-[11px] text-[#8299B0]">시연용입니다. 실제 운영 신고는 아직 지원하지 않습니다.</p><button type="submit" className="min-h-11 w-full rounded-xl bg-[#3981F7] text-sm font-bold text-white">작성 완료 (시연)</button></form>}
-      </section>
-    </div>, document.body)}
+    {reportOpen && createPortal(
+      <div
+        className="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 p-4"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) closeReport()
+        }}
+      >
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bug-report-title"
+          className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl bg-[var(--dd-surface)] p-5 text-[var(--dd-ink)] shadow-2xl"
+        >
+          {reportId !== null ? (
+            <div className="py-5 text-center">
+              <p aria-hidden="true" className="text-3xl">✓</p>
+              <h3 id="bug-report-title" className="mt-3 text-lg font-bold">버그 신고가 접수됐어요</h3>
+              <p role="status" className="mt-2 text-sm">접수 번호 {reportId}</p>
+              <button
+                type="button"
+                onClick={closeReport}
+                className="mt-5 min-h-11 w-full rounded-xl bg-[#3981F7] text-sm font-bold text-white"
+              >
+                닫기
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={submitReport} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 id="bug-report-title" className="text-lg font-extrabold">버그 신고</h3>
+                <button
+                  type="button"
+                  aria-label="닫기"
+                  onClick={closeReport}
+                  disabled={reportBusy}
+                  className="min-h-11 min-w-11 disabled:opacity-50"
+                >
+                  ✕
+                </button>
+              </div>
+              <fieldset disabled={reportBusy} className="space-y-3">
+                <label className="block space-y-1 text-xs font-bold" htmlFor="report-category">
+                  <span>오류 종류</span>
+                  <select
+                    id="report-category"
+                    className="min-h-11 w-full rounded-xl border border-[var(--dd-line)] bg-[var(--dd-surface)] px-3 text-sm font-normal"
+                    value={reportCategory}
+                    onChange={(event) => setReportCategory(event.target.value as BugReportCategory)}
+                  >
+                    {Object.entries(BUG_REPORT_CATEGORIES).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-1 text-xs font-bold" htmlFor="report-title">
+                  <span>제목</span>
+                  <input
+                    id="report-title"
+                    required
+                    maxLength={100}
+                    value={reportTitle}
+                    onChange={(event) => setReportTitle(event.target.value)}
+                    placeholder="문제를 2~100자로 적어 주세요."
+                    className="min-h-11 w-full rounded-xl border border-[var(--dd-line)] bg-[var(--dd-surface)] px-3 text-sm font-normal"
+                  />
+                </label>
+                <label className="block space-y-1 text-xs font-bold" htmlFor="report-description">
+                  <span>어떤 문제가 있었나요?</span>
+                  <textarea
+                    id="report-description"
+                    rows={5}
+                    required
+                    maxLength={2000}
+                    value={reportText}
+                    onChange={(event) => setReportText(event.target.value)}
+                    placeholder="문제가 발생한 화면과 상황을 10자 이상 적어 주세요."
+                    className="w-full rounded-xl border border-[var(--dd-line)] bg-[var(--dd-surface)] p-3 text-sm font-normal"
+                  />
+                </label>
+                {reportError && <p role="alert" className="whitespace-pre-line text-xs font-medium text-red-600">{reportError}</p>}
+                <button
+                  type="submit"
+                  className="min-h-11 w-full rounded-xl bg-[#3981F7] px-3 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  {reportBusy ? '신고 접수 중…' : '신고 접수하기'}
+                </button>
+              </fieldset>
+            </form>
+          )}
+        </section>
+      </div>,
+      document.body,
+    )}
   </div>
 }

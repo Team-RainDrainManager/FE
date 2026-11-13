@@ -30,6 +30,63 @@ export function InspectForm({
   )
 }
 
+type RenameFormProps = {
+  currentName: string
+  onSave: (nickname: string) => void
+  isSaving: boolean
+  errorMessage: string | null
+}
+
+export function RenameForm({
+  currentName,
+  onSave,
+  isSaving,
+  errorMessage,
+}: RenameFormProps) {
+  const [name, setName] = useState(currentName)
+  const nickname = name.trim()
+  const canSave =
+    !isSaving && nickname.length >= 1 && nickname.length <= 20 && nickname !== currentName
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (canSave) onSave(nickname)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <label className="block text-xs font-semibold">
+        또랑이 이름
+        <input
+          type="text"
+          autoComplete="off"
+          required
+          maxLength={20}
+          value={name}
+          disabled={isSaving}
+          onChange={(event) => setName(event.target.value)}
+          className="mt-2 w-full rounded-xl border border-[var(--dd-line)] bg-[var(--dd-surface)] p-3 text-base"
+        />
+        <span className="mt-1.5 block font-normal">1~20자로 입력해 주세요.</span>
+      </label>
+
+      {errorMessage && (
+        <p role="alert" className="rounded-xl bg-[#FFF1F1] p-3 text-xs text-[#B84D4D]">
+          {errorMessage}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={!canSave}
+        className="w-full rounded-full bg-[#329BEC] p-3 text-sm font-bold text-white disabled:opacity-40"
+      >
+        {isSaving ? '저장 중…' : '저장하기'}
+      </button>
+    </form>
+  )
+}
+
 type ReleaseFormProps = {
   onConfirm: (payload: ReleaseAdoptionRequest) => void
   isSubmitting: boolean

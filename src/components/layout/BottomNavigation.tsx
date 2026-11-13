@@ -10,7 +10,7 @@ import userIcon from '../../assets/icons/user.svg'
 
 const NAV_ITEMS = [
   { label: '또랑이', path: '/my-drains', icon: drainIcon },
-  { label: '소셜', path: '/social', icon: activityIcon },
+  { label: '랭킹', path: '/social', icon: activityIcon },
   { label: '지도', path: '/map', icon: mapIcon },
   { label: '알림', path: '/notifications', icon: bellIcon },
   { label: '프로필', path: '/profile', icon: userIcon },

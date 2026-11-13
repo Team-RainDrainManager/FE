@@ -1,9 +1,7 @@
 import { useContext, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router'
 import { getMe, getErrorMessage } from '../../apis/auth'
 import { getActivities, downloadCertificate, registerCertificateName, CertificateNameRequired, type ActivityFilter } from '../../apis/my-page'
-import { getMyAdoptions } from '../../apis/my-drains'
 import { AccountId } from '../../features/account/AccountId'
 import Character from '../../components/common/Character'
 import './my-page.css'
@@ -26,12 +24,6 @@ export default function MyPage() {
   const me = useQuery({ queryKey: ['mypage', 'me', account], queryFn: getMe, staleTime: 0 })
   const [type, setType] = useState<ActivityFilter>('ALL')
   const memberId = account ?? me.data?.id
-  const adopted = useQuery({
-    queryKey: ['my-adoptions', memberId],
-    queryFn: ({ signal }) => getMyAdoptions(signal),
-    enabled: memberId != null,
-    staleTime: 30_000,
-  })
   const history = useInfiniteQuery({
     queryKey: ['mypage', 'activities', memberId, type],
     queryFn: ({ pageParam, signal }) => getActivities(type, pageParam, signal),
@@ -74,11 +66,6 @@ export default function MyPage() {
         <div><dt>누적 점검</dt><dd>{metric(user?.inspectionCount, '회')}</dd></div>
         <div><dt>봉사활동 시간</dt><dd>{metric(user?.volunteerMinutes, '분')}</dd></div>
       </dl>
-      <Link className="mp-adoptions" to="/my-drains"><span>내가 입양한 또랑이</span><strong>{metric(user?.adoptionCount, '개')} ›</strong></Link>
-      {adopted.data && adopted.data.adoptions.length > 0 && <ul className="mp-drains">
-        {adopted.data.adoptions.map(item => <li key={item.adoptionId}><Link to={`/drains/${item.drainId}`}>{item.nickname}</Link></li>)}
-      </ul>}
-      {adopted.isError && <p role="alert">{getErrorMessage(adopted.error)} <button onClick={() => void adopted.refetch()}>다시 시도</button></p>}
     </section>
 
     <section className="mp-card">

@@ -3,10 +3,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
 import { getErrorMessage } from '../../apis/auth'
-import { releaseAdoption, type AdoptionReleaseReason } from '../../apis/adoptions'
+import {
+  releaseAdoption,
+  updateAdoptionNickname,
+  type AdoptionReleaseReason,
+} from '../../apis/adoptions'
 import {
   getMyAdoptions,
   toMyAdoptionsView,
+  type MyAdoptionsApiData,
 } from '../../apis/my-drains'
 import { getPauseStatus } from '../../apis/profile-settings'
 
@@ -27,6 +32,12 @@ type ReleaseVariables = {
   adoptionId: number
   drainId: number
   reason: AdoptionReleaseReason
+}
+
+type RenameVariables = {
+  adoptionId: number
+  drainId: number
+  nickname: string
 }
 
 export default function MyDrainsPage() {
@@ -71,8 +82,48 @@ export default function MyDrainsPage() {
     },
   })
 
+  const renameMutation = useMutation({
+    mutationFn: ({ adoptionId, nickname }: RenameVariables) =>
+      updateAdoptionNickname(adoptionId, nickname),
+    onSuccess: async ({ adoptionId, nickname }, { drainId }) => {
+      const adoptionsQuery = { queryKey: ['my-adoptions'] }
+      await queryClient.cancelQueries(adoptionsQuery)
+      queryClient.setQueriesData<MyAdoptionsApiData>(adoptionsQuery, (current) => {
+        if (!current) return current
+        return {
+          ...current,
+          adoptions: current.adoptions.map((item) =>
+            item.adoptionId === adoptionId ? { ...item, nickname } : item,
+          ),
+        }
+      })
+
+      setModal((current) =>
+        current?.type === 'rename' && current.drainId === drainId ? null : current,
+      )
+      setFeedback('또랑이 이름을 변경했어요.')
+
+      void Promise.all([
+        queryClient.invalidateQueries(adoptionsQuery),
+        queryClient.invalidateQueries({ queryKey: ['drain-detail', drainId] }),
+        queryClient.invalidateQueries({ queryKey: ['adoption-detail', adoptionId] }),
+        queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
+        queryClient.invalidateQueries({ queryKey: ['drain-search'] }),
+        queryClient.invalidateQueries({ queryKey: ['rain-requests'] }),
+      ])
+    },
+  })
+  const renameError = renameMutation.isError ? getErrorMessage(renameMutation.error) : null
+
   const openModal = (nextModal: DrainModalType) => {
     if (nextModal.type === 'release') releaseMutation.reset()
+    if (nextModal.type === 'rename') {
+      if (renameMutation.isPending) {
+        setFeedback('또랑이 이름을 저장하고 있어요.')
+        return
+      }
+      renameMutation.reset()
+    }
     setFeedback('')
     setModal(nextModal)
   }
@@ -190,6 +241,12 @@ export default function MyDrainsPage() {
         </p>
       )}
 
+      {renameError && modal?.type !== 'rename' && (
+        <p role="alert" className="mb-4 rounded-xl bg-[#FFF1F1] p-3 text-xs text-[#B84D4D]">
+          {renameError}
+        </p>
+      )}
+
       {data.adoptions.length > 0 ? (
         <div className="space-y-[14px]">
           {data.adoptions.map((adoption) => (
@@ -250,6 +307,11 @@ export default function MyDrainsPage() {
           adoptions={data.adoptions}
           onOpen={openModal}
           onClose={closeModal}
+          onRename={(adoptionId, drainId, nickname) =>
+            renameMutation.mutate({ adoptionId, drainId, nickname })
+          }
+          isRenaming={renameMutation.isPending}
+          renameError={renameError}
           onRelease={handleRelease}
           isReleasing={releaseMutation.isPending}
           releaseError={

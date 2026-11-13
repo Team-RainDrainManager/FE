@@ -5,18 +5,18 @@ export default function DrainPhoto({ drain }: { drain: DrainDetailDto }) {
   const { photoUrl, dirtLevel } = drain
   const tone =
     dirtLevel >= 3
-      ? { badge: 'bg-[#FDECEC] text-[#A63F3F]', bar: 'bg-[#E48787]' }
+      ? { badge: 'bg-[#FDECEC] [html[data-dd-theme=dark]_&]:bg-[#4a2834] text-[#A63F3F] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]', bar: 'bg-[#E48787]' }
       : dirtLevel >= 2
-        ? { badge: 'bg-[#FFF2D6] text-[#81560F]', bar: 'bg-[#E9B34F]' }
-        : { badge: 'bg-[#E9F6EF] text-[#24765A]', bar: 'bg-[#70AE94]' }
+        ? { badge: 'bg-[#FFF2D6] [html[data-dd-theme=dark]_&]:bg-[#40321f] text-[#81560F] [html[data-dd-theme=dark]_&]:text-[#ffda98]', bar: 'bg-[#E9B34F]' }
+        : { badge: 'bg-[#E9F6EF] [html[data-dd-theme=dark]_&]:bg-[#203b34] text-[#24765A] [html[data-dd-theme=dark]_&]:text-[#8fe0b8]', bar: 'bg-[#70AE94]' }
 
   return (
     <section aria-label="현장 사진">
-      <h3 className="mx-px mb-[11px] text-base font-extrabold tracking-tight text-[#17344C]">
+      <h3 className="mx-px mb-[11px] text-base font-extrabold tracking-tight text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
         현장 사진
       </h3>
 
-      <div className="rounded-[22px] border border-[#DFEBF3] bg-white p-3 shadow-[0_10px_30px_rgba(40,81,111,0.055)]">
+      <div className="rounded-[22px] border border-[#DFEBF3] bg-[var(--dd-surface)] p-3 shadow-[0_10px_30px_rgba(40,81,111,0.055)]">
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -40,7 +40,7 @@ export default function DrainPhoto({ drain }: { drain: DrainDetailDto }) {
               <span
                 key={step}
                 className={`h-1 flex-1 rounded-full ${
-                  step <= dirtLevel ? tone.bar : 'bg-[#DFEBF3]'
+                  step <= dirtLevel ? tone.bar : 'bg-[#DFEBF3] [html[data-dd-theme=dark]_&]:bg-[var(--dd-line)]'
                 }`}
               />
             ))}

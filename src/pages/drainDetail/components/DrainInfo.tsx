@@ -75,9 +75,9 @@ export default function DrainInfo({ drain }: { drain: DrainDetailDto }) {
   return (
     <section
       aria-label="빗물받이 위치"
-      className="mt-[13px] flex items-center gap-[11px] rounded-[18px] border border-[#DFEBF3] bg-white px-4 py-3.5 shadow-[0_10px_30px_rgba(40,81,111,0.055)]"
+      className="mt-[13px] flex items-center gap-[11px] rounded-[18px] border border-[#DFEBF3] bg-[var(--dd-surface)] px-4 py-3.5 shadow-[0_10px_30px_rgba(40,81,111,0.055)]"
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#EFF5F9] text-[#49758D]">
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[color:#EFF5F9] text-[#49758D] [html[data-dd-theme=dark]_&]:bg-[var(--dd-subtle)] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]">
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
@@ -92,8 +92,8 @@ export default function DrainInfo({ drain }: { drain: DrainDetailDto }) {
       </span>
 
       <div className="min-w-0">
-        <p className="text-[11px] font-bold text-[#536A7A]">빗물받이 위치</p>
-        <p className="mt-0.5 break-words text-[13px] font-semibold leading-5 text-[#213B4C]">
+        <p className="text-[11px] font-bold text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">빗물받이 위치</p>
+        <p className="mt-0.5 break-words text-[13px] font-semibold leading-5 text-[#213B4C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
           {hasAddress ? (
             address
           ) : hasCoordinates && appKey ? (
