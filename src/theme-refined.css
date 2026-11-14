@@ -880,8 +880,9 @@ html[data-dd-theme='dark'] header button[aria-label='설정 열기'] > span[aria
     flex-direction: column;
     width: 100% !important;
     max-width: none !important;
-    height: min(93dvh, 880px);
-    max-height: 98dvh !important;
+    height: auto;
+    max-height: calc(100vh - max(12px, env(safe-area-inset-top))) !important;
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top))) !important;
     overflow: hidden;
     border-radius: 27px 27px 0 0 !important;
     border-bottom: 0 !important;
@@ -1281,12 +1282,6 @@ body:has(.dd-settings-backdrop) header button[aria-label="설정 열기"] > span
 .dd-settings-modal {
   animation-duration: 145ms !important;
   animation-timing-function: cubic-bezier(.2,.75,.25,1) !important;
-}
-@media (max-width: 719px) {
-  .dd-settings-modal {
-    height: 75dvh !important;
-    max-height: 75dvh !important;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .dd-settings-modal { animation: none !important; }
