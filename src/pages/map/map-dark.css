@@ -36,10 +36,10 @@ html[data-dd-theme='dark'] .dd-kakao-map div:has(> img[src*='/tile/']) {
 .dd-marker-ring { border-color: #fff; }
 
 /* 다크모드: 어두운 지도에서 눈이 덜 부시게 채도를 조금 낮춤 */
-html[data-dd-theme='dark'] .dd-marker-normal { background-color: #2fa866; }
-html[data-dd-theme='dark'] .dd-marker-inspection { background-color: #e3a92a; }
-html[data-dd-theme='dark'] .dd-marker-blocked { background-color: #db585c; }
-html[data-dd-theme='dark'] .dd-marker-unknown { background-color: #7c8594; }
+html[data-dd-theme='dark'] :where(.dd-marker-normal):not(.drain-dot, .drain-bubble) { background-color: #2fa866; }
+html[data-dd-theme='dark'] :where(.dd-marker-inspection):not(.drain-dot, .drain-bubble) { background-color: #e3a92a; }
+html[data-dd-theme='dark'] :where(.dd-marker-blocked):not(.drain-dot, .drain-bubble) { background-color: #db585c; }
+html[data-dd-theme='dark'] :where(.dd-marker-unknown):not(.drain-dot, .drain-bubble) { background-color: #7c8594; }
 html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
 
 /* SDK가 측정하는 상자는 고정하고 실제 핀만 꼬리 끝을 기준으로 확대합니다. */
@@ -70,14 +70,14 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
 
 .drain-bubble {
   position: absolute;
-  inset: 6px 2px 0;
+  inset: 10px 8px 0;
   border-radius: 9px 9px 0 0;
   clip-path: polygon(0 0, 100% 0, 100% 74%, 95% 81%, 63% 84%, 50% 100%, 37% 84%, 5% 81%, 0 74%);
-  opacity: .45;
+  opacity: .72;
   pointer-events: none;
 }
 
-.drain-bubble-unadopted { background-color: #98734e; }
+.dd-marker-unadopted { background-color: #98734e; }
 
 /*
  * 상태 색 점: 다른 빗물받이와 겹칠 때. 점의 가운데가 정확한 위치가 되도록 아래로 반만큼 내립니다.
@@ -96,24 +96,7 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  border-width: 2.5px;
-  border-style: solid;
-  /* 흰 테두리 바깥에 진한 선 + 그림자로 지도 바탕과 확실히 구분 */
-  box-shadow: 0 0 0 1.5px rgba(23, 37, 58, 0.8), 0 1px 4px rgba(0, 0, 0, 0.35);
 }
-
-/* 점은 작아서 마커보다 진하고 선명한 색을 씁니다. 미입양 회색은 밝은 지도에서 묻히지 않게 진하게 */
-.drain-dot.drain-dot-unadopted { background-color: #6b7482; }
-
-html[data-dd-theme='dark'] .drain-dot {
-  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6);
-}
-
-/* 다크모드: 어두운 지도 위에서 잘 보이게 밝고 선명한 색 */
-html[data-dd-theme='dark'] .drain-dot.dd-marker-normal { background-color: #3ccf7c; }
-html[data-dd-theme='dark'] .drain-dot.dd-marker-inspection { background-color: #ffc23d; }
-html[data-dd-theme='dark'] .drain-dot.dd-marker-blocked { background-color: #ff6b6f; }
-html[data-dd-theme='dark'] .drain-dot.drain-dot-unadopted { background-color: #c3c9d2; }
 
 /* SDK 기준 상자의 아래 중앙에 꼬리를 붙입니다. 버튼만 반응 애니메이션을 재생합니다. */
 .dd-selected-character {
@@ -126,7 +109,7 @@ html[data-dd-theme='dark'] .drain-dot.drain-dot-unadopted { background-color: #c
   pointer-events: none;
 }
 .dd-selected-character .drain-bubble {
-  inset: 14% 10% 0;
+  inset: 19% 16% 0;
   border-radius: 36px 36px 0 0;
   clip-path: polygon(0 0, 100% 0, 100% 90%, 97% 95%, 54% 96%, 50% 100%, 46% 96%, 3% 95%, 0 90%);
 }

@@ -78,7 +78,7 @@ function DrainMarker({
   const available = drainCategory(drain) === 'unadopted'
   const dot = variant === 'dot' && !selected
   const label = `${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`
-  const bubbleColor = available ? 'drain-bubble-unadopted' : markerColor(drain)
+  const pinColor = available ? 'dd-marker-unadopted' : markerColor(drain)
   const badge = inspectionBadge && (
     <span
       aria-hidden="true"
@@ -101,7 +101,7 @@ function DrainMarker({
     >
       {selected ? (
         <div className="drain-pin-anchor">
-          <FloatingDrainCharacter drain={drain} bubbleColor={bubbleColor} badge={badge} />
+          <FloatingDrainCharacter drain={drain} bubbleColor={pinColor} badge={badge} />
         </div>
       ) : dot ? (
         <button
@@ -110,7 +110,7 @@ function DrainMarker({
           aria-label={label}
           className="dd-map-overlay drain-dot-hit cursor-pointer"
         >
-          <span aria-hidden="true" className={`drain-dot dd-marker-ring ${available ? 'dd-marker-unknown drain-dot-unadopted' : markerColor(drain)}`} />
+          <span aria-hidden="true" className={`drain-dot ${pinColor}`} />
         </button>
       ) : (
         <div className="drain-pin-anchor">
@@ -134,7 +134,7 @@ function DrainMarker({
                 저를 입양해 주세요!
               </span>
             )}
-            <span aria-hidden="true" className={`drain-bubble ${bubbleColor}`} />
+            <span aria-hidden="true" className={`drain-bubble ${pinColor}`} />
             <span className="dd-face" aria-hidden="true">
               <img src={available ? waiting : happy} alt="" draggable={false} />
             </span>
