@@ -6,7 +6,7 @@ import {
   useState,
   type FormEvent,
 } from 'react'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
   CustomOverlayMap,
@@ -14,6 +14,7 @@ import {
   useKakaoLoader,
 } from 'react-kakao-maps-sdk'
 
+import { getCurrentCoordinates } from '../../apis/adoptions'
 import {
   getDrainDetail,
   getMapDrains,
@@ -44,6 +45,8 @@ const DEFAULT_CENTER = {
 }
 
 const DEFAULT_LEVEL = 4
+const MAP_LOCATION_KEY = ['map-location'] as const
+const MAP_LOCATION_STORAGE_KEY = 'ddorang:map-location'
 // 이 단계 이하(가까이)로 확대하면 모두 캐릭터, 그보다 멀면 모두 상태 색 점 (카카오맵은 숫자가 클수록 넓게 보임)
 // 1단계 20m · 2단계 30m · 3단계 50m · 4단계 100m · 5단계 250m 축척. 50m 축척(3단계)부터 캐릭터로 보여 줍니다.
 // 화면 속 빗물받이 개수와 상관없이 확대 단계만으로 정해서, 같은 거리면 어느 동네를 보든 같은 모양입니다.
@@ -108,6 +111,42 @@ interface Position {
   lng: number
 }
 
+type MapLocation = {
+  position: Position | null
+  error?: string
+}
+
+function readSavedMapLocation(): MapLocation | undefined {
+  try {
+    const saved = sessionStorage.getItem(MAP_LOCATION_STORAGE_KEY)
+    if (saved === null) return
+
+    const position = JSON.parse(saved) as Partial<Position> | null
+    if (position === null) return { position: null }
+    if (
+      typeof position.lat === 'number' && Math.abs(position.lat) <= 90 &&
+      typeof position.lng === 'number' && Math.abs(position.lng) <= 180
+    ) {
+      return { position: { lat: position.lat, lng: position.lng } }
+    }
+  } catch {
+    // 저장소를 사용할 수 없거나 저장된 값이 올바르지 않으면 다시 확인합니다.
+  }
+}
+
+function saveMapPosition(position: Position | null) {
+  try {
+    sessionStorage.setItem(MAP_LOCATION_STORAGE_KEY, JSON.stringify(position))
+  } catch {
+    // 저장소를 사용할 수 없을 때는 앱의 조회 캐시를 사용합니다.
+  }
+}
+
+async function getMapPosition(): Promise<Position> {
+  const { latitude, longitude } = await getCurrentCoordinates()
+  return { lat: latitude, lng: longitude }
+}
+
 function readMapBounds(
   map: kakao.maps.Map,
 ): MapBoundsParams {
@@ -153,6 +192,7 @@ function KakaoMapContent({
   appKey: string
 }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const nearbyParam = searchParams.get('nearby')
   const nearbyId = Number(nearbyParam)
@@ -164,7 +204,26 @@ function KakaoMapContent({
     libraries: ['services'],
   })
 
+  const { data: mapLocation } = useQuery({
+    queryKey: MAP_LOCATION_KEY,
+    initialData: readSavedMapLocation,
+    queryFn: async (): Promise<MapLocation> => {
+      try {
+        const position = await getMapPosition()
+        saveMapPosition(position)
+        return { position }
+      } catch (error) {
+        saveMapPosition(null)
+        return { position: null, error: getErrorText(error) }
+      }
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
   const mapRef = useRef<kakao.maps.Map | null>(null)
+  const lastPosition = mapLocation?.position ?? null
+  const initialCenter = mapLocation ? lastPosition ?? DEFAULT_CENTER : null
+  const mapReady = !loading && !error && initialCenter !== null
   const [zoomLevel,setZoomLevel] = useState(DEFAULT_LEVEL)
   const [nearby,setNearby] = useState<number[]>([])
   const hintTimeout = useRef<number | undefined>(undefined)
@@ -196,11 +255,12 @@ function KakaoMapContent({
   const staff = isStaffRole(useMyRole().role)
   const [createCenter, setCreateCenter] = useState<{ latitude: number; longitude: number } | null>(null)
 
-  const [currentPosition, setCurrentPosition] =
-    useState<Position | null>(null)
-
   const [locating, setLocating] = useState(false)
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<string | null>(null)
+  const locationNotice = mapLocation?.position === null
+    ? `${mapLocation.error ?? '현재 위치를 확인하지 못했어요.'} 가톨릭대 주변 지도를 표시해요.`
+    : ''
+  const visibleNotice = notice ?? locationNotice
 
   // 검색 영역 밖을 누르면 결과 목록만 닫습니다. 검색어는 유지합니다.
   useEffect(() => {
@@ -414,14 +474,6 @@ function KakaoMapContent({
     [],
   )
 
-  const handleMapCreate = useCallback(
-    (map: kakao.maps.Map) => {
-      mapRef.current = map
-      updateBounds(map)
-    },
-    [updateBounds],
-  )
-
   // /list 응답은 좌표가 없으므로 상세 조회 후 지도 위치로 이동
   useEffect(() => {
     if (!selectedSummary || hasCoordinates(selectedSummary)) return
@@ -554,52 +606,24 @@ function KakaoMapContent({
   }
 
   // 내 위치 이동
-  const moveToMyLocation = () => {
-    if (!navigator.geolocation) {
-      setNotice(
-        '위치 정보를 지원하지 않는 브라우저예요.',
-      )
-      return
-    }
-
+  const moveToMyLocation = async () => {
     setLocating(true)
     setNotice('')
 
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const position = {
-          lat: coords.latitude,
-          lng: coords.longitude,
-        }
-
-        setCurrentPosition(position)
-
-        mapRef.current?.setCenter(
-          new kakao.maps.LatLng(
-            position.lat,
-            position.lng,
-          ),
-        )
-
-        mapRef.current?.setLevel(3)
-
-        setSelectedSummary(null)
-        setLocating(false)
-      },
-      (positionError) => {
-        setNotice(
-          positionError.code === 1
-            ? '브라우저에서 위치 권한을 허용해 주세요.'
-            : '현재 위치를 확인하지 못했어요.',
-        )
-        setLocating(false)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      },
-    )
+    try {
+      const position = await getMapPosition()
+      const map = mapRef.current
+      if (!map) return
+      saveMapPosition(position)
+      queryClient.setQueryData<MapLocation>(MAP_LOCATION_KEY, { position })
+      map.setCenter(new kakao.maps.LatLng(position.lat, position.lng))
+      map.setLevel(3)
+      setSelectedSummary(null)
+    } catch (error) {
+      if (mapRef.current) setNotice(getErrorText(error))
+    } finally {
+      if (mapRef.current) setLocating(false)
+    }
   }
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -661,16 +685,17 @@ const statusNotice = drainsError
               JavaScript 키와 등록한 도메인을 확인해 주세요.
             </p>
           </div>
-        ) : loading ? (
-          <div className="flex h-full items-center justify-center text-sm text-[#8294A5]">
-            지도를 불러오는 중...
+        ) : !mapReady ? (
+          <div role="status" className="flex h-full items-center justify-center text-sm text-[#8294A5]">
+            {initialCenter === null ? '현재 위치를 확인하는 중이에요…' : '지도를 불러오는 중이에요…'}
           </div>
         ) : (
           <Map
-            center={DEFAULT_CENTER}
+            ref={mapRef}
+            center={initialCenter}
             level={DEFAULT_LEVEL}
             className="dd-kakao-map h-full w-full"
-            onCreate={handleMapCreate}
+            onCreate={updateBounds}
             onIdle={updateBounds}
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
             onClick={(map,event)=>hintNear(map,event.latLng)}
@@ -699,16 +724,17 @@ const statusNotice = drainsError
               />
             )}
 
-            {currentPosition && (
+            {lastPosition && (
               <CustomOverlayMap
-                position={currentPosition}
+                position={lastPosition}
                 clickable
                 xAnchor={0.5}
                 yAnchor={0.5}
                 zIndex={30}
               >
                 <span
-                  aria-label="현재 위치"
+                  aria-label="마지막으로 확인한 내 위치"
+                  title="마지막으로 확인한 내 위치"
                   role="img"
                   className="dd-map-overlay block h-4 w-4 rounded-full border-[3px] border-white bg-[#338CF0] shadow-[0_0_0_7px_rgba(51,140,240,0.18)]"
                 />
@@ -718,7 +744,7 @@ const statusNotice = drainsError
         )}
       </div>
 
-      {!loading && !error && (
+      {mapReady && (
         <>
           {/* 검색창 */}
           <section
@@ -909,7 +935,7 @@ const statusNotice = drainsError
           )}
 
           {/* 일반 안내 */}
-          {notice && (
+          {visibleNotice && (
             <div
               role="status"
               className={`absolute left-3 right-3 ${
@@ -918,7 +944,7 @@ const statusNotice = drainsError
                   : 'top-[124px]'
               } z-20 flex items-center justify-between gap-2 rounded-2xl border border-[#E8EDF5] bg-white px-4 py-3 text-xs leading-relaxed text-[#53647E] shadow-md`}
             >
-              <span>{notice}</span>
+              <span>{visibleNotice}</span>
 
               <button
                 type="button"
@@ -1043,7 +1069,7 @@ const statusNotice = drainsError
           {/* 현재 위치 버튼 */}
           <button
             type="button"
-            onClick={moveToMyLocation}
+            onClick={() => void moveToMyLocation()}
             disabled={locating}
             aria-label={
               locating
@@ -1173,13 +1199,13 @@ const statusNotice = drainsError
           )}
         </>
       )}
-      {nearbyOpen && (
+      {nearbyOpen && initialCenter !== null && (
         <NearbyRequestSheet
           key={nearbyRequestId ?? 'all'}
           requestId={nearbyRequestId}
-          initialCoordinates={currentPosition && {
-            latitude: currentPosition.lat,
-            longitude: currentPosition.lng,
+          initialCoordinates={lastPosition && {
+            latitude: lastPosition.lat,
+            longitude: lastPosition.lng,
           }}
           onClose={() => setNearbyRequest(null)}
         />
