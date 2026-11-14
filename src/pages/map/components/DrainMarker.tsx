@@ -1,7 +1,9 @@
+import { memo } from 'react'
 import '../map-dark.css'
 // 입양 전 캐릭터 (바탕이 투명한 그림)
 import waiting from '../../../assets/characters/levels/level-0.svg'
 import happy from '../../../assets/characters/states/happy.svg'
+import FloatingDrainCharacter from './FloatingDrainCharacter'
 import { greet } from './greet'
 
 import { CustomOverlayMap } from 'react-kakao-maps-sdk'
@@ -63,7 +65,7 @@ function getInspectionBadge(drain: PositionedDrainMapItem, filter: DrainMapFilte
   return drain.status === 'overdue' ? INSPECTION_BADGES.overdue : null
 }
 
-export default function DrainMarker({
+function DrainMarker({
   drain,
   filter,
   selected,
@@ -76,6 +78,15 @@ export default function DrainMarker({
   const available = drainCategory(drain) === 'unadopted'
   const dot = variant === 'dot' && !selected
   const label = `${drain.nickname ?? drain.name}, ${drain.displayStatusLabel ?? STATUS_NAMES[drain.status]}${inspectionBadge ? `, ${inspectionBadge.label}` : ''}`
+  const bubbleColor = available ? 'drain-bubble-unadopted' : markerColor(drain)
+  const badge = inspectionBadge && (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-full border dd-marker-ring px-1.5 py-0.5 text-[10px] font-bold leading-tight shadow-sm ${inspectionBadge.className}`}
+    >
+      {inspectionBadge.label}
+    </span>
+  )
   return (
     // 기준점은 항상 마커 아래 끝(핀은 꼬리 끝, 점은 CSS로 가운데를 맞춤). 점 ↔ 핀이 바뀌어도 같은 오버레이라 깜박이지 않습니다.
     <CustomOverlayMap
@@ -88,7 +99,11 @@ export default function DrainMarker({
       yAnchor={1}
       zIndex={selected ? 20 : dot ? 1 : inspectionBadge ? 3 : 2}
     >
-      {dot ? (
+      {selected ? (
+        <div className="drain-pin-anchor">
+          <FloatingDrainCharacter drain={drain} bubbleColor={bubbleColor} badge={badge} />
+        </div>
+      ) : dot ? (
         <button
           type="button"
           onClick={() => onSelect(drain)}
@@ -98,54 +113,36 @@ export default function DrainMarker({
           <span aria-hidden="true" className={`drain-dot dd-marker-ring ${available ? 'dd-marker-unknown drain-dot-unadopted' : markerColor(drain)}`} />
         </button>
       ) : (
-      <button
-        type="button"
-        onClick={(event) => {
-          // 선택한 뒤의 반응은 정보 카드 위에 떠 있는 캐릭터가 합니다.
-          greet(event)
-          onSelect(drain)
-        }}
-
-        aria-label={label}
-
-        aria-pressed={selected}
-        className="dd-map-overlay drain-pin relative flex cursor-pointer flex-col items-center"
-      >
-        {inspectionBadge && (
-          <span
-            aria-hidden="true"
-            className={`pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-full border dd-marker-ring px-1.5 py-0.5 text-[10px] font-bold leading-tight shadow-sm ${inspectionBadge.className}`}
+        <div className="drain-pin-anchor">
+          <button
+            type="button"
+            onClick={(event) => {
+              // 선택한 뒤의 반응은 정보 카드 위에 떠 있는 캐릭터가 합니다.
+              greet(event)
+              onSelect(drain)
+            }}
+            aria-label={label}
+            aria-pressed={selected}
+            className="dd-map-overlay drain-pin cursor-pointer"
           >
-            {inspectionBadge.label}
-          </span>
-        )}
-        {available && hint && !selected && (
-          <span
-            className="drain-whisper"
-            style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
-          >
-            저를 입양해 주세요!
-          </span>
-        )}
-        <span
-          className={`
-            drain-disc flex items-center justify-center
-            rounded-full border-[3px] dd-marker-ring
-            shadow-[0_3px_12px_rgba(0,0,0,0.22)]
-            transition-transform
-            ${!selected && hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : markerColor(drain)}
-            ${selected ? 'scale-125 ring-4 ring-white/60' : ''}
-          `}
-        >
-          <span className="drain-actor">
+            {badge}
+            {available && hint && !selected && (
+              <span
+                className="drain-whisper"
+                style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
+              >
+                저를 입양해 주세요!
+              </span>
+            )}
+            <span aria-hidden="true" className={`drain-bubble ${bubbleColor}`} />
             <span className="dd-face" aria-hidden="true">
               <img src={available ? waiting : happy} alt="" draggable={false} />
             </span>
-          </span>
-        </span>
-        <span aria-hidden="true" className="drain-tail" />
-      </button>
+          </button>
+        </div>
       )}
     </CustomOverlayMap>
   )
 }
+
+export default memo(DrainMarker)

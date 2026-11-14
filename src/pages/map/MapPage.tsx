@@ -31,7 +31,6 @@ import type {
 } from '../../types/map'
 
 import DrainMarker from './components/DrainMarker'
-import FloatingDrainCharacter from './components/FloatingDrainCharacter'
 import DrainListPanel from './components/DrainListPanel'
 import ReportDraftModal from './components/ReportDraftModal'
 import CreateDrainModal from './components/CreateDrainModal'
@@ -225,9 +224,8 @@ function KakaoMapContent({
   const initialCenter = mapLocation ? lastPosition ?? DEFAULT_CENTER : null
   const mapReady = !loading && !error && initialCenter !== null
   const [zoomLevel,setZoomLevel] = useState(DEFAULT_LEVEL)
-  const [nearby,setNearby] = useState<number[]>([])
-  const hintTimeout = useRef<number | undefined>(undefined)
-  useEffect(()=>()=>clearTimeout(hintTimeout.current),[])
+  const cardRef = useRef<HTMLDivElement>(null)
+  const framedId = useRef<number | null>(null)
   const searchAreaRef = useRef<HTMLElement | null>(null)
 
   const [bounds, setBounds] =
@@ -474,23 +472,36 @@ function KakaoMapContent({
     [],
   )
 
-  // /list 응답은 좌표가 없으므로 상세 조회 후 지도 위치로 이동
+  // 카드 배치가 끝난 뒤 한 번만 보정합니다. 사용자가 이후 지도를 움직이면 따라가지 않습니다.
   useEffect(() => {
-    if (!selectedSummary || hasCoordinates(selectedSummary)) return
-    if (!selectedDrain || !hasCoordinates(selectedDrain)) return
-
-    const position = new kakao.maps.LatLng(
-      selectedDrain.latitude,
-      selectedDrain.longitude,
-    )
-
-    if (searchSelectionId === selectedSummary.id) {
-      mapRef.current?.setCenter(position)
-      mapRef.current?.setLevel(3)
-    } else {
-      mapRef.current?.panTo(position)
+    if (selectedId === null) {
+      framedId.current = null
+      return
     }
-  }, [selectedSummary, selectedDrain, searchSelectionId])
+    const map = mapRef.current
+    const card = cardRef.current
+    if (!map || !card || framedId.current === selectedId ||
+        selectedLatitude === null || selectedLongitude === null) return
+
+    const frame = requestAnimationFrame(() => {
+      framedId.current = selectedId
+      const position = new kakao.maps.LatLng(selectedLatitude, selectedLongitude)
+      if (searchSelectionId === selectedId) map.setLevel(3, { animate: false })
+      const rect = map.getNode().getBoundingClientRect()
+      const point = map.getProjection().containerPointFromCoords(position)
+      const bottom = Math.min(rect.height, card.getBoundingClientRect().top - rect.top) - 4
+      const top = (searchAreaRef.current?.getBoundingClientRect().bottom ?? rect.top) - rect.top
+      const halfWidth = 180
+      const pinHeight = 370
+      const x = rect.width < 2 * halfWidth ? rect.width / 2
+        : Math.max(halfWidth, Math.min(rect.width - halfWidth, point.x))
+      const y = Math.min(bottom, Math.max(top + pinHeight, point.y))
+      const dx = Math.round(point.x - x)
+      const dy = Math.round(point.y - y)
+      if (dx || dy) map.panBy(dx, dy)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [selectedId, selectedLatitude, selectedLongitude, searchSelectionId, mapReady])
 
   // 지도 마커·목록은 기존 지도 영역 API만 사용
   const filteredDrains = useMemo(() => {
@@ -516,42 +527,25 @@ function KakaoMapContent({
   // 한 화면에서는 모두 캐릭터이거나 모두 점이고, 확대 단계로만 정합니다. (선택한 빗물받이는 항상 캐릭터)
   const showPins = zoomLevel <= PINS_UP_TO_LEVEL
 
-  function hintNear(map:kakao.maps.Map, position:kakao.maps.LatLng) {
-    const projection=map.getProjection()
-    const center=projection.containerPointFromCoords(position)
-    setNearby(visibleDrains.filter(drain=>{
-      const point=projection.containerPointFromCoords(new kakao.maps.LatLng(drain.latitude,drain.longitude))
-      return Math.hypot(point.x-center.x,point.y-center.y)<=58
-    }).map(drain=>drain.id))
-    clearTimeout(hintTimeout.current)
-    hintTimeout.current=window.setTimeout(()=>setNearby([]),2000)
-  }
-
-  // 상세 조회 후 좌표가 확인된 선택 마커
-  const selectedOverlay =
-    selectedDrain &&
-    hasCoordinates(selectedDrain) &&
-    matchesFilter(selectedDrain, filter) &&
-    !visibleDrains.some(
-      (drain) => drain.id === selectedDrain.id,
-    )
-      ? selectedDrain
-      : null
+  const selectedMarker = selectedDrain && hasCoordinates(selectedDrain) ? selectedDrain : null
+  const markerDrains = useMemo(() => {
+    if (!selectedMarker || !matchesFilter(selectedMarker, filter)) return visibleDrains
+    const index = visibleDrains.findIndex(drain => drain.id === selectedMarker.id)
+    if (index < 0) return [...visibleDrains, selectedMarker]
+    const items = visibleDrains.slice()
+    items[index] = selectedMarker
+    return items
+  }, [visibleDrains, selectedMarker, filter])
 
   // 지도 마커 또는 현재 지도 내 목록 선택
-  const handleSelectDrain = (drain: DrainMapItem) => {
+  const handleSelectDrain = useCallback((drain: DrainMapItem) => {
     setSearchOpen(false)
     setSearchSelectionId(null)
     setSelectedSummary(drain)
     setListOpen(false)
     setNotice('')
 
-    if (hasCoordinates(drain)) {
-      mapRef.current?.panTo(
-        new kakao.maps.LatLng(drain.latitude, drain.longitude),
-      )
-    }
-  }
+  }, [])
 
   // /list 검색 결과 선택: 현재 지도에 없는 빗물받이도 상세 API로 찾음
   const handleSelectSearchResult = (item: DrainSearchItem) => {
@@ -675,7 +669,7 @@ const statusNotice = drainsError
       }}
     >
       {/* 지도 */}
-      <div className="absolute inset-x-0 bottom-[114px] top-0">
+      <div className="absolute inset-x-0 bottom-[114px] top-0" data-pin-level={zoomLevel}>
         {error ? (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
             <p className="text-base font-bold text-[#284B66]">
@@ -698,31 +692,18 @@ const statusNotice = drainsError
             onCreate={updateBounds}
             onIdle={updateBounds}
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
-            onClick={(map,event)=>hintNear(map,event.latLng)}
           >
-            {visibleDrains.map((drain) => (
+            {markerDrains.map((drain) => (
               <DrainMarker
                 key={drain.id}
                 drain={drain}
                 filter={filter}
-                hint={zoomLevel<=3 || nearby.includes(drain.id)}
+                hint={zoomLevel === 1}
                 variant={showPins ? 'pin' : 'dot'}
                 selected={selectedId === drain.id}
-                onSelect={drain=>{
-                  if(mapRef.current && hasCoordinates(drain)) hintNear(mapRef.current,new kakao.maps.LatLng(drain.latitude,drain.longitude))
-                  handleSelectDrain(drain)
-                }}
-              />
-            ))}
-
-            {selectedOverlay && (
-              <DrainMarker
-                drain={selectedOverlay}
-                filter={filter}
-                selected
                 onSelect={handleSelectDrain}
               />
-            )}
+            ))}
 
             {lastPosition && (
               <CustomOverlayMap
@@ -959,9 +940,7 @@ const statusNotice = drainsError
 
           {/* 선택된 빗물받이 카드 */}
           {selectedDrain && (
-            <div className="absolute bottom-[122px] left-3 right-3 z-20">
-            {/* 카드 위에 둥둥 떠 있는 이 빗물받이의 캐릭터 */}
-            <FloatingDrainCharacter key={selectedDrain.id} drain={selectedDrain} />
+            <div ref={cardRef} className="absolute bottom-[122px] left-3 right-3 z-20">
             <div className="max-h-[calc(100dvh-470px)] overflow-y-auto rounded-[24px] border border-[#E8EDF5] bg-white p-4 shadow-[0_12px_40px_rgba(23,43,77,0.16)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
