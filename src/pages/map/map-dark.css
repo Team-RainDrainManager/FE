@@ -55,6 +55,9 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
   transform-origin: bottom center;
 }
 .drain-pin .drain-whisper {
+  bottom: calc(100% - 1px);
+  translate: -50% 0;
+  display: flex;
   scale: calc(1 / var(--pin-scale, 1));
   transform-origin: bottom center;
   font-size: 15.5px;
