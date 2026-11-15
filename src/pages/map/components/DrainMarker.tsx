@@ -1,3 +1,4 @@
+import MarkerBubble from './MarkerBubble'
 import { memo } from 'react'
 import '../map-dark.css'
 // 입양 전 캐릭터 (바탕이 투명한 그림)
@@ -134,7 +135,7 @@ function DrainMarker({
                 저를 입양해 주세요!
               </span>
             )}
-            <span aria-hidden="true" className={`drain-bubble ${pinColor}`} />
+            <MarkerBubble color={pinColor} />
             <span className="dd-face" aria-hidden="true">
               <img src={available ? waiting : happy} alt="" draggable={false} />
             </span>

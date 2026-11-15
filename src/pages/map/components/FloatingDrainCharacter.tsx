@@ -1,3 +1,4 @@
+import MarkerBubble from './MarkerBubble'
 import { useEffect, useState } from 'react'
 
 import Character from '../../../components/common/Character'
@@ -26,7 +27,7 @@ export default function FloatingDrainCharacter({ drain, bubbleColor, badge }: {
 
   return (
     <div className="dd-map-overlay dd-selected-character">
-      <span aria-hidden="true" className={`drain-bubble ${bubbleColor}`} />
+      <MarkerBubble color={bubbleColor} />
       {badge}
       {playing && <span className="drain-whisper dd-float-whisper">{reaction.text}</span>}
       <button
