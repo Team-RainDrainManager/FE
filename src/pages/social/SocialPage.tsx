@@ -236,12 +236,15 @@ export default function SocialPage() {
         aria-busy={weekly.isFetching}
         className="rounded-3xl border border-[#dfe6f3] bg-white px-4 py-2.5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]"
       >
-        <div className="flex items-baseline justify-between gap-3 pt-1">
-          <h2 id="social-weekly-title" className="text-base font-extrabold tracking-tight">내 주간 기록</h2>
-          {weekStart && <p className="text-xs text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">{weekStart}</p>}
-        </div>
-
-        <div className="mt-1 grid grid-cols-[minmax(0,1fr)_3rem] items-center gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_6rem] items-end gap-x-1 gap-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <h2 id="social-weekly-title" className="text-base font-extrabold tracking-tight">내 주간 기록</h2>
+            {weekStart && (
+              <p className="relative ml-auto rounded-2xl bg-[#eef5ff] px-2.5 py-1 text-xs font-semibold text-[#365d8d] after:absolute after:top-1/2 after:-right-1 after:size-2 after:-translate-y-1/2 after:rotate-45 after:bg-inherit [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#cbe2ff]">
+                {weekStart} 기록됐어요!
+              </p>
+            )}
+          </div>
           {weekly.data ? (
             <dl className="grid grid-cols-2 divide-x divide-[#e0e7f3] [html[data-dd-theme=dark]_&]:divide-[#354962]">
               <WeekMetric label="이번 주 점수" value={weekly.data.score} unit="점" />
@@ -254,11 +257,13 @@ export default function SocialPage() {
           ) : (
             <RankingNotice message="내 주간 기록을 불러오는 중이에요." />
           )}
-          {myPhoto && myPhoto !== failedMyPhoto ? (
-            <img src={myPhoto} alt="" width={96} height={96} draggable={false} onError={() => setFailedMyPhoto(myPhoto)} className="size-12 rounded-lg object-cover" />
-          ) : (
-            <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-12 object-contain" />
-          )}
+          <div className="col-start-2 row-start-1 row-span-2 self-end justify-self-end">
+            {myPhoto && myPhoto !== failedMyPhoto ? (
+              <img src={myPhoto} alt="" width={96} height={96} draggable={false} onError={() => setFailedMyPhoto(myPhoto)} className="size-12 rounded-lg object-cover" />
+            ) : (
+              <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-24 object-contain" />
+            )}
+          </div>
         </div>
       </section>
 
