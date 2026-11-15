@@ -49,8 +49,8 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
   height: 44px;
 }
 
-[data-pin-level='2'] { --drain-pin-scale: 1.5; }
-[data-pin-level='1'] { --drain-pin-scale: 2; }
+[data-pin-level='2'] { --drain-pin-scale: 2; }
+[data-pin-level='1'] { --drain-pin-scale: 3; }
 
 .drain-pin {
   position: absolute;
