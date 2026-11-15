@@ -713,7 +713,7 @@ const statusNotice = drainsError
             ref={mapRef}
             center={initialCenter}
             level={DEFAULT_LEVEL}
-            className={`dd-kakao-map h-full w-full dd-map-level-${zoomLevel}`}
+            className="dd-kakao-map h-full w-full"
             onCreate={updateBounds}
             onIdle={updateBounds}
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
