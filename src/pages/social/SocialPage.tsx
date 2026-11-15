@@ -234,32 +234,37 @@ export default function SocialPage() {
       <section
         aria-labelledby="social-weekly-title"
         aria-busy={weekly.isFetching}
-        className="rounded-3xl border border-[#dfe6f3] bg-white p-5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]"
+        className="rounded-3xl border border-[#dfe6f3] bg-white px-4 py-2.5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]"
       >
-        <div className="relative flex min-h-24 flex-col justify-center pr-24">
-          <div className="pointer-events-none absolute right-0 top-1/2 grid size-24 -translate-y-1/2 place-items-center overflow-hidden rounded-full bg-[#eaf0ff] [html[data-dd-theme=dark]_&]:bg-[#283f5b]">
-            {myPhoto && myPhoto !== failedMyPhoto ? (
-              <img src={myPhoto} alt="" width={96} height={96} draggable={false} onError={() => setFailedMyPhoto(myPhoto)} className="size-24 object-cover" />
-            ) : (
-              <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-[88px] object-contain" />
+        <div className="grid grid-cols-[minmax(0,1fr)_6rem] items-end gap-x-1 gap-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <h2 id="social-weekly-title" className="text-base font-extrabold tracking-tight">내 주간 기록</h2>
+            {weekStart && (
+              <p className="relative ml-auto rounded-2xl bg-[#eef5ff] px-2.5 py-1 text-xs font-semibold text-[#365d8d] after:absolute after:top-1/2 after:-right-1 after:size-2 after:-translate-y-1/2 after:rotate-45 after:bg-inherit [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#cbe2ff]">
+                {weekStart} 기록됐어요!
+              </p>
             )}
           </div>
-          <h2 id="social-weekly-title" className="text-[22px] font-extrabold tracking-tight">내 주간 기록</h2>
-          {weekStart && <p className="mt-1.5 text-[13px] text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">{weekStart}</p>}
+          {weekly.data ? (
+            <dl className="grid grid-cols-2 divide-x divide-[#e0e7f3] [html[data-dd-theme=dark]_&]:divide-[#354962]">
+              <WeekMetric label="이번 주 점수" value={weekly.data.score} unit="점" />
+              <WeekMetric label="전체 순위" value={weekly.data.rank} unit="위" />
+            </dl>
+          ) : accountId === null ? (
+            <RankingNotice message="계정 정보를 확인하지 못했어요." />
+          ) : weekly.isError ? (
+            <RankingNotice message="내 주간 기록을 불러오지 못했어요." onRetry={() => void weekly.refetch()} />
+          ) : (
+            <RankingNotice message="내 주간 기록을 불러오는 중이에요." />
+          )}
+          <div className="col-start-2 row-start-1 row-span-2 self-end justify-self-end">
+            {myPhoto && myPhoto !== failedMyPhoto ? (
+              <img src={myPhoto} alt="" width={96} height={96} draggable={false} onError={() => setFailedMyPhoto(myPhoto)} className="size-12 rounded-lg object-cover" />
+            ) : (
+              <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-24 object-contain" />
+            )}
+          </div>
         </div>
-
-        {weekly.data ? (
-          <dl className="mt-4 grid grid-cols-2 divide-x divide-[#e0e7f3] [html[data-dd-theme=dark]_&]:divide-[#354962]">
-            <WeekMetric label="이번 주 점수" value={weekly.data.score} unit="점" />
-            <WeekMetric label="전체 순위" value={weekly.data.rank} unit="위" />
-          </dl>
-        ) : accountId === null ? (
-          <RankingNotice message="계정 정보를 확인하지 못했어요." />
-        ) : weekly.isError ? (
-          <RankingNotice message="내 주간 기록을 불러오지 못했어요." onRetry={() => void weekly.refetch()} />
-        ) : (
-          <RankingNotice message="내 주간 기록을 불러오는 중이에요." />
-        )}
       </section>
 
       <section

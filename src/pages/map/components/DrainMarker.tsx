@@ -1,15 +1,20 @@
+import SpeechBubble from '../../../components/common/SpeechBubble'
 import '../map-dark.css'
 // 입양 전 캐릭터 (바탕이 투명한 그림)
 import waiting from '../../../assets/characters/levels/level-0.svg'
-import happy from '../../../assets/characters/states/happy.svg'
+import { getLevelCharacter } from '../../../constants/characters'
 import { greet } from './greet'
 
 import { CustomOverlayMap } from 'react-kakao-maps-sdk'
 import { drainCategory, type DrainMapFilter, type PositionedDrainMapItem } from '../../../types/map'
 
+// 원과 꼬리가 만나는 곳에 경계선이 생기지 않도록 하나의 닫힌 윤곽을 사용합니다.
+const PIN_PATH = 'M22 44 L17.8 36.4 A18.2 18.2 0 1 1 26.2 36.4 Z'
+
 interface DrainMarkerProps {
   drain: PositionedDrainMapItem
   filter: DrainMapFilter
+  showAdoptionText?: boolean
   hint?: boolean
   // pin: 작은 캐릭터 + 꼬리(꼬리 끝이 정확한 위치) · dot: 다른 마커와 겹칠 때 상태 색 점
   variant?: 'pin' | 'dot'
@@ -67,6 +72,7 @@ export default function DrainMarker({
   drain,
   filter,
   selected,
+  showAdoptionText = false,
   hint = false,
   variant = 'pin',
   onSelect,
@@ -109,6 +115,7 @@ export default function DrainMarker({
         aria-label={label}
 
         aria-pressed={selected}
+        data-nearby-hint={hint && available && !selected || undefined}
         className="dd-map-overlay drain-pin relative flex cursor-pointer flex-col items-center"
       >
         {inspectionBadge && (
@@ -119,31 +126,25 @@ export default function DrainMarker({
             {inspectionBadge.label}
           </span>
         )}
-        {available && hint && !selected && (
+        {available && showAdoptionText && !selected && (
           <span
             className="drain-whisper"
             style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
           >
-            저를 입양해 주세요!
+            <SpeechBubble tailCentered>저를 입양해 주세요!</SpeechBubble>
           </span>
         )}
-        <span
-          className={`
-            drain-disc flex items-center justify-center
-            rounded-full border-[3px] dd-marker-ring
-            shadow-[0_3px_12px_rgba(0,0,0,0.22)]
-            transition-transform
-            ${!selected && hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : markerColor(drain)}
-            ${selected ? 'scale-125 ring-4 ring-white/60' : ''}
-          `}
-        >
-          <span className="drain-actor">
+        <span className={`drain-pin-art ${available ? 'pin-unadopted' : markerColor(drain)}`}>
+          <svg aria-hidden="true" viewBox="0 0 44 44" className="drain-pin-shape">
+            <path d={PIN_PATH} className="drain-pin-edge" />
+            <path d={PIN_PATH} className="drain-pin-fill" />
+          </svg>
+          <span className="drain-pin-portrait">
             <span className="dd-face" aria-hidden="true">
-              <img src={available ? waiting : happy} alt="" draggable={false} />
+              <img src={available ? waiting : getLevelCharacter(Math.max(1, drain.level ?? 1))} alt="" draggable={false} />
             </span>
           </span>
         </span>
-        <span aria-hidden="true" className="drain-tail" />
       </button>
       )}
     </CustomOverlayMap>
