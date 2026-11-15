@@ -23,7 +23,7 @@ import {
   type DrainSearchItem,
 } from '../../apis/drains'
 import type { Coordinates } from '../../apis/requests'
-import { hasCoordinates, matchesFilter } from '../../types/map'
+import { drainCategory, hasCoordinates, matchesFilter } from '../../types/map'
 import type {
   DrainMapFilter,
   DrainMapItem,
@@ -516,6 +516,25 @@ function KakaoMapContent({
   // 한 화면에서는 모두 캐릭터이거나 모두 점이고, 확대 단계로만 정합니다. (선택한 빗물받이는 항상 캐릭터)
   const showPins = zoomLevel <= PINS_UP_TO_LEVEL
 
+  // 큰 입양 문구는 화면 중앙에 가장 가까운 미입양 핀 하나에만 띄웁니다.
+  const adoptionHintId = useMemo(() => {
+    if (!bounds || zoomLevel >= PINS_UP_TO_LEVEL) return null
+    const lat = (bounds.minLatitude + bounds.maxLatitude) / 2
+    const lng = (bounds.minLongitude + bounds.maxLongitude) / 2
+    const longitudeScale = Math.cos(lat * Math.PI / 180)
+    let closest = Infinity
+    let id: number | null = null
+    for (const drain of visibleDrains) {
+      if (drain.id === selectedId || drainCategory(drain) !== 'unadopted') continue
+      const distance = (drain.latitude - lat) ** 2 + ((drain.longitude - lng) * longitudeScale) ** 2
+      if (distance < closest) {
+        closest = distance
+        id = drain.id
+      }
+    }
+    return id
+  }, [bounds, zoomLevel, visibleDrains, selectedId])
+
   function hintNear(map:kakao.maps.Map, position:kakao.maps.LatLng) {
     const projection=map.getProjection()
     const center=projection.containerPointFromCoords(position)
@@ -694,7 +713,7 @@ const statusNotice = drainsError
             ref={mapRef}
             center={initialCenter}
             level={DEFAULT_LEVEL}
-            className="dd-kakao-map h-full w-full"
+            className={`dd-kakao-map h-full w-full dd-map-level-${zoomLevel}`}
             onCreate={updateBounds}
             onIdle={updateBounds}
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
@@ -706,6 +725,7 @@ const statusNotice = drainsError
                 drain={drain}
                 filter={filter}
                 hint={zoomLevel<=3 || nearby.includes(drain.id)}
+                showAdoptionText={drain.id === adoptionHintId}
                 variant={showPins ? 'pin' : 'dot'}
                 selected={selectedId === drain.id}
                 onSelect={drain=>{

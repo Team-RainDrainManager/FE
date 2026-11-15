@@ -494,4 +494,12 @@ html[data-dd-theme='dark'] .dd-login-character-button .dd-login-character-speech
     left: calc(100% - 54px);
   }
 }
+/* Position and visibility stay on the outer element; the inner shape owns its paint. */
+.dd-login-character-button :is(.dd-login-character-tip, .dd-login-character-speech),
+html[data-dd-theme='dark'] .dd-login-character-button :is(.dd-login-character-tip, .dd-login-character-speech) {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
 /* ddorang-13-bubbles: end */

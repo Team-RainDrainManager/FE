@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 
-import Character from '../../../components/common/Character'
+import GrowthReactionButton from '../../../components/common/GrowthReactionButton'
 import LevelUpCelebration from '../../../components/LevelUpCelebration'
 
 import type {
@@ -83,7 +83,9 @@ export default function DrainCard({
   return (
     <article className="relative rounded-[24px] border border-[#E8EDF5] bg-white p-4 shadow-[0_4px_18px_rgba(23,43,77,0.04)]">
       <div className="flex items-center gap-3">
-        <div className="relative shrink-0"><Character type="level" level={adoption.level} size={92} /></div>
+        <div className="relative shrink-0">
+          <GrowthReactionButton key={`${drainId}:${adoption.level}`} level={adoption.level} name={adoption.adoption_name} size={92} variant="card" />
+        </div>
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{adoption.adoption_name}</h3>
           <p className="mt-1 text-xs font-semibold text-[#3981F7]">Lv.{adoption.level} · {adoption.stage}</p>
