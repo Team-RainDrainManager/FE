@@ -42,53 +42,6 @@ html[data-dd-theme='dark'] .dd-marker-blocked { background-color: #db585c; }
 html[data-dd-theme='dark'] .dd-marker-unknown { background-color: #7c8594; }
 html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
 
-/*
- * 마커 테두리: 흰 테두리 바깥에 진한 선을 한 겹 더 둘러, 밝은 지도 · 어두운 지도 모두에서 마커 경계가 보이게 합니다.
- * (box-shadow는 선택된 마커의 강조 링이 쓰고 있어서 겹치지 않게 ::after로 그림)
- */
-.dd-map-overlay .drain-disc {
-  position: relative;
-}
-
-.dd-map-overlay .drain-disc::after {
-  content: '';
-  position: absolute;
-  inset: -4.5px;
-  border: 1.5px solid rgba(23, 37, 58, 0.55);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-html[data-dd-theme='dark'] .dd-map-overlay .drain-disc::after {
-  border-color: rgba(0, 0, 0, 0.8);
-}
-
-/* 미입양 마커: 안쪽 회색 테두리를 진하게 */
-.drain-available .dd-face {
-  border-color: #8a94a3;
-}
-
-/*
- * 미입양 마커: 입양 전 캐릭터는 바탕이 투명한 그림이라 원 색과 섞지 않고(multiply 해제) 그대로 그립니다.
- * 다크모드에서는 안쪽을 어두운 회색으로 해도 캐릭터가 묻히지 않습니다.
- */
-.dd-map-overlay .drain-available .dd-face img {
-  mix-blend-mode: normal;
-}
-
-html[data-dd-theme='dark'] .drain-available {
-  background: #4f5662;
-}
-
-html[data-dd-theme='dark'] .drain-available .dd-face {
-  border-color: #6b7482;
-  background: #4f5662;
-}
-
-/*
- * 캐릭터 핀: 캐릭터가 뭉개지지 않는 크기(34px)의 원 + 아래 꼬리. 꼬리 끝이 빗물받이의 정확한 위치입니다.
- * 누르는 영역은 투명하게 44px로 넓힙니다. 선택해서 커지는 미입양 마커(drain-focus)는 원래 크기 그대로.
- */
 .drain-pin {
   min-width: 44px;
   min-height: 44px;
@@ -101,42 +54,49 @@ html[data-dd-theme='dark'] .drain-available .dd-face {
   scale: var(--pin-scale, 1);
   transform-origin: bottom center;
 }
-.drain-pin .drain-whisper { scale: calc(1 / var(--pin-scale, 1)); transform-origin: bottom center; }
-
-.drain-pin .drain-disc {
-  width: 38px;
-  height: 38px;
-  border-width: 2px;
+.drain-pin .drain-whisper {
+  scale: calc(1 / var(--pin-scale, 1));
+  transform-origin: bottom center;
+  font-size: 22px;
+  line-height: 1.3;
+  padding: 5px 11px;
+  pointer-events: none;
+}
+html[data-dd-theme='dark'] .drain-pin .drain-whisper {
+  background: #172535;
+  color: #f4f8ff;
+  border-color: #7996af;
 }
 
-.drain-pin .drain-disc.drain-focus {
-  width: 138px;
-  height: 138px;
-  border-width: 3px;
+.drain-pin-art {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 44px;
+  pointer-events: none;
 }
-
-.drain-pin .drain-disc::after {
-  inset: -3.5px;
+.drain-pin .drain-pin-art { background: transparent !important; }
+.drain-pin-art.pin-unadopted { --pin-fill: #986e46; }
+.drain-pin-art.dd-marker-normal { --pin-fill: #22a45d; }
+.drain-pin-art.dd-marker-inspection { --pin-fill: #f5b400; }
+.drain-pin-art.dd-marker-blocked { --pin-fill: #e5484d; }
+.drain-pin-art.dd-marker-unknown { --pin-fill: #98a2b3; }
+.drain-pin-shape { display: block; width: 100%; height: 100%; stroke-linejoin: round; }
+.drain-pin-edge { fill: var(--pin-fill); stroke: var(--pin-fill); stroke-width: 2.5; }
+.drain-pin-fill { fill: var(--pin-fill); stroke: white; stroke-width: .9; }
+html[data-dd-theme='dark'] .drain-pin-edge { stroke: none; }
+html[data-dd-theme='dark'] .drain-pin-fill { stroke-width: .8; }
+.drain-pin-portrait {
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border-radius: 50%;
 }
-
-.drain-pin .drain-available .dd-face {
-  border-width: 2px;
-}
-
-.drain-tail {
-  width: 0;
-  height: 0;
-  margin-top: -1px;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 7px solid #fff;
-  filter: drop-shadow(0 1.5px 0 rgba(23, 37, 58, 0.55));
-}
-
-html[data-dd-theme='dark'] .drain-tail {
-  border-top-color: #f2f4f7;
-  filter: drop-shadow(0 1.5px 0 rgba(0, 0, 0, 0.8));
-}
+.drain-pin-portrait img { scale: 1.15; }
+.drain-pin[aria-pressed="true"] .drain-pin-art { scale: 1.25; transform-origin: bottom center; }
 
 /*
  * 상태 색 점: 다른 빗물받이와 겹칠 때. 점의 가운데가 정확한 위치가 되도록 아래로 반만큼 내립니다.
@@ -199,5 +159,3 @@ html[data-dd-theme='dark'] .dd-map-overlay .drain-available .dd-face { backgroun
     animation: none;
   }
 }
-
-.drain-pin[data-nearby-hint] .drain-disc::after { border-color: #986e46; }
