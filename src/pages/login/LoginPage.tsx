@@ -1,3 +1,4 @@
+import SpeechBubble from '../../components/common/SpeechBubble'
 import { REACTIONS } from './reactions'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
@@ -164,13 +165,13 @@ export default function LoginPage() {
               </span>
             </span>
             <span className={`dd-login-character-speech${reaction || hovered ? ' is-visible' : ''}`} aria-hidden="true">
-              {reaction?.text ?? '나랑 놀자!'}
+              <SpeechBubble key={reaction?.id ?? 'hover'} animate={!!reaction}>{reaction?.text ?? '나랑 놀자!'}</SpeechBubble>
             </span>
             <span className="dd-login-character-sparkles" aria-hidden="true">
               <span>✦</span><span>✧</span><span>✦</span>
             </span>
             <span className="dd-login-character-tip" aria-hidden="true">
-              또랑이를 살짝 눌러보세요!
+              <SpeechBubble tailRight>또랑이를 살짝 눌러보세요!</SpeechBubble>
             </span>
           </button>
         </section>

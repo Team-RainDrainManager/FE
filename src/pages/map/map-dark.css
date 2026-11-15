@@ -57,17 +57,14 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
 .drain-pin .drain-whisper {
   scale: calc(1 / var(--pin-scale, 1));
   transform-origin: bottom center;
-  font-size: 22px;
+  font-size: 15.5px;
   line-height: 1.3;
-  padding: 5px 11px;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
   pointer-events: none;
 }
-html[data-dd-theme='dark'] .drain-pin .drain-whisper {
-  background: #172535;
-  color: #f4f8ff;
-  border-color: #7996af;
-}
-
 .drain-pin-art {
   position: relative;
   display: block;
@@ -81,7 +78,7 @@ html[data-dd-theme='dark'] .drain-pin .drain-whisper {
 .drain-pin-art.dd-marker-inspection { --pin-fill: #f5b400; }
 .drain-pin-art.dd-marker-blocked { --pin-fill: #e5484d; }
 .drain-pin-art.dd-marker-unknown { --pin-fill: #98a2b3; }
-.drain-pin-shape { display: block; width: 100%; height: 100%; stroke-linejoin: round; }
+.drain-pin-shape { overflow: visible; display: block; width: 100%; height: 100%; stroke-linejoin: round; }
 .drain-pin-edge { fill: var(--pin-fill); stroke: var(--pin-fill); stroke-width: 2.5; }
 .drain-pin-fill { fill: var(--pin-fill); stroke: white; stroke-width: .9; }
 html[data-dd-theme='dark'] .drain-pin-edge { stroke: none; }

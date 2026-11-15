@@ -1,3 +1,4 @@
+import SpeechBubble from '../../../components/common/SpeechBubble'
 import '../map-dark.css'
 // 입양 전 캐릭터 (바탕이 투명한 그림)
 import waiting from '../../../assets/characters/levels/level-0.svg'
@@ -130,7 +131,7 @@ export default function DrainMarker({
             className="drain-whisper"
             style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
           >
-            저를 입양해 주세요!
+            <SpeechBubble>저를 입양해 주세요!</SpeechBubble>
           </span>
         )}
         <span className={`drain-pin-art ${available ? 'pin-unadopted' : markerColor(drain)}`}>

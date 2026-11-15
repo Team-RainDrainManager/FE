@@ -1,3 +1,4 @@
+import SpeechBubble from './SpeechBubble'
 import { useEffect, useRef, useState } from 'react'
 import { getCharacterGrowth, getGrowthDance, type GrowthDance } from '../../constants/characterGrowth'
 import { getLevelCharacter } from '../../constants/characters'
@@ -65,7 +66,7 @@ export default function GrowthReactionButton({ level, name, size, variant, canRe
       </button>
       {reaction && (
         <span role="status" aria-live="polite" className={`dd-growth-speech dd-growth-speech--${variant}`}>
-          {reaction.text}
+          <SpeechBubble animate>{reaction.text}</SpeechBubble>
         </span>
       )}
     </>
