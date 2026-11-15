@@ -236,7 +236,7 @@ export default function SocialPage() {
         aria-busy={weekly.isFetching}
         className="rounded-3xl border border-[#dfe6f3] bg-white px-4 py-2.5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]"
       >
-        <div>
+        <div className="flex items-baseline justify-between gap-3 pt-1">
           <h2 id="social-weekly-title" className="text-base font-extrabold tracking-tight">내 주간 기록</h2>
           {weekStart && <p className="text-xs text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">{weekStart}</p>}
         </div>
