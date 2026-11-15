@@ -1,7 +1,7 @@
 import '../map-dark.css'
 // 입양 전 캐릭터 (바탕이 투명한 그림)
 import waiting from '../../../assets/characters/levels/level-0.svg'
-import happy from '../../../assets/characters/states/happy.svg'
+import { getLevelCharacter } from '../../../constants/characters'
 import { greet } from './greet'
 
 import { CustomOverlayMap } from 'react-kakao-maps-sdk'
@@ -10,6 +10,7 @@ import { drainCategory, type DrainMapFilter, type PositionedDrainMapItem } from 
 interface DrainMarkerProps {
   drain: PositionedDrainMapItem
   filter: DrainMapFilter
+  showAdoptionText?: boolean
   hint?: boolean
   // pin: 작은 캐릭터 + 꼬리(꼬리 끝이 정확한 위치) · dot: 다른 마커와 겹칠 때 상태 색 점
   variant?: 'pin' | 'dot'
@@ -67,6 +68,7 @@ export default function DrainMarker({
   drain,
   filter,
   selected,
+  showAdoptionText = false,
   hint = false,
   variant = 'pin',
   onSelect,
@@ -109,6 +111,7 @@ export default function DrainMarker({
         aria-label={label}
 
         aria-pressed={selected}
+        data-nearby-hint={hint && available && !selected || undefined}
         className="dd-map-overlay drain-pin relative flex cursor-pointer flex-col items-center"
       >
         {inspectionBadge && (
@@ -119,7 +122,7 @@ export default function DrainMarker({
             {inspectionBadge.label}
           </span>
         )}
-        {available && hint && !selected && (
+        {available && showAdoptionText && !selected && (
           <span
             className="drain-whisper"
             style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
@@ -133,13 +136,13 @@ export default function DrainMarker({
             rounded-full border-[3px] dd-marker-ring
             shadow-[0_3px_12px_rgba(0,0,0,0.22)]
             transition-transform
-            ${!selected && hint && available ? 'drain-alert' : ''} ${available ? 'drain-available' : markerColor(drain)}
+            ${available ? 'drain-available' : markerColor(drain)}
             ${selected ? 'scale-125 ring-4 ring-white/60' : ''}
           `}
         >
           <span className="drain-actor">
             <span className="dd-face" aria-hidden="true">
-              <img src={available ? waiting : happy} alt="" draggable={false} />
+              <img src={available ? waiting : getLevelCharacter(Math.max(1, drain.level ?? 1))} alt="" draggable={false} />
             </span>
           </span>
         </span>

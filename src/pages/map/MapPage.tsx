@@ -694,7 +694,7 @@ const statusNotice = drainsError
             ref={mapRef}
             center={initialCenter}
             level={DEFAULT_LEVEL}
-            className="dd-kakao-map h-full w-full"
+            className={`dd-kakao-map h-full w-full dd-map-level-${zoomLevel}`}
             onCreate={updateBounds}
             onIdle={updateBounds}
             onZoomChanged={map=>setZoomLevel(map.getLevel())}
@@ -706,6 +706,7 @@ const statusNotice = drainsError
                 drain={drain}
                 filter={filter}
                 hint={zoomLevel<=3 || nearby.includes(drain.id)}
+                showAdoptionText={zoomLevel === 1}
                 variant={showPins ? 'pin' : 'dot'}
                 selected={selectedId === drain.id}
                 onSelect={drain=>{

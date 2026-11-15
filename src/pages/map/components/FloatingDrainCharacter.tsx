@@ -15,7 +15,7 @@ export default function FloatingDrainCharacter({ drain }: {
         key={`${drain.id}:${level}:${hasLevel || unadopted}`}
         level={level}
         name={drain.nickname ?? drain.name}
-        size={144}
+        size={180}
         variant="map"
         canReact={hasLevel || unadopted}
       />
