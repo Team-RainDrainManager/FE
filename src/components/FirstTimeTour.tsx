@@ -11,6 +11,7 @@ type TourStep = {
   label: string
   title: string
   description: string
+  growthTips?: readonly string[]
 }
 
 const TOUR_STEPS: readonly TourStep[] = [
@@ -26,8 +27,14 @@ const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     path: '/my-drains', target: 'my-drains', label: '또랑이',
-    title: '내 또랑이를 입양하고 관리해요',
+    title: '돌볼수록 성장하는 또랑이!',
     description: '입양한 또랑이의 성장과 점검 기록이 모여요. 처음 입양 수가 0개인 것은 정상이에요.',
+    growthTips: [
+      '레벨이 올라갈수록 또랑이의 모습이 달라져요.',
+      '또랑이를 터치하면 성장 단계에 따라 새로운 대사를 볼 수 있어요.',
+      '레벨이 올라가면 새로운 춤도 하나씩 해금돼요.',
+      '꾸준히 돌보며 또랑이와 친해져 보세요!',
+    ],
   },
   {
     path: '/social', target: 'social', label: '소셜',
@@ -138,6 +145,7 @@ export default function FirstTimeTour() {
           <span className="dd-tour-bubble-label">{current.label} 안내</span>
           <h2>{current.title}</h2>
           <p>{current.description}</p>
+          {current.growthTips?.map((tip) => <p key={tip}>{tip}</p>)}
         </div>
       </div>
       <div className="dd-tour-bubble-footer">

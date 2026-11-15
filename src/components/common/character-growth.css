@@ -1,0 +1,36 @@
+/* 기존 로그인 화면의 동작(keyframes)을 레벨 SVG의 바깥 요소에만 적용합니다. */
+.dd-growth-button { padding: 0; border: 0; background: transparent; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.dd-growth-button:focus-visible { outline: 2px solid #3981f7; outline-offset: 2px; border-radius: 12px; }
+.dd-growth-card-button { display: block; }
+.dd-growth-action { display: block; transform-origin: 50% 83%; }
+.dd-float-body.dd-growth-playing, .dd-growth-playing .dd-character-live { animation: none !important; }
+.dd-growth-action--superjump { animation: dd-login-superjump 1.2s ease-in-out 4; }
+.dd-growth-action--wiggle { animation: dd-login-wiggle 1.2s ease-in-out 4; }
+.dd-growth-action--spin { animation: dd-login-spin 1.2s ease-in-out 4; }
+.dd-growth-action--dance { animation: dd-login-dance 1.2s ease-in-out 4; }
+.dd-growth-action--hover-dance { animation: dd-login-hover-dance .8s ease-in-out 6; }
+.dd-growth-speech {
+  position: absolute;
+  z-index: 12;
+  width: max-content;
+  max-width: min(272px, calc(100vw - 64px));
+  padding: 9px 14px;
+  border: 1px solid #b1dafb;
+  border-radius: 13px;
+  background: #fff;
+  color: #23476a;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  pointer-events: none;
+}
+.dd-growth-speech--card { left: 0; bottom: 92%; }
+.dd-growth-speech--map { left: 50%; bottom: 96%; transform: translateX(-50%); }
+html[data-dd-theme='dark'] .dd-growth-speech { background: #172535; border-color: #466887; color: #e9f3ff; }
+@media (prefers-reduced-motion: reduce) {
+  .dd-growth-action { animation: none !important; }
+}
