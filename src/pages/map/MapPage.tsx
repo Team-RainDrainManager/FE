@@ -66,7 +66,7 @@ const FILTERS: {
 
 const FILTER_DOTS: Record<DrainMapFilter, string> = {
   all: 'bg-[#6FAEFF]',
-  unadopted: 'dd-marker-unknown',
+  unadopted: 'dd-marker-unadopted',
   normal: 'dd-marker-normal',
   'inspection-needed': 'dd-marker-inspection',
   blocked: 'dd-marker-blocked',
@@ -1113,9 +1113,9 @@ const statusNotice = drainsError
                   : ''
               }`}
             >
-              <circle cx="12" cy="12" r="7" />
+              <circle cx="12" cy="12" r="7.3" />
               <circle cx="12" cy="12" r="2.5" />
-              <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+              <path d="M12 1.8v2.9m0 14.6v2.9M1.8 12h2.9m14.6 0h2.9" />
             </svg>
           </button>
 
@@ -1153,7 +1153,7 @@ const statusNotice = drainsError
                       <span
                         aria-hidden="true"
                         className={`hidden h-1.5 w-1.5 shrink-0 rounded-full min-[360px]:block ${
-                          active
+                          active && option.value !== 'unadopted'
                             ? 'bg-white'
                             : FILTER_DOTS[
                                 option.value

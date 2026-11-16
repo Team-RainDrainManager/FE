@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import SpeechBubble from '../../../components/common/SpeechBubble'
 import '../map-dark.css'
 // 입양 전 캐릭터 (바탕이 투명한 그림)
@@ -99,6 +100,10 @@ export default function DrainMarker({
           type="button"
           onClick={() => onSelect(drain)}
           aria-label={label}
+          style={{
+            '--pulse-duration': `${4000 + (drain.id * 137) % 2001}ms`,
+            '--pulse-delay': `-${(drain.id * 853) % 5000}ms`,
+          } as CSSProperties}
           className="dd-map-overlay drain-dot-hit cursor-pointer"
         >
           <span aria-hidden="true" className={`drain-dot dd-marker-ring ${available ? 'dd-marker-unknown drain-dot-unadopted' : markerColor(drain)}`} />

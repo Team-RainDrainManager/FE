@@ -202,8 +202,8 @@ export default function MyDrainsPage() {
 
   return (
     <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] bg-[#F4F7FC] px-4 pb-7 pt-5 text-[#203451]">
-      <section className="flex items-center justify-between gap-3">
-        <div>
+      <section className="flex items-center justify-between gap-4">
+        <div className="min-w-0 pl-2">
           <h2 className="text-base font-bold tracking-tight">
             각자의 속도로 자라는 또랑
           </h2>
@@ -213,11 +213,9 @@ export default function MyDrainsPage() {
           </p>
         </div>
 
-        <Character
-          type="state"
-          state="happy"
-          size={69}
-        />
+        <div className="shrink-0 origin-bottom-right scale-120">
+          <Character type="state" state="happy" size={69} />
+        </div>
       </section>
 
       {data.adoptions.length > 0 && <PushOptInCard variant="banner" className="mt-5" />}
