@@ -209,8 +209,8 @@ export default function SocialPage() {
       >
         <span className="grid size-12 shrink-0 place-items-center rounded-[15px] bg-[#eaf3ff] text-[#2068cd] [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#9bcaff]">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="9" cy="7" r="3" />
-            <path d="M3 20v-1.5a5.5 5.5 0 0 1 5.5-5.5h1a5.5 5.5 0 0 1 5.5 5.5V20M18.5 8v6m-3-3h6" />
+            <circle cx="9" cy="6.5" r="3.5" />
+            <path d="M2 21v-1.5a7 7 0 0 1 14 0V21M19 7v7m-3.5-3.5h7" />
           </svg>
         </span>
         <span className="grid min-w-0 flex-1 gap-0.5">

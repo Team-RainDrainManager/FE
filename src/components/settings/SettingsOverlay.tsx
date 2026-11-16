@@ -143,7 +143,7 @@ export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
             onClick={() => reportTriggerRef.current?.click()}>
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 17v-7a6 6 0 0 1 12 0v7M4 20h16M8 17h8M12 1v2M4.5 5l1.5 1.5M19.5 5L18 6.5" />
+              <path d="M5.5 18v-7a6.5 6.5 0 0 1 13 0v7M3 21h18M8 17.5h8M12 1v2.5M3.4 5l2 2M20.6 5l-2 2" />
             </svg>
           </button>
         </div>

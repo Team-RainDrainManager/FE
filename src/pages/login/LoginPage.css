@@ -503,3 +503,22 @@ html[data-dd-theme='dark'] .dd-login-character-button :is(.dd-login-character-ti
   box-shadow: none;
 }
 /* ddorang-13-bubbles: end */
+
+.dd-login-character-button :is(.dd-login-character-tip, .dd-login-character-speech) .dd-talk {
+  padding: .65em 1em 1.05em;
+  color: #23476a;
+  filter: drop-shadow(0 2px 3px rgb(56 117 166 / 12%));
+}
+.dd-login-character-button :is(.dd-login-character-tip, .dd-login-character-speech) .dd-talk > svg { fill: #fff; stroke: #9bd6ff; }
+.dd-login-character-button .dd-talk::before {
+  content: '';
+  position: absolute;
+  top: 16%;
+  right: -8px;
+  width: 8px;
+  height: 10px;
+  background: linear-gradient(-40deg, transparent 40%, #55aaff 48% 62%, transparent 68%) top / 7px 5px,
+              linear-gradient(-14deg, transparent 40%, #55aaff 48% 62%, transparent 68%) bottom / 8px 4px;
+  background-repeat: no-repeat;
+}
+.dd-login-character-button .dd-talk[data-tail="down-right"]::before { left: -8px; right: auto; transform: scaleX(-1); }
