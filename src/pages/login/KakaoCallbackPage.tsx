@@ -4,7 +4,6 @@ import { getErrorMessage, kakaoLogin } from '../../apis/auth'
 import { useAuthStore } from '../../store/useAuthStore'
 import { consumeKakaoRedirect, kakaoRedirectUri, nextAfterLogin } from './auth-flow'
 import { beginFirstRun } from '../../utils/firstRun'
-import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import './auth-pages.css'
 
 export default function KakaoCallbackPage() {
@@ -33,9 +32,8 @@ export default function KakaoCallbackPage() {
       try {
         const tokens = await kakaoLogin(code, kakaoRedirectUri())
         if (tokens.isNewUser) {
-          beginFirstRun()
-          useMyDrainsStore.getState().reset()
-        }
+  beginFirstRun()
+}
         setTokens(tokens)
         navigate(await nextAfterLogin(), { replace: true })
       } catch (err: unknown) { setError(getErrorMessage(err)) }

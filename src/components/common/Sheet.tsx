@@ -1,64 +1,173 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import '../../features/account/sanctions-warning.css'
 
-export default function Sheet({ title, onClose, children }: {
-  title: string; onClose: () => void; children: ReactNode
-}) {
+type Props = {
+  title: string
+  description?: string
+  onClose: () => void
+  children: ReactNode
+  footer?: ReactNode
+  busy?: boolean
+}
+
+export default function Sheet({
+  title,
+  description,
+  onClose,
+  children,
+  footer,
+  busy = false,
+}: Props) {
   const titleId = useId()
-  const sheet = useRef<HTMLElement>(null)
-  const start = useRef<number | null>(null)
+  const descriptionId = useId()
+  const sheetRef = useRef<HTMLElement>(null)
+  const dragStart = useRef<number | null>(null)
+  const closeRef = useRef({ onClose, busy })
+  const closingRef = useRef(false)
   const [closing, setClosing] = useState(false)
-  const close = useRef(onClose)
-  useEffect(() => { close.current = onClose }, [onClose])
-  function dismiss() {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) close.current()
-    else setClosing(true)
-  }
+
   useEffect(() => {
-    if (!closing) return
-    const timer = window.setTimeout(() => close.current(), 220)
-    return () => clearTimeout(timer)
-  }, [closing])
-  useEffect(() => {
-    const previous = document.activeElement
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    sheet.current?.focus()
-    function key(event: KeyboardEvent) {
-      if (event.key === 'Escape') dismiss()
-      if (event.key !== 'Tab') return
-      const buttons = sheet.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input, a[href], [tabindex="0"]')
-      if (!buttons?.length) return
-      const first = buttons[0], last = buttons[buttons.length - 1]
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === sheet.current)) {
-        event.preventDefault(); last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); first.focus()
-      }
-    }
-    document.addEventListener('keydown', key)
-    return () => {
-      document.body.style.overflow = overflow
-      document.removeEventListener('keydown', key)
-      if (previous instanceof HTMLElement) previous.focus()
+    closeRef.current = { onClose, busy }
+  }, [onClose, busy])
+
+  const dismiss = useCallback(() => {
+    if (closeRef.current.busy || closingRef.current) return
+    closingRef.current = true
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      closeRef.current.onClose()
+    } else {
+      setClosing(true)
     }
   }, [])
-  return createPortal(<div className="dd21-sanctions-overlay dd-shared-overlay" data-closing={closing} onMouseDown={e => {
-    if (e.target === e.currentTarget) dismiss()
-  }}>
-    <section ref={sheet} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className="dd21-sanctions-sheet dd-shared-sheet">
-      <div className="dd21-sanctions-grab" aria-hidden="true"
-        onPointerDown={e => { if (e.button === 0) { start.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId) } }}
-        onPointerMove={e => { if (start.current !== null) sheet.current?.style.setProperty('transform', 'translateY(' + Math.max(0, e.clientY - start.current) + 'px)') }}
-        onPointerUp={e => {
-          if (start.current !== null && e.clientY - start.current > 80) dismiss()
-          start.current = null
-          sheet.current?.style.removeProperty('transform')
-        }}
-        onPointerCancel={() => { start.current = null; sheet.current?.style.removeProperty('transform') }}><span /></div>
-      <header className="dd21-sanctions-heading"><h2 id={titleId}>{title}</h2></header>
-      <div className="dd21-sanctions-body dd-shared-body">{children}</div>
-    </section>
-  </div>, document.body)
+
+  useEffect(() => {
+    if (!closing) return
+    const timer = window.setTimeout(() => {
+      if (closeRef.current.busy) {
+        closingRef.current = false
+        setClosing(false)
+        return
+      }
+      closeRef.current.onClose()
+    }, 220)
+    return () => window.clearTimeout(timer)
+  }, [closing])
+
+  useEffect(() => {
+    const previousFocus = document.activeElement
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    sheetRef.current?.focus({ preventScroll: true })
+
+    function onKeyDown(event: KeyboardEvent) {
+      const panel = sheetRef.current
+      if (!panel || event.defaultPrevented || document.querySelector('dialog[open]')) return
+      const focused = document.activeElement
+      const activeDialog = focused?.closest('[aria-modal="true"]')
+      if (activeDialog && activeDialog !== panel) return
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        dismiss()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const controls = Array.from(panel.querySelectorAll<HTMLElement>(
+        'button, input:not([type="hidden"]), select, textarea, a[href], summary, [tabindex]',
+      )).filter((control) =>
+        control.tabIndex >= 0 && !control.matches(':disabled') && control.getClientRects().length > 0,
+      )
+      const first = controls[0]
+      const last = controls.at(-1)
+      if (!first || !last) {
+        event.preventDefault()
+        panel.focus()
+        return
+      }
+      if (
+        !panel.contains(focused) ||
+        (event.shiftKey && (focused === first || focused === panel)) ||
+        (!event.shiftKey && focused === last)
+      ) {
+        event.preventDefault()
+        const nextControl = event.shiftKey ? last : first
+        nextControl.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true })
+    }
+  }, [dismiss])
+
+  return createPortal(
+    <div
+      className="dd21-sanctions-overlay dd-shared-overlay"
+      data-closing={closing}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) dismiss()
+      }}
+    >
+      <section
+        ref={sheetRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
+        aria-busy={busy}
+        inert={closing}
+        className="dd21-sanctions-sheet dd-shared-sheet"
+      >
+        <div
+          className="dd21-sanctions-grab"
+          aria-hidden="true"
+          onPointerDown={(event) => {
+            if (busy || closing || (event.pointerType === 'mouse' && event.button !== 0)) return
+            dragStart.current = event.clientY
+            event.currentTarget.setPointerCapture(event.pointerId)
+          }}
+          onPointerMove={(event) => {
+            if (dragStart.current === null) return
+            const distance = Math.max(0, event.clientY - dragStart.current)
+            sheetRef.current?.style.setProperty('transform', 'translateY(' + distance + 'px)')
+          }}
+          onPointerUp={(event) => {
+            if (dragStart.current === null) return
+            const distance = event.clientY - dragStart.current
+            dragStart.current = null
+            sheetRef.current?.style.removeProperty('transform')
+            if (distance > 80) dismiss()
+          }}
+          onPointerCancel={() => {
+            dragStart.current = null
+            sheetRef.current?.style.removeProperty('transform')
+          }}
+        >
+          <span />
+        </div>
+        <header className="dd21-sanctions-heading shrink-0">
+  <div className="min-w-0">
+    <h2 id={titleId}>{title}</h2>
+    {description && (
+      <p id={descriptionId} className="mt-1 break-keep text-xs leading-5 text-[var(--dd-muted)]">
+        {description}
+      </p>
+    )}
+  </div>
+</header>
+        <div className="dd21-sanctions-body dd-shared-body" data-has-footer={Boolean(footer)}>
+          {children}
+        </div>
+        {footer && <footer className="dd-shared-footer">{footer}</footer>}
+      </section>
+    </div>,
+    document.body,
+  )
 }

@@ -59,8 +59,8 @@ export default function DrainCard({
     return () => window.clearTimeout(timer)
   }, [pauseEndTime])
 
-  const nextInspectionTime =
-    new Date(adoption.next_inspection_at).getTime()
+const nextInspectionTime =
+  parseServerDateTime(adoption.next_inspection_at)?.getTime() ?? NaN
 
   const inspectionOverdue =
     !paused &&

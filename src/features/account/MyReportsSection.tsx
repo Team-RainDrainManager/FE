@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useId, useRef, useState, type PointerEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation } from 'react-router'
+import Sheet from '../../components/common/Sheet'
 import { getErrorMessage } from '../../apis/auth'
 import { getMyReports, getReportDetail, type ReportStatus, type ReportSummary, type ReportType } from '../../apis/reports'
-import { formatKstDateTime } from '../../utils/kstDateTime'
-import './sanctions-warning.css'
 import './report-history.css'
 
 const TYPE_LABELS: Record<ReportType, string> = {
@@ -77,15 +75,6 @@ function ReportDetailView({ reportId, onBack }: { reportId: number; onBack: () =
           <span>제보 번호: {data.reportId}</span>
           <span>제보 시각: {formatReportDate(data.createdAt)}</span>
           {data.clearedAt && <span>차단 해제 시각: {formatReportDate(data.clearedAt)}</span>}
-          {data.sanction && (
-            <section aria-label="이 제보로 부과된 제재" className="mt-2 grid gap-1">
-              <h3 className="text-sm font-bold">{data.sanction.permanent ? '영구 제재' : '제재 부과'}</h3>
-              <span>제재 시작: {formatKstDateTime(data.sanction.startsAt) ?? '시각 정보 없음'}</span>
-              {!data.sanction.permanent && (
-                <span>제재 종료: {formatKstDateTime(data.sanction.until) ?? '시각 정보 없음'}</span>
-              )}
-            </section>
-          )}
           <section className="mt-2">
             <h3 className="text-sm font-bold">제보 내용</h3>
             <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
@@ -116,12 +105,6 @@ export default function MyReportsSection() {
   const location = useLocation()
   const [open, setOpen] = useState(() => (location.state as { openReports?: boolean } | null)?.openReports === true)
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null)
-  
-  const [drag, setDrag] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const startY = useRef<number | null>(null)
-  const titleId = useId()
-  
   const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ['reports', 'me'],
     queryFn: ({ signal }) => getMyReports(signal),
@@ -135,43 +118,8 @@ export default function MyReportsSection() {
   const closeSheet = useCallback(() => {
     setOpen(false)
     setSelectedReportId(null)
-    startY.current = null
-    setDrag(0)
-    setDragging(false)
   }, [])
 
-  useEffect(() => {
-    if (!open) return
-    const oldOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    function handleKey(event: KeyboardEvent) { if (event.key === 'Escape') closeSheet() }
-    window.addEventListener('keydown', handleKey)
-    return () => {
-      document.body.style.overflow = oldOverflow
-      window.removeEventListener('keydown', handleKey)
-    }
-  }, [open, closeSheet])
-
-  function onDown(event: PointerEvent<HTMLButtonElement>) {
-    if (event.pointerType === 'mouse' && event.button !== 0) return
-    startY.current = event.clientY
-    setDragging(true)
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-  function onMove(event: PointerEvent<HTMLButtonElement>) {
-    if (startY.current === null) return
-    setDrag(Math.max(0, event.clientY - startY.current))
-  }
-  function onUp() {
-    if (startY.current === null) return
-    if (drag > 90) {
-      closeSheet()
-      return
-    }
-    startY.current = null
-    setDragging(false)
-    setDrag(0)
-  }
   function openSheet() {
     setOpen(true)
     void refetch()
@@ -188,16 +136,13 @@ export default function MyReportsSection() {
       </div>
       {isError && <p className="dd23-reports-error" role="status">제보 내역을 불러오지 못했습니다.</p>}
     </section>
-    {open && createPortal(
-      <div className="dd21-sanctions-overlay" onMouseDown={event => { if (event.target === event.currentTarget) closeSheet() }}>
-        <section role="dialog" aria-modal="true" aria-labelledby={titleId} className="dd21-sanctions-sheet" style={{ transform: `translateY(${drag}px)`, transition: dragging ? 'none' : 'transform 180ms ease-out' }}>
-          <button type="button" className="dd21-sanctions-grab" aria-label="아래로 내려 닫기" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}><span /></button>
-          <header className="dd21-sanctions-heading">
-            <h2 id={titleId}>{selectedReportId === null ? '내 제보 내역' : '제보 상세'}</h2>
-            <button type="button" aria-label="닫기" onClick={closeSheet}>×</button>
-          </header>
-          <div key={selectedReportId ?? 'list'} className="dd21-sanctions-body dd23-reports-body">
-            {selectedReportId === null ? (
+    {open && (
+      <Sheet
+        title={selectedReportId === null ? '내 제보 내역' : '제보 상세'}
+        onClose={closeSheet}
+      >
+        <div key={selectedReportId ?? 'list'} className="dd23-reports-body">
+          {selectedReportId === null ? (
               <>
                 {isPending && <p role="status" className="dd21-sanctions-empty">제보 내역을 불러오는 중입니다.</p>}
                 {isError && <div role="alert" className="dd21-sanctions-empty"><p>{error instanceof Error ? error.message : '제보 내역을 불러오지 못했습니다.'}</p><button type="button" onClick={() => { void refetch() }}>다시 시도</button></div>}
@@ -213,23 +158,19 @@ export default function MyReportsSection() {
                       <span className="dd23-reports-status">{STATUS_LABELS[item.status] ?? '상태 확인 필요'}</span>
                     </span>
                     <span>제보 번호: {item.reportId}</span>
-                    {item.sanction && <span>{item.sanction.permanent ? '영구 제재' : '제재 부과'}</span>}
                     <span className="dd23-reports-row">
                       <span>제보 시각: {formatReportDate(item.createdAt)}</span>
                       <span aria-hidden="true">›</span>
                     </span>
                   </button>
-                ))}              
-                {!isPending && !isError && reports.length === 0 && (
-  <p className="dd21-sanctions-empty">제보 내역이 없어요</p>
-)}              
+                ))}
+                {!isPending && !isError && reports.length === 0 && <p className="dd21-sanctions-empty">제보 내역이 없어요</p>}
               </>
-            ) : (
+          ) : (
               <ReportDetailView reportId={selectedReportId} onBack={() => setSelectedReportId(null)} />
-            )}
-          </div>
-        </section>
-      </div>, document.body,
+          )}
+        </div>
+      </Sheet>
     )}
   </>
 }

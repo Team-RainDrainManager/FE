@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { Link, useNavigate } from 'react-router'
-import { checkNicknameAvailable, emailSignup, getErrorMessage } from '../../apis/auth'
+import { checkNicknameAvailable, emailSignup, getErrorMessage, type ApiEnvelope } from '../../apis/auth'
 import { useAuthStore } from '../../store/useAuthStore'
 import { nextAfterLogin } from './auth-flow'
 import { beginFirstRun } from '../../utils/firstRun'
-import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import './auth-pages.css'
 import { NICKNAME_LENGTH_HINT, validateNickname } from '../../features/nickname/nickname-policy'
+
+type SignupError = { field: 'nickname' | 'form'; message: string }
 
 export default function EmailSignupPage() {
   const navigate = useNavigate()
@@ -18,7 +20,8 @@ export default function EmailSignupPage() {
   const [nickname, setNickname] = useState('')
   const [nicknameToCheck, setNicknameToCheck] = useState('')
   const [pending, setPending] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<SignupError | null>(null)
+  const nicknameError = error?.field === 'nickname' ? error.message : null
   const nicknameValidation = validateNickname(nickname)
 
   const nicknameCheck = useQuery({
@@ -41,20 +44,34 @@ export default function EmailSignupPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending || nicknameTaken) return
-    if (password !== confirm) { setError('비밀번호가 일치하지 않습니다.'); return }
-    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/.test(password)) {
-      setError('비밀번호는 8~64자이며 영문과 숫자가 각각 1개 이상 필요합니다.'); return
+    if (password !== confirm) {
+      setError({ field: 'form', message: '비밀번호가 일치하지 않습니다.' })
+      return
     }
-    if (!nicknameValidation.valid) { setError(nicknameValidation.reason); return }
-    setPending(true); setError('')
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/.test(password)) {
+      setError({ field: 'form', message: '비밀번호는 8~64자이며 영문과 숫자가 각각 1개 이상 필요합니다.' })
+      return
+    }
+    if (!nicknameValidation.valid) {
+      setError({ field: 'nickname', message: nicknameValidation.reason })
+      return
+    }
+    setPending(true)
+    setError(null)
     try {
-      const tokens = await emailSignup(email.trim(), password, nicknameValidation.value)
-      beginFirstRun()
-      useMyDrainsStore.getState().reset()
-      setTokens(tokens)
-      navigate(await nextAfterLogin(), { replace: true })
-    } catch (err: unknown) { setError(getErrorMessage(err)) }
-    finally { setPending(false) }
+  const tokens = await emailSignup(email.trim(), password, nicknameValidation.value)
+  beginFirstRun()
+  setTokens(tokens)
+  navigate(await nextAfterLogin(), { replace: true })
+} catch (err: unknown) {
+      const detail = isAxiosError<ApiEnvelope<unknown>>(err) ? err.response?.data?.error : null
+      const fieldErrors = detail?.fieldErrors ?? []
+      const nicknameFailed = detail?.code === 'NICKNAME_ALREADY_EXISTS' ||
+        (fieldErrors.length > 0 && fieldErrors.every(({ field }) => field === 'nickname'))
+      setError({ field: nicknameFailed ? 'nickname' : 'form', message: getErrorMessage(err) })
+    } finally {
+      setPending(false)
+    }
   }
 
   return <div className="dd-auth-page"><main className="dd-auth-card">
@@ -62,7 +79,7 @@ export default function EmailSignupPage() {
     <p className="dd-auth-kicker">START WITH DDORANG</p>
     <h1>이메일 회원가입</h1>
     <p className="dd-auth-explainer">계정을 만든 뒤 약관 동의와 본인인증을 진행합니다.</p>
-    <form onSubmit={submit} onChange={() => setError('')} className="dd-auth-form">
+    <form onSubmit={submit} onChange={() => setError(null)} className="dd-auth-form">
       <label htmlFor="signup-email">이메일</label>
       <input id="signup-email" type="email" required autoComplete="email" maxLength={100} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" />
       <label htmlFor="signup-password">비밀번호</label>
@@ -82,16 +99,17 @@ export default function EmailSignupPage() {
         }}
         onBlur={() => setNicknameToCheck(nicknameValidation.valid ? nicknameValidation.value : '')}
         aria-describedby="signup-nickname-hint"
-        aria-invalid={nicknameTaken}
+        aria-invalid={nicknameTaken || Boolean(nicknameError)}
       />
       <p
         id="signup-nickname-hint"
-        role={error ? 'alert' : 'status'}
-        className={error || nicknameTaken ? 'dd-auth-error' : 'dd-auth-explainer'}
+        role={nicknameError ? 'alert' : 'status'}
+        className={nicknameError || nicknameTaken ? 'dd-auth-error' : 'dd-auth-explainer'}
       >
-        {error || nicknameHint}
+        {nicknameError ?? nicknameHint}
       </p>
       <button type="submit" className="dd-auth-primary" disabled={pending || nicknameTaken}>{pending ? '가입 중…' : '계정 만들기'}</button>
+      {error?.field === 'form' && <p role="alert" className="dd-auth-error">{error.message}</p>}
     </form>
     <p className="dd-auth-switch">이미 계정이 있으신가요? <Link to="/login/email">이메일 로그인</Link></p>
   </main></div>
