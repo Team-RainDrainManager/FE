@@ -1127,14 +1127,14 @@ body:has(.dd-settings-backdrop) header button[aria-label='설정 열기'] > span
   width: 42px;
   height: 42px;
   flex: none;
-  border: 1px solid var(--setting-line, #dbe5f0);
+  border: 1px solid rgb(193 86 101 / 22%);
   border-radius: 14px;
-  color: var(--setting-ink, #203451);
-  background: var(--setting-surface, #fff);
+  color: #bb5260;
+  background: rgb(193 86 101 / 16%);
   transition: transform 140ms ease, background-color 140ms ease;
   -webkit-tap-highlight-color: transparent;
 }
-.dd-settings-modal__report:active { transform: scale(.95); background: var(--setting-tap-strong, #e1eaf5); }
+.dd-settings-modal__report:active { transform: scale(.95); background: rgb(193 86 101 / 20%); }
 .dd-settings-modal__report:focus-visible { outline: 2px solid var(--setting-accent, #3981f7); outline-offset: 3px; }
 .dd-settings-theme-compact {
   display: grid;

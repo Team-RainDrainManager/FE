@@ -1,10 +1,10 @@
 
 import { NavLink } from 'react-router'
 
-import drainIcon from '../../assets/icons/drain.svg'
-import mapIcon from '../../assets/icons/map.svg'
+import drainIcon from '../../assets/icons/tab-drain.svg'
+import mapIcon from '../../assets/icons/tab-map.svg'
 import activityIcon from '../../assets/icons/activity.svg'
-import bellIcon from '../../assets/icons/bell.svg'
+import bellIcon from '../../assets/icons/tab-bell.svg'
 import NotificationBellIcon from './NotificationBellIcon'
 import userIcon from '../../assets/icons/user.svg'
 

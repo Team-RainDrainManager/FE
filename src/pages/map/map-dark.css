@@ -72,7 +72,9 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
   pointer-events: none;
 }
 .drain-pin .drain-pin-art { background: transparent !important; }
-.drain-pin-art.pin-unadopted { --pin-fill: #98a2b3; }
+:root { --dd-unadopted: #cbd2dc; }
+.dd-marker-unadopted { background-color: var(--dd-unadopted); }
+.drain-pin-art.pin-unadopted { --pin-fill: var(--dd-unadopted); }
 .drain-pin-art.dd-marker-normal { --pin-fill: #22a45d; }
 .drain-pin-art.dd-marker-inspection { --pin-fill: #f5b400; }
 .drain-pin-art.dd-marker-blocked { --pin-fill: #e5484d; }
@@ -116,12 +118,12 @@ html[data-dd-theme='dark'] .drain-pin-fill { stroke-width: .8; }
 }
 html[data-dd-theme='dark'] .drain-dot { border-color: #fff; }
 
-.dd-map-overlay .drain-dot-unadopted { background-color: #98a2b3; }
+.dd-map-overlay .drain-dot-unadopted { background-color: var(--dd-unadopted); }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-normal { background-color: #22a45d; }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-inspection { background-color: #f5b400; }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-blocked { background-color: #e5484d; }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-unknown { background-color: #98a2b3; }
-html[data-dd-theme='dark'] .dd-map-overlay .drain-dot-unadopted { background-color: #98a2b3; }
+html[data-dd-theme='dark'] .dd-map-overlay .drain-dot-unadopted { background-color: var(--dd-unadopted); }
 .dd-map-overlay .drain-available,
 html[data-dd-theme='dark'] .dd-map-overlay .drain-available,
 .dd-map-overlay .drain-available .dd-face,
@@ -155,3 +157,20 @@ html[data-dd-theme='dark'] .dd-map-overlay .drain-available .dd-face { backgroun
     animation: none;
   }
 }
+
+.drain-dot { position: relative; }
+.drain-dot::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 3px solid transparent;
+  border-radius: inherit;
+  background: inherit;
+  mask: radial-gradient(circle, transparent 47%, #000 62%, transparent 76%);
+  pointer-events: none;
+  opacity: .35;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .drain-dot::after { animation: dd-dot-glow var(--pulse-duration) ease-in-out var(--pulse-delay) infinite; }
+}
+@keyframes dd-dot-glow { 0%, 100% { opacity: .22; } 50% { opacity: .56; } }

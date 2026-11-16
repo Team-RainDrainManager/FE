@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router'
 import { apiClient } from '../../apis/axios-instance'
 import { useAuthStore } from '../../store/useAuthStore'
-import bellIcon from '../../assets/icons/bell.svg'
+import bellIcon from '../../assets/icons/tab-bell.svg'
 
 // Server unread summary only. No fake notification, automatic read API or push subscription.
 const SEEN_KEY = 'ddorang:notification-bell-last-seen-count'

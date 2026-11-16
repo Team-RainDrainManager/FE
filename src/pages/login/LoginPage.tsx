@@ -165,13 +165,13 @@ export default function LoginPage() {
               </span>
             </span>
             <span className={`dd-login-character-speech${reaction || hovered ? ' is-visible' : ''}`} aria-hidden="true">
-              <SpeechBubble tail="down-left" key={reaction?.id ?? 'hover'} animate={!!reaction}>{reaction?.text ?? '나랑 놀자!'}</SpeechBubble>
+              <SpeechBubble login tail="down-left" key={reaction?.id ?? 'hover'} animate={!!reaction}>{reaction?.text ?? '나랑 놀자!'}</SpeechBubble>
             </span>
             <span className="dd-login-character-sparkles" aria-hidden="true">
               <span>✦</span><span>✧</span><span>✦</span>
             </span>
             <span className="dd-login-character-tip" aria-hidden="true">
-              <SpeechBubble tail="down-right">또랑이를 살짝 눌러보세요!</SpeechBubble>
+              <SpeechBubble login tail="down-right">또랑이를 살짝 눌러보세요!</SpeechBubble>
             </span>
           </button>
         </section>
