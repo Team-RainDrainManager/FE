@@ -9,16 +9,17 @@ import './character-growth.css'
 // 세 문구 모두 읽을 수 있도록 한 번의 터치 반응을 4.8초로 유지합니다.
 const LINE_DURATION_MS = 1600
 
-type Reaction = { text: string; dance: GrowthDance | null }
+type Reaction = { text: string; dance: GrowthDance }
 type Props = {
   level: number
   name: string
   size: number
   variant: 'card' | 'map'
+  unadopted?: boolean
   canReact?: boolean
 }
 
-export default function GrowthReactionButton({ level, name, size, variant, canReact = true }: Props) {
+export default function GrowthReactionButton({ level, name, size, variant, unadopted = false, canReact = true }: Props) {
   const [reaction, setReaction] = useState<Reaction | null>(null)
   const timerIds = useRef<number[]>([])
   const nextDance = useRef(0)
@@ -32,8 +33,8 @@ export default function GrowthReactionButton({ level, name, size, variant, canRe
     // 반응 중에는 새로운 반응을 겹쳐 재생하지 않습니다.
     if (!canReact || timerIds.current.length > 0) return
     const stage = getCharacterGrowth(level)
-    const dance = getGrowthDance(level, nextDance.current)
-    if (dance !== null) nextDance.current = (nextDance.current + 1) % stage.dances
+    const dance = getGrowthDance(level, nextDance.current, unadopted)
+    nextDance.current += 1
     const [first, second, third] = stage.lines
     setReaction({ text: first, dance })
     timerIds.current = [

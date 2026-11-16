@@ -1,3 +1,5 @@
+import './rain-notice.css'
+
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -18,6 +20,12 @@ function shortLabel(notice: RainNotice, now: number): string {
  */
 export default function RainNoticeBanner({ coordinates }: { coordinates: Coordinates }) {
   const [open, setOpen] = useState(false)
+  const [seenForecasts, setSeenForecasts] = useState<string[]>(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem('ddorang:seen-rain-forecasts') ?? '[]')
+      return Array.isArray(saved) ? saved.filter((key): key is string => typeof key === 'string').slice(-64) : []
+    } catch { return [] }
+  })
   const [now, setNow] = useState(() => Date.now())
   const { data: notice } = useQuery({
     queryKey: ['rain-notice', coordinates],
@@ -37,15 +45,33 @@ export default function RainNoticeBanner({ coordinates }: { coordinates: Coordin
   const rainStart = formatKstDayAndTime(notice.forecast?.rainStartAt, now)
   const deadline = formatKstDayAndTime(notice.forecast?.completeDeadlineAt, now)
   const help = notice.help
+  const forecast = notice.forecast
+  const forecastKey = notice.state === 'FORECAST' && forecast
+    ? `${forecast.rainDate}:${forecast.forecastId}:${forecast.simulated}`
+    : null
+  const highlighted = forecastKey !== null && !seenForecasts.includes(forecastKey)
+
+  function toggleDetails() {
+    if (highlighted && forecastKey) {
+      const updated = [...seenForecasts, forecastKey].slice(-64)
+      setSeenForecasts(updated)
+      try {
+        localStorage.setItem('ddorang:seen-rain-forecasts', JSON.stringify(updated))
+      } catch { /* 저장이 차단되어도 현재 화면의 확인 상태는 유지합니다. */ }
+    }
+    setOpen((value) => !value)
+  }
 
   return (
     <div className="absolute left-3 top-[72px] z-20 max-w-[calc(100%-24px)] break-keep">
       <button
         type="button"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleDetails}
         className={`flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-[13px] font-bold shadow-[0_4px_14px_rgba(23,43,77,0.12)] ${
-          raining
+          highlighted
+            ? 'dd-rain-forecast-unseen'
+            : raining
             ? 'border-[#3981F7] bg-[#3981F7] text-white'
             : 'border-[#C6DCFF] bg-[#EAF2FF] text-[#3981F7]'
         }`}
