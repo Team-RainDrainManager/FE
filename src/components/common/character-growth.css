@@ -23,8 +23,8 @@
   word-break: keep-all;
   pointer-events: none;
 }
-.dd-growth-speech--card { left: 0; bottom: 92%; }
-.dd-growth-speech--map { left: 50%; bottom: 96%; transform: translateX(-50%); }
+.dd-growth-speech--card { left: 46%; bottom: 81%; max-width: min(240px, calc(100vw - 120px)); }
+.dd-growth-speech--map { left: 50%; bottom: 85%; transform: translateX(-50%); }
 @media (prefers-reduced-motion: reduce) {
   .dd-growth-action { animation: none !important; }
 }

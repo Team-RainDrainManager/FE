@@ -1,3 +1,6 @@
+/* 지도 영역의 두 손가락 입력은 카카오 지도에서 처리합니다. */
+.dd-kakao-map { touch-action: none; }
+
 /*
  * 지도 바탕 · 다크모드 · 빗물받이 마커 색.
  *
@@ -48,17 +51,10 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
   justify-content: flex-end;
 }
 
-.dd-map-level-2 { --pin-scale: 1.5; }
-.dd-map-level-1 { --pin-scale: 2; }
-.drain-pin[aria-pressed="false"] {
-  scale: var(--pin-scale, 1);
-  transform-origin: bottom center;
-}
 .drain-pin .drain-whisper {
   bottom: calc(100% - 1px);
   translate: -50% 0;
   display: flex;
-  scale: calc(1 / var(--pin-scale, 1));
   transform-origin: bottom center;
   font-size: 15.5px;
   line-height: 1.3;
@@ -76,7 +72,7 @@ html[data-dd-theme='dark'] .dd-marker-ring { border-color: #f2f4f7; }
   pointer-events: none;
 }
 .drain-pin .drain-pin-art { background: transparent !important; }
-.drain-pin-art.pin-unadopted { --pin-fill: #986e46; }
+.drain-pin-art.pin-unadopted { --pin-fill: #98a2b3; }
 .drain-pin-art.dd-marker-normal { --pin-fill: #22a45d; }
 .drain-pin-art.dd-marker-inspection { --pin-fill: #f5b400; }
 .drain-pin-art.dd-marker-blocked { --pin-fill: #e5484d; }
@@ -120,16 +116,16 @@ html[data-dd-theme='dark'] .drain-pin-fill { stroke-width: .8; }
 }
 html[data-dd-theme='dark'] .drain-dot { border-color: #fff; }
 
-.dd-map-overlay .drain-dot-unadopted { background-color: #986e46; }
+.dd-map-overlay .drain-dot-unadopted { background-color: #98a2b3; }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-normal { background-color: #22a45d; }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-inspection { background-color: #f5b400; }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-blocked { background-color: #e5484d; }
 html[data-dd-theme='dark'] .dd-map-overlay .dd-marker-unknown { background-color: #98a2b3; }
-html[data-dd-theme='dark'] .dd-map-overlay .drain-dot-unadopted { background-color: #986e46; }
+html[data-dd-theme='dark'] .dd-map-overlay .drain-dot-unadopted { background-color: #98a2b3; }
 .dd-map-overlay .drain-available,
 html[data-dd-theme='dark'] .dd-map-overlay .drain-available,
 .dd-map-overlay .drain-available .dd-face,
-html[data-dd-theme='dark'] .dd-map-overlay .drain-available .dd-face { background-color: #986e46; }
+html[data-dd-theme='dark'] .dd-map-overlay .drain-available .dd-face { background-color: #98a2b3; }
 
 /* 빗물받이를 눌렀을 때 정보 카드 위에 둥둥 떠 있는 캐릭터 */
 .dd-float {

@@ -131,7 +131,7 @@ export default function DrainMarker({
             className="drain-whisper"
             style={inspectionBadge ? { bottom: 'calc(100% + 22px)' } : undefined}
           >
-            <SpeechBubble tailCentered>저를 입양해 주세요!</SpeechBubble>
+            <SpeechBubble>저를 입양해 주세요!</SpeechBubble>
           </span>
         )}
         <span className={`drain-pin-art ${available ? 'pin-unadopted' : markerColor(drain)}`}>
