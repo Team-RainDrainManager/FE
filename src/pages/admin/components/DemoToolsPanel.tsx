@@ -7,8 +7,10 @@ import {
   simulateRain,
   type ForecastSimulateResult,
 } from '../../../apis/admin'
+import { getCurrentCoordinates } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
 import { getRainNotice } from '../../../apis/rain-notice'
+import type { Coordinates } from '../../../apis/requests'
 import { formatKstDateTime, KST_TIME_ZONE } from '../../../utils/kstDateTime'
 
 // 서버의 비 예보 기준(강수확률 60% 이상이고 강수량 5mm 이상)을 넉넉히 넘는 값입니다.
@@ -49,7 +51,7 @@ function describe(result: ForecastSimulateResult): string {
   if (result.applied === 'CONFIRMED') {
     return result.createdCount > 0
       ? `비 예보를 보냈어요. 점검 요청 ${result.createdCount}건이 만들어졌어요.`
-      : '예보는 적용됐지만 만들어진 요청이 없어요. 등록된 빗물받이가 있는지 확인해 주세요.'
+      : '예보를 적용했어요. 생성된 요청이 없어 선택한 지역의 빗물받이를 확인해 주세요.'
   }
   if (result.applied === 'UPDATED') return '같은 날 예보가 이미 있어 값만 바꿨어요. 새 요청은 만들어지지 않았어요.'
   if (result.applied === 'CANCELLED') return `예보를 취소했어요. 점검 요청 ${result.cancelledCount}건이 취소됐어요.`
@@ -63,12 +65,19 @@ function describe(result: ForecastSimulateResult): string {
 export default function DemoToolsPanel() {
   const queryClient = useQueryClient()
   const [option, setOption] = useState<RainStart>('tomorrow')
+  const [coordinates, setCoordinates] = useState<Coordinates>()
   const [armed, setArmed] = useState(false)
   const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const location = useMutation({
+    mutationFn: getCurrentCoordinates,
+    onSuccess: setCoordinates,
+  })
 
   const notice = useQuery({
-    queryKey: ['rain-notice'],
-    queryFn: ({ signal }) => getRainNotice(signal),
+    queryKey: ['rain-notice', coordinates],
+    queryFn: ({ signal }) => getRainNotice(signal, coordinates),
     staleTime: 10_000,
     refetchInterval: 30_000,
   })
@@ -76,9 +85,19 @@ export default function DemoToolsPanel() {
   const refresh = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: ['rain-notice'] }),
     queryClient.invalidateQueries({ queryKey: ['rain-requests'] }),
+    queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
     queryClient.invalidateQueries({ queryKey: ['notifications-list'] }),
     queryClient.invalidateQueries({ queryKey: ['notifications-summary'] }),
   ])
+
+  function clearFeedback() {
+    setMessage('')
+    setError('')
+  }
+
+  function showError(caught: unknown) {
+    setError(getErrorMessage(caught))
+  }
 
   const send = useMutation({
     mutationFn: async () => {
@@ -86,10 +105,14 @@ export default function DemoToolsPanel() {
       if (!at) throw new Error('오늘 비는 자정 전에 시작하는 일정만 보낼 수 있어요. 내일 비로 보내 주세요.')
       // 가상 예보가 남아 있으면 같은 날짜에 새 요청이 만들어지지 않으므로, 먼저 모두 취소하고 다시 보냅니다.
       await cancelSimulatedForecasts()
-      return simulateForecast({ pop: DEMO_POP, mm: DEMO_MM, rainStartAt: at })
+      return simulateForecast({ pop: DEMO_POP, mm: DEMO_MM, rainStartAt: at }, coordinates)
     },
-    onSuccess: (result) => { setMessage(describe(result)); return refresh() },
-    onSettled: () => setArmed(false),
+    onSuccess: (result) => setMessage(describe(result)),
+    onError: showError,
+    onSettled: () => {
+      setArmed(false)
+      return refresh()
+    },
   })
 
   const cancel = useMutation({
@@ -100,21 +123,26 @@ export default function DemoToolsPanel() {
         : '취소할 가상 예보가 없어요.')
       return refresh()
     },
+    onError: showError,
   })
 
   const rain = useMutation({
-    mutationFn: (minutes: number) => simulateRain(minutes),
-    onSuccess: (result) => {
+    mutationFn: (minutes: number) => simulateRain(minutes, coordinates),
+    onSuccess: (result, minutes) => {
       const until = formatKstDateTime(result.simulatedRainingUntil)
-      setMessage(result.raining
-        ? `지도에 '비 오는 중'을 켰어요.${until ? ` ${until}까지 표시돼요.` : ''}`
-        : "'비 오는 중' 표시를 껐어요.")
+      if (minutes === 0) {
+        setMessage(result.raining
+          ? '가상 비 표시를 해제했어요. 실제 날씨는 비 오는 중이에요.'
+          : '선택한 지역의 가상 비 표시를 해제했어요.')
+      } else {
+        setMessage(`선택한 지역에 '비 오는 중'을 켰어요.${until ? ` ${until}까지 표시돼요.` : ''}`)
+      }
       return refresh()
     },
+    onError: showError,
   })
 
-  const busy = send.isPending || cancel.isPending || rain.isPending
-  const failed = send.error ?? cancel.error ?? rain.error
+  const busy = location.isPending || send.isPending || cancel.isPending || rain.isPending
   const forecast = notice.data?.forecast
   const forecastStart = formatKstDateTime(forecast?.rainStartAt)
   const help = notice.data?.help
@@ -122,11 +150,50 @@ export default function DemoToolsPanel() {
   return (
     <section aria-label="시연 도구" className="space-y-3">
       <p className="rounded-xl bg-[#FFF4DC] px-3 py-2.5 text-[13px] font-medium leading-5 text-[#8A6510]">
-        시연용 도구예요. 비 예보를 보내면 운영 서버의 입양자 모두에게 점검 요청과 알림이 가요. 행사가 끝나면 꼭 취소해 주세요.
+        비 예보를 보내면 선택한 지역의 입양자에게 점검 요청과 알림이 가요. 행사가 끝나면 가상 예보를 취소해 주세요.
       </p>
 
       <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
-        <h3 className="text-[15px] font-bold text-[#203451]">지금 상태</h3>
+        <h3 className="text-[15px] font-bold text-[#203451]">시연 위치</h3>
+        <p role="status" className="mt-1 text-[13px] leading-5 text-[#637790]">
+          {coordinates
+            ? `현재 위치 · 위도 ${coordinates.latitude.toFixed(5)}, 경도 ${coordinates.longitude.toFixed(5)}`
+            : '기본 위치 · 역곡동'}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              clearFeedback()
+              setArmed(false)
+              location.mutate()
+            }}
+            className="min-h-11 rounded-xl border border-[#C6DCFF] bg-[#EAF2FF] px-2 text-[13px] font-bold text-[#3981F7] disabled:opacity-50"
+          >
+            {location.isPending ? '위치 확인 중…' : '현재 위치 사용'}
+          </button>
+          <button
+            type="button"
+            disabled={busy || (!coordinates && !location.isError)}
+            onClick={() => {
+              clearFeedback()
+              setArmed(false)
+              setCoordinates(undefined)
+              location.reset()
+            }}
+            className="min-h-11 rounded-xl border border-[#DCE5F0] bg-white px-2 text-[13px] font-bold text-[#53647E] disabled:opacity-50"
+          >
+            역곡동 기본 위치
+          </button>
+        </div>
+        {location.isError && (
+          <p role="alert" className="mt-2 text-[13px] text-[#B84D4D]">{getErrorMessage(location.error)}</p>
+        )}
+      </div>
+
+      <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
+        <h3 className="text-[15px] font-bold text-[#203451]">선택한 지역의 현재 상태</h3>
         {notice.isPending ? (
           <p role="status" className="mt-2 text-[13px] text-[#637790]">불러오는 중이에요.</p>
         ) : notice.isError ? (
@@ -143,7 +210,7 @@ export default function DemoToolsPanel() {
             </div>
             <div className="rounded-xl bg-[#F4F7FB] px-3 py-2">
               <dt className="text-[#637790]">비 오는 중</dt>
-              <dd className="mt-0.5 font-bold text-[#203451]">{notice.data.raining ? '켜짐' : '꺼짐'}</dd>
+              <dd className="mt-0.5 font-bold text-[#203451]">{notice.data.raining ? '예' : '아니요'}</dd>
             </div>
             {help && (
               <div className="col-span-2 rounded-xl bg-[#F4F7FB] px-3 py-2">
@@ -160,7 +227,7 @@ export default function DemoToolsPanel() {
       <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
         <h3 className="text-[15px] font-bold text-[#203451]">비 예보 보내기</h3>
         <p className="mt-1 text-[13px] leading-5 text-[#637790]">
-          입양자에게 점검 요청이 가고, 입양자 없는 빗물받이는 대신 점검 대상으로 열려요. 체험자가 바뀔 때마다 다시 눌러 주세요.
+          선택한 지역에서 입양자에게 점검 요청이 가고, 미입양 빗물받이는 대신 점검 대상으로 열려요.
         </p>
 
         <div role="radiogroup" aria-label="비 시작 시각" className="mt-3 grid grid-cols-2 gap-2">
@@ -188,7 +255,9 @@ export default function DemoToolsPanel() {
 
         {armed ? (
           <div role="group" aria-label="보내기 확인" className="mt-3 rounded-xl bg-[#F4F7FB] p-3">
-            <p className="text-[14px] font-bold text-[#203451]">입양자 모두에게 점검 요청이 가요. 보낼까요?</p>
+            <p className="text-[14px] font-bold text-[#203451]">
+              모든 지역의 기존 가상 예보와 진행 중인 요청을 취소한 뒤 선택한 지역에 새 예보를 보내요. 보낼까요?
+            </p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -201,7 +270,7 @@ export default function DemoToolsPanel() {
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => { setMessage(''); send.mutate() }}
+                onClick={() => { clearFeedback(); send.mutate() }}
                 className="min-h-11 rounded-xl bg-[#3981F7] text-[14px] font-bold text-white disabled:opacity-50"
               >
                 {send.isPending ? '보내는 중…' : '보내기'}
@@ -212,7 +281,7 @@ export default function DemoToolsPanel() {
           <button
             type="button"
             disabled={busy}
-            onClick={() => { setMessage(''); send.reset(); setArmed(true) }}
+            onClick={() => { clearFeedback(); setArmed(true) }}
             className="mt-3 min-h-11 w-full rounded-xl bg-[#3981F7] px-3 text-[15px] font-bold text-white disabled:opacity-50"
           >
             새 체험자에게 비 예보 보내기
@@ -222,17 +291,17 @@ export default function DemoToolsPanel() {
         <button
           type="button"
           disabled={busy}
-          onClick={() => { setMessage(''); setArmed(false); cancel.mutate() }}
+          onClick={() => { clearFeedback(); setArmed(false); cancel.mutate() }}
           className="mt-2 min-h-11 w-full rounded-xl border border-[#DCE5F0] bg-white px-3 text-[14px] font-bold text-[#53647E] disabled:opacity-50"
         >
-          {cancel.isPending ? '취소하는 중…' : '가상 예보 모두 취소'}
+          {cancel.isPending ? '취소하는 중…' : '모든 지역 가상 예보 취소'}
         </button>
       </div>
 
       <div className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
         <h3 className="text-[15px] font-bold text-[#203451]">지도에 '비 오는 중' 표시</h3>
         <p className="mt-1 text-[13px] leading-5 text-[#637790]">
-          지도 배너만 바뀌어요. 점검 요청은 만들어지지 않아요.
+          선택한 지역의 지도 배너에 비가 오는 상태를 표시해요.
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2">
           {[10, 30, 0].map((minutes) => (
@@ -240,7 +309,7 @@ export default function DemoToolsPanel() {
               key={minutes}
               type="button"
               disabled={busy}
-              onClick={() => { setMessage(''); setArmed(false); rain.mutate(minutes) }}
+              onClick={() => { clearFeedback(); setArmed(false); rain.mutate(minutes) }}
               className={`min-h-11 rounded-xl border px-2 text-[14px] font-bold disabled:opacity-50 ${
                 minutes === 0
                   ? 'border-[#DCE5F0] bg-white text-[#53647E]'
@@ -254,7 +323,7 @@ export default function DemoToolsPanel() {
       </div>
 
       {message && <p role="status" className="rounded-xl bg-[#E5F7ED] px-3 py-2.5 text-[14px] font-bold leading-6 text-[#1F7A55]">{message}</p>}
-      {failed && <p role="alert" className="rounded-xl bg-[#FFF1F1] px-3 py-2.5 text-[14px] leading-6 text-[#B84D4D]">{getErrorMessage(failed)}</p>}
+      {error && <p role="alert" className="rounded-xl bg-[#FFF1F1] px-3 py-2.5 text-[14px] leading-6 text-[#B84D4D]">{error}</p>}
     </section>
   )
 }

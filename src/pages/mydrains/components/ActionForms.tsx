@@ -1,6 +1,8 @@
 
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
+import { checkAdoptionNickname } from '../../../apis/adoptions'
 import RainInspectForm from '../../drainDetail/components/RainInspectForm'
 
 import type { ReleaseAdoptionRequest } from '../../../types/myDrains'
@@ -31,6 +33,7 @@ export function InspectForm({
 }
 
 type RenameFormProps = {
+  adoptionId: number
   currentName: string
   onSave: (nickname: string) => void
   isSaving: boolean
@@ -38,19 +41,42 @@ type RenameFormProps = {
 }
 
 export function RenameForm({
+  adoptionId,
   currentName,
   onSave,
   isSaving,
   errorMessage,
 }: RenameFormProps) {
+  const hintId = useId()
   const [name, setName] = useState(currentName)
+  const [nicknameToCheck, setNicknameToCheck] = useState('')
+  const [submittedNickname, setSubmittedNickname] = useState<string | null>(null)
   const nickname = name.trim()
-  const canSave =
-    !isSaving && nickname.length >= 1 && nickname.length <= 20 && nickname !== currentName
+  const validNickname = nickname.length >= 1 && nickname.length <= 20 && nickname !== currentName.trim()
+  const nicknameCheck = useQuery({
+    queryKey: ['adoption-nickname-availability', nicknameToCheck, adoptionId],
+    queryFn: ({ signal }) => checkAdoptionNickname(nicknameToCheck, adoptionId, signal),
+    enabled: nicknameToCheck !== '',
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const nicknameTaken = nicknameToCheck !== '' && nicknameCheck.isSuccess && !nicknameCheck.isFetching && !nicknameCheck.data.available
+  const canSave = !isSaving && validNickname && !nicknameTaken
+  const saveError = submittedNickname === nickname ? errorMessage : null
+  let nicknameHint = '1~20자로 입력해 주세요.'
+  if (nicknameTaken) {
+    nicknameHint = '이미 사용 중인 또랑이 이름이에요.'
+  } else if (nicknameToCheck && !saveError) {
+    if (nicknameCheck.isFetching) nicknameHint = '또랑이 이름을 확인하고 있어요.'
+    else if (nicknameCheck.isError) nicknameHint = '중복 확인을 못 했어요. 저장할 때 다시 확인해요.'
+    else if (nicknameCheck.isSuccess) nicknameHint = '사용할 수 있는 또랑이 이름이에요.'
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (canSave) onSave(nickname)
+    if (!canSave) return
+    setSubmittedNickname(nickname)
+    onSave(nickname)
   }
 
   return (
@@ -64,15 +90,28 @@ export function RenameForm({
           maxLength={20}
           value={name}
           disabled={isSaving}
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) => {
+            setName(event.target.value)
+            setNicknameToCheck('')
+            setSubmittedNickname(null)
+          }}
+          onBlur={() => setNicknameToCheck(validNickname ? nickname : '')}
+          aria-describedby={hintId}
+          aria-invalid={nicknameTaken}
           className="mt-2 w-full rounded-xl border border-[var(--dd-line)] bg-[var(--dd-surface)] p-3 text-base"
         />
-        <span className="mt-1.5 block font-normal">1~20자로 입력해 주세요.</span>
       </label>
+      <p
+        id={hintId}
+        role="status"
+        className={`-mt-2 text-xs ${nicknameTaken ? 'text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]' : 'text-[var(--dd-muted)]'}`}
+      >
+        {nicknameHint}
+      </p>
 
-      {errorMessage && (
+      {saveError && (
         <p role="alert" className="rounded-xl bg-[#FFF1F1] p-3 text-xs text-[#B84D4D]">
-          {errorMessage}
+          {saveError}
         </p>
       )}
 

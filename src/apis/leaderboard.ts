@@ -2,6 +2,8 @@ import { queryOptions, useQuery } from '@tanstack/react-query'
 import type { ApiEnvelope } from './auth'
 import { apiClient } from './axios-instance'
 
+export const WEEKLY_RANKING_LIMIT = 100
+
 export interface Rank {
   userId: number
   rank: number
@@ -28,7 +30,7 @@ export function useTopRanks(id: number | null) {
     enabled: id !== null,
     queryFn: async ({ signal }) => {
       const { data: body } = await apiClient.get<ApiEnvelope<WeeklyLeaderboard | null>>('/api/v1/leaderboard', {
-        params: { type: 'WEEKLY', limit: 10 },
+        params: { type: 'WEEKLY', limit: WEEKLY_RANKING_LIMIT },
         signal,
       })
       if (!body.success || !Array.isArray(body.data?.rankings)) {

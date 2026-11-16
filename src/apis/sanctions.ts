@@ -9,6 +9,9 @@ export type MySanction = {
   endedAt: string | null
   createdAt: string | null
   days: number | null
+  active: boolean | null
+  permanent: boolean
+  revokedAt: string | null
 }
 
 type Envelope = {
@@ -29,10 +32,6 @@ function textField(item: Record<string, unknown>, keys: string[]): string | null
   return null
 }
 
-function dateField(item: Record<string, unknown>, keys: string[]): string | null {
-  return textField(item, keys)
-}
-
 function parseSanctions(value: unknown): MySanction[] {
   let entries: unknown
   if (Array.isArray(value)) entries = value
@@ -51,11 +50,14 @@ function parseSanctions(value: unknown): MySanction[] {
       id,
       reason: textField(item, ['reason', 'description', 'sanctionReason']),
       type: textField(item, ['type', 'sanctionType']),
-      status: textField(item, ['status', 'sanctionStatus']) ?? (typeof item.active === 'boolean' ? (item.active ? '진행 중' : '종료') : null),
-      startedAt: dateField(item, ['startedAt', 'startAt', 'startDate', 'effectiveAt']),
-      endedAt: dateField(item, ['endedAt', 'endAt', 'endDate', 'expiresAt']),
-      createdAt: dateField(item, ['createdAt', 'issuedAt', 'appliedAt']),
+      status: textField(item, ['status', 'sanctionStatus']),
+      startedAt: textField(item, ['startsAt', 'startedAt', 'startAt', 'startDate', 'effectiveAt']),
+      endedAt: textField(item, ['until', 'endedAt', 'endAt', 'endDate', 'expiresAt']),
+      createdAt: textField(item, ['createdAt', 'issuedAt', 'appliedAt']),
       days: typeof rawDays === 'number' && Number.isFinite(rawDays) ? rawDays : null,
+      active: typeof item.active === 'boolean' ? item.active : null,
+      permanent: item.permanent === true,
+      revokedAt: textField(item, ['revokedAt']),
     }
   })
 }

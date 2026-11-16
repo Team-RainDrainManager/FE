@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
 import ModalShell from '../../../components/common/Modalshell'
 import type { DrainDetailDto } from '../../../types/drainDetail'
@@ -8,7 +9,9 @@ import { InspectForm } from '../../mydrains/components/ActionForms'
 import { AdoptForm } from './AdoptionForms'
 import RainInspectForm from './RainInspectForm'
 
-type Action = 'adopt' | 'inspect' | 'rain-inspect'
+type Action =
+  | { type: 'adopt' | 'inspect' }
+  | { type: 'rain-inspect'; request: InspectionRequest }
 
 type Props = {
   drain: DrainDetailDto
@@ -16,13 +19,14 @@ type Props = {
   rainRequest?: InspectionRequest
 }
 
-const TITLES: Record<Action, string> = {
+const TITLES: Record<Action['type'], string> = {
   adopt: '빗물받이 입양하기',
   inspect: '사진으로 점검 기록',
   'rain-inspect': '비 예보 점검 인증',
 }
 
 export default function DrainActions({ drain, isMine, rainRequest }: Props) {
+  const queryClient = useQueryClient()
   const [action, setAction] = useState<Action | null>(null)
   const [dismissedRequestId, setDismissedRequestId] = useState<number | null>(null)
 
@@ -32,13 +36,22 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
   const canUseRainRequest =
     rainRequest?.role === 'CLAIMANT' ||
     (rainRequest?.role === 'OWNER' && isMyAdoption)
-  const autoOpenRain =
-    canUseRainRequest && dismissedRequestId !== rainRequest?.requestId
-  const activeAction = action ?? (autoOpenRain ? 'rain-inspect' : null)
+  const availableRainRequest = canUseRainRequest ? rainRequest : undefined
+
+  // 요청 목록이 갱신되어도 이미 열린 점검 폼과 결과는 유지합니다.
+  if (!action && availableRainRequest && dismissedRequestId !== availableRainRequest.requestId) {
+    setAction({ type: 'rain-inspect', request: availableRainRequest })
+  }
 
   function closeModal() {
-    if (rainRequest) setDismissedRequestId(rainRequest.requestId)
+    const request = action?.type === 'rain-inspect' ? action.request : availableRainRequest
+    if (request) setDismissedRequestId(request.requestId)
     setAction(null)
+    if (action?.type === 'rain-inspect') {
+      void queryClient.invalidateQueries({
+        queryKey: ['rain-inspection-context', action.request.requestId],
+      })
+    }
   }
 
   if (drain.status === 'REMOVED') {
@@ -62,7 +75,7 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
         {isMyAdoption ? (
           <button
             type="button"
-            onClick={() => setAction('inspect')}
+            onClick={() => setAction({ type: 'inspect' })}
             className="flex min-h-[51px] w-full items-center justify-center gap-2 rounded-[15px] bg-[#276C9B] px-3 text-[15px] font-extrabold text-white shadow-[0_7px_17px_rgba(39,108,155,0.2)] [html[data-dd-theme=dark]_&]:bg-[#2b61a3]"
           >
             <svg
@@ -108,41 +121,38 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
         {canAdopt && (
           <button
             type="button"
-            onClick={() => setAction('adopt')}
+            onClick={() => setAction({ type: 'adopt' })}
             className="mt-4 min-h-11 w-full rounded-xl bg-[#276C9B] px-3 text-sm font-bold text-white [html[data-dd-theme=dark]_&]:bg-[#2b61a3]"
           >
             이 빗물받이 입양하기
           </button>
         )}
 
-        {canUseRainRequest && rainRequest && (
+        {availableRainRequest && (
           <button
             type="button"
-            onClick={() => {
-              setDismissedRequestId(rainRequest.requestId)
-              setAction('rain-inspect')
-            }}
+            onClick={() => setAction({ type: 'rain-inspect', request: availableRainRequest })}
             className="mt-3 min-h-11 w-full rounded-xl border border-[#B9D7FF] [html[data-dd-theme=dark]_&]:border-[var(--dd-line)] bg-[#E6F3FD] [html[data-dd-theme=dark]_&]:bg-[#283f5b] px-3 text-xs font-bold text-[#185881] [html[data-dd-theme=dark]_&]:text-[var(--dd-blue)]"
           >
-            {rainRequest.role === 'CLAIMANT' ? '대신 점검 인증하기' : '비 예보 점검 인증하기'}
+            {availableRainRequest.role === 'CLAIMANT' ? '대신 점검 인증하기' : '비 예보 점검 인증하기'}
           </button>
         )}
       </section>
 
-      {activeAction && (
+      {action && (
         <ModalShell
           title={
-            activeAction === 'rain-inspect' && rainRequest?.role === 'CLAIMANT'
+            action.type === 'rain-inspect' && action.request.role === 'CLAIMANT'
               ? '대신 점검 인증'
-              : TITLES[activeAction]
+              : TITLES[action.type]
           }
           onClose={closeModal}
         >
-          {activeAction === 'adopt' && (
+          {action.type === 'adopt' && (
             <AdoptForm drainId={drain.id} onClose={closeModal} />
           )}
 
-          {activeAction === 'inspect' && adoption && isMyAdoption && (
+          {action.type === 'inspect' && adoption && isMyAdoption && (
             <InspectForm
               adoptionId={adoption.adoptionId}
               drainId={drain.id}
@@ -151,12 +161,12 @@ export default function DrainActions({ drain, isMine, rainRequest }: Props) {
             />
           )}
 
-          {activeAction === 'rain-inspect' && canUseRainRequest && rainRequest && (
+          {action.type === 'rain-inspect' && (
             <RainInspectForm
-              key={rainRequest.requestId}
+              key={action.request.requestId}
               drainId={drain.id}
-              requestId={rainRequest.requestId}
-              kind={rainRequest.role === 'CLAIMANT' ? 'SUBSTITUTE' : 'FORECAST'}
+              requestId={action.request.requestId}
+              kind={action.request.role === 'CLAIMANT' ? 'SUBSTITUTE' : 'FORECAST'}
               adoptionName={adoption?.nickname || '빗물받이'}
               onCancel={closeModal}
             />

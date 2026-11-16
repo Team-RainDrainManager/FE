@@ -3,7 +3,14 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router'
 import { isAxiosError } from 'axios'
 import { logout, getErrorMessage } from '../../apis/auth'
-import { createBugReport, type BugReportCategory } from '../../apis/bug-reports'
+import {
+  BUG_REPORT_CATEGORIES,
+  BUG_REPORT_CONTENT_MAX,
+  BUG_REPORT_CONTENT_MIN,
+  MY_BUG_REPORTS_QUERY_KEY,
+  createBugReport,
+  type BugReportCategory,
+} from '../../apis/bug-reports'
 import { getNotificationSettings, updateNotificationSettings, getPauseStatus, requestPause, type NotificationSettings, type PauseStatus } from '../../apis/profile-settings'
 import { withdrawMyAccount } from '../../apis/account'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -15,6 +22,7 @@ import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstR
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
 import { requestPushPermission, syncPushTokenIfAllowed, unregisterPushDevice } from '../../services/push-messaging'
 import { AccountId } from '../../features/account/AccountId'
+import { MyBugReportsPanel } from '../../features/bug-reports/BugReportList'
 import PushOptInCard from '../../features/push/PushOptInCard'
 
 const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] = [
@@ -23,13 +31,6 @@ const MODES: {id:ThemeMode; title:string; description:string; symbol:string}[] =
   {id:'sun',title:'일출·일몰',description:'해 뜨면 라이트 · 해 지면 다크',symbol:'◐'},
 ]
 const card = 'dd-settings-card rounded-[22px] border border-[#E5EEF7] bg-white p-5'
-const BUG_REPORT_CATEGORIES: Record<BugReportCategory, string> = {
-  UI: '화면·디자인 오류',
-  ERROR: '오류·멈춤',
-  FEATURE: '기능 동작 오류',
-  PERFORMANCE: '속도 저하',
-  OTHER: '기타',
-}
 
 export default function SettingsPage({ embedded = false, reportButtonRef }: { embedded?: boolean; reportButtonRef?: RefObject<HTMLButtonElement | null> }) {
   const navigate = useNavigate()
@@ -46,7 +47,7 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
   const sun = useThemeStore(s => s.sun)
   const setRegion = useThemeStore(s => s.setLocation)
   const [regionMessage,setRegionMessage] = useState('')
-  const [reportOpen, setReportOpen] = useState(false)
+  const [reportView, setReportView] = useState<'form' | 'history' | null>(null)
   const [reportCategory, setReportCategory] = useState<BugReportCategory>('UI')
   const [reportTitle, setReportTitle] = useState('')
   const [reportText, setReportText] = useState('')
@@ -235,11 +236,11 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
   function openReport() {
     setReportId(null)
     setReportError('')
-    setReportOpen(true)
+    setReportView('form')
   }
 
   function closeReport() {
-    if (!reportBusy) setReportOpen(false)
+    if (!reportBusy) setReportView(null)
   }
 
   async function submitReport(event: FormEvent<HTMLFormElement>) {
@@ -252,8 +253,8 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
       setReportError('제목을 2~100자로 입력해 주세요.')
       return
     }
-    if (content.length < 5 || content.length > 2000) {
-      setReportError('내용을 5~2,000자로 입력해 주세요.')
+    if (content.length < BUG_REPORT_CONTENT_MIN || content.length > BUG_REPORT_CONTENT_MAX) {
+      setReportError('내용을 10~2,000자로 입력해 주세요.')
       return
     }
 
@@ -261,6 +262,7 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     setReportError('')
     try {
       const result = await createBugReport({ category: reportCategory, title, content })
+      void queryClient.invalidateQueries({ queryKey: MY_BUG_REPORTS_QUERY_KEY })
       setReportId(result.bugReportId)
       setReportCategory('UI')
       setReportTitle('')
@@ -392,7 +394,7 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
         </section>
       </div>, document.body
     )}
-    {reportOpen && createPortal(
+    {reportView && createPortal(
       <div
         className="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 p-4"
         onClick={(event) => {
@@ -405,11 +407,20 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
           aria-labelledby="bug-report-title"
           className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl bg-[var(--dd-surface)] p-5 text-[var(--dd-ink)] shadow-2xl"
         >
-          {reportId !== null ? (
+          {reportView === 'history' ? (
+            <MyBugReportsPanel onBack={() => setReportView('form')} onClose={closeReport} />
+          ) : reportId !== null ? (
             <div className="py-5 text-center">
               <p aria-hidden="true" className="text-3xl">✓</p>
               <h3 id="bug-report-title" className="mt-3 text-lg font-bold">버그 신고가 접수됐어요</h3>
               <p role="status" className="mt-2 text-sm">접수 번호 {reportId}</p>
+              <button
+                type="button"
+                onClick={() => setReportView('history')}
+                className="mt-3 min-h-11 w-full rounded-xl bg-[var(--dd-subtle)] text-sm font-bold text-[var(--dd-blue)]"
+              >
+                내 버그 신고 내역
+              </button>
               <button
                 type="button"
                 onClick={closeReport}
@@ -432,6 +443,14 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
                   ✕
                 </button>
               </div>
+              <button
+                type="button"
+                disabled={reportBusy}
+                onClick={() => setReportView('history')}
+                className="min-h-10 text-sm font-bold text-[var(--dd-blue)] disabled:opacity-50"
+              >
+                내 버그 신고 내역 ›
+              </button>
               <fieldset disabled={reportBusy} className="space-y-3">
                 <label className="block space-y-1 text-xs font-bold" htmlFor="report-category">
                   <span>오류 종류</span>
@@ -464,7 +483,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
                     id="report-description"
                     rows={5}
                     required
-                    maxLength={2000}
                     value={reportText}
                     onChange={(event) => setReportText(event.target.value)}
                     placeholder="문제가 발생한 화면과 상황을 10자 이상 적어 주세요."
