@@ -158,23 +158,35 @@ html[data-dd-theme='dark'] .dd-map-overlay .drain-available .dd-face { backgroun
   }
 }
 
-/* 외곽선 안쪽의 상태색만 밝아졌다 어두워집니다. */
-.drain-dot { position: relative; }
-.drain-dot::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: white;
-  opacity: 0;
-  pointer-events: none;
+/* 지도에 한 박자만 두어 나중에 추가되는 원거리 점도 같은 위상을 따릅니다. */
+@property --dd-led-phase {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
 }
+.drain-dot { position: relative; --dd-led-color: #fff; }
+.drain-dot.dd-marker-normal { --dd-led-color: #5bff9a; }
+.drain-dot.dd-marker-inspection { --dd-led-color: #ffe661; }
+.drain-dot.dd-marker-blocked { --dd-led-color: #ff797c; }
 @media (prefers-reduced-motion: no-preference) {
+  .dd-kakao-map { animation: dd-led-beat 5s ease-in-out infinite; }
+  .drain-dot::before, .drain-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+  }
   .drain-dot::before {
-    animation: dd-dot-light var(--pulse-duration) ease-in-out var(--pulse-delay) infinite;
+    background: #000;
+    opacity: calc(.31 * (1 - var(--dd-led-phase)));
+  }
+  .drain-dot::after {
+    background: var(--dd-led-color);
+    opacity: calc(.72 * var(--dd-led-phase));
   }
 }
-@keyframes dd-dot-light {
-  0%, 100% { background-color: #000; opacity: .34; }
-  50% { background-color: #fff; opacity: .42; }
+@keyframes dd-led-beat {
+  0%, 100% { --dd-led-phase: 0; }
+  50% { --dd-led-phase: 1; }
 }
