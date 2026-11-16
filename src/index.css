@@ -2,6 +2,7 @@
 
 html {
   scrollbar-gutter: stable;
+  touch-action: manipulation;
 }
 
 /* 공용 바텀시트 */

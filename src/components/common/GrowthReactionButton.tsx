@@ -66,7 +66,7 @@ export default function GrowthReactionButton({ level, name, size, variant, canRe
       </button>
       {reaction && (
         <span role="status" aria-live="polite" className={`dd-growth-speech dd-growth-speech--${variant}`}>
-          <SpeechBubble animate>{reaction.text}</SpeechBubble>
+          <SpeechBubble animate tail={isMap ? 'down' : 'down-left'}>{reaction.text}</SpeechBubble>
         </span>
       )}
     </>
