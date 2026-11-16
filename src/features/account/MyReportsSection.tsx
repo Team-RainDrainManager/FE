@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLocation } from 'react-router'
 import { getErrorMessage } from '../../apis/auth'
 import { getMyReports, getReportDetail, type ReportStatus, type ReportSummary, type ReportType } from '../../apis/reports'
+import { formatKstDateTime } from '../../utils/kstDateTime'
 import './sanctions-warning.css'
 import './report-history.css'
 
@@ -76,6 +77,15 @@ function ReportDetailView({ reportId, onBack }: { reportId: number; onBack: () =
           <span>제보 번호: {data.reportId}</span>
           <span>제보 시각: {formatReportDate(data.createdAt)}</span>
           {data.clearedAt && <span>차단 해제 시각: {formatReportDate(data.clearedAt)}</span>}
+          {data.sanction && (
+            <section aria-label="이 제보로 부과된 제재" className="mt-2 grid gap-1">
+              <h3 className="text-sm font-bold">{data.sanction.permanent ? '영구 제재' : '제재 부과'}</h3>
+              <span>제재 시작: {formatKstDateTime(data.sanction.startsAt) ?? '시각 정보 없음'}</span>
+              {!data.sanction.permanent && (
+                <span>제재 종료: {formatKstDateTime(data.sanction.until) ?? '시각 정보 없음'}</span>
+              )}
+            </section>
+          )}
           <section className="mt-2">
             <h3 className="text-sm font-bold">제보 내용</h3>
             <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
@@ -203,6 +213,7 @@ export default function MyReportsSection() {
                       <span className="dd23-reports-status">{STATUS_LABELS[item.status] ?? '상태 확인 필요'}</span>
                     </span>
                     <span>제보 번호: {item.reportId}</span>
+                    {item.sanction && <span>{item.sanction.permanent ? '영구 제재' : '제재 부과'}</span>}
                     <span className="dd23-reports-row">
                       <span>제보 시각: {formatReportDate(item.createdAt)}</span>
                       <span aria-hidden="true">›</span>

@@ -175,6 +175,9 @@ export default function NotificationsPage() {
         // 프로필의 내 제보 내역을 바로 펼쳐 보여 줍니다.
         navigate('/profile', { state: { openReports: true } })
         return
+      case 'SANCTION_IMPOSED':
+        navigate('/profile', { state: { openSanctions: true } })
+        return
       case 'WELCOME':
         navigate('/my-drains')
         return

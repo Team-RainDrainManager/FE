@@ -1,16 +1,11 @@
 import { useContext, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useMyWeeklyRank, useTopRanks, type Rank } from '../../apis/leaderboard'
+import { useMyWeeklyRank, useTopRanks, WEEKLY_RANKING_LIMIT, type Rank } from '../../apis/leaderboard'
 import { getMe } from '../../apis/auth'
 import happyCharacter from '../../assets/characters/states/happy.svg'
 import { AccountId } from '../../features/account/AccountId'
 
 const numbers = new Intl.NumberFormat('ko-KR')
-const weekDate = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul',
-  month: 'long',
-  day: 'numeric',
-})
 
 const avatarColors = [
   'bg-[#e6f1fd] text-[#255d8a]',
@@ -26,14 +21,7 @@ const rankColors = [
   'bg-[#fae9db] text-[#874f2a]',
 ]
 
-function formatWeekStart(periodStart: string | null) {
-  if (!periodStart) return null
 
-  // 서버의 오프셋 없는 주간 시작 시각은 한국 시각으로 해석합니다.
-  const hasOffset = /(?:Z|[+-]\d{2}:\d{2})$/i.test(periodStart)
-  const start = new Date(hasOffset ? periodStart : periodStart + '+09:00')
-  return Number.isFinite(start.getTime()) ? weekDate.format(start) + '부터' : null
-}
 
 function isMobileDevice() {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
@@ -206,8 +194,11 @@ export default function SocialPage() {
     }
   }
 
-  const weekStart = formatWeekStart(weekly.data?.periodStart ?? null)
+  
   const totalParticipants = leaderboard.data?.totalParticipants
+  const rankingTitle = totalParticipants != null && totalParticipants <= WEEKLY_RANKING_LIMIT
+    ? '주간 전체 순위'
+    : '주간 순위'
 
   return (
     <div className="min-h-[calc(100dvh-128px-env(safe-area-inset-bottom))] space-y-4 bg-[#f2f5fc] px-4 pt-[17px] pb-8 text-[#193454] [html[data-dd-theme=dark]_&]:bg-[#101c2b] [html[data-dd-theme=dark]_&]:bg-none [html[data-dd-theme=dark]_&]:text-[#edf5ff]">
@@ -236,14 +227,10 @@ export default function SocialPage() {
         aria-busy={weekly.isFetching}
         className="rounded-3xl border border-[#dfe6f3] bg-white px-4 py-2.5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]"
       >
-        <div className="grid grid-cols-[minmax(0,1fr)_6rem] items-end gap-x-1 gap-y-1">
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <div className="grid grid-cols-[minmax(0,1fr)_100px] items-end gap-x-1 gap-y-1">
+          <div className="min-w-0">
             <h2 id="social-weekly-title" className="text-base font-extrabold tracking-tight">내 주간 기록</h2>
-            {weekStart && (
-              <p className="relative ml-auto rounded-2xl bg-[#eef5ff] px-2.5 py-1 text-xs font-semibold text-[#365d8d] after:absolute after:top-1/2 after:-right-1 after:size-2 after:-translate-y-1/2 after:rotate-45 after:bg-inherit [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#cbe2ff]">
-                {weekStart} 기록됐어요!
-              </p>
-            )}
+            
           </div>
           {weekly.data ? (
             <dl className="grid grid-cols-2 divide-x divide-[#e0e7f3] [html[data-dd-theme=dark]_&]:divide-[#354962]">
@@ -257,11 +244,19 @@ export default function SocialPage() {
           ) : (
             <RankingNotice message="내 주간 기록을 불러오는 중이에요." />
           )}
-          <div className="col-start-2 row-start-1 row-span-2 self-end justify-self-end">
+          <div className="col-start-2 row-start-1 row-span-2 place-self-center">
             {myPhoto && myPhoto !== failedMyPhoto ? (
-              <img src={myPhoto} alt="" width={96} height={96} draggable={false} onError={() => setFailedMyPhoto(myPhoto)} className="size-12 rounded-lg object-cover" />
+              <img
+  src={myPhoto}
+  alt=""
+  width={100}
+  height={100}
+  draggable={false}
+  onError={() => setFailedMyPhoto(myPhoto)}
+  className="size-[100px] rounded-lg object-cover"
+/>
             ) : (
-              <img src={happyCharacter} alt="" width={88} height={88} draggable={false} className="size-24 object-contain" />
+              <img src={happyCharacter} alt="" width={104} height={104} draggable={false} className="size-24 object-contain min-[380px]:size-[104px]" />
             )}
           </div>
         </div>
@@ -274,8 +269,12 @@ export default function SocialPage() {
       >
         <div className="flex items-center justify-between gap-2.5 px-1.5 pb-3">
           <div>
-            <h2 id="social-top-title" className="text-xl font-extrabold tracking-tight">전체 TOP 10</h2>
-            <p className="mt-0.5 text-xs text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">이번 주 참여 점수 기준</p>
+            <h2 id="social-top-title" className="text-xl font-extrabold tracking-tight">{rankingTitle}</h2>
+            <p className="mt-0.5 text-xs text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">
+              {totalParticipants != null && totalParticipants > WEEKLY_RANKING_LIMIT
+                ? `이번 주 참여 점수 기준 상위 ${WEEKLY_RANKING_LIMIT}명`
+                : '이번 주 참여 점수 기준'}
+            </p>
           </div>
           {totalParticipants != null && (
             <span className="shrink-0 rounded-[9px] bg-[#eef5ff] px-2.5 py-1.5 text-xs font-bold text-[#365d8d] [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#b9d9ff]">
@@ -286,7 +285,7 @@ export default function SocialPage() {
 
         {leaderboard.data ? (
           leaderboard.data.rankings.length ? (
-            <ol role="list" aria-label="주간 상위 순위">
+            <ol role="list" aria-labelledby="social-top-title">
               {leaderboard.data.rankings.map(entry => <RankingRow key={entry.userId} entry={entry} />)}
             </ol>
           ) : (

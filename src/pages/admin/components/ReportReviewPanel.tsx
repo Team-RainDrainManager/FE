@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   clearAdminReport,
@@ -11,7 +11,8 @@ import {
 } from '../../../apis/admin'
 import { getErrorMessage } from '../../../apis/auth'
 import { getReportDetail, type ReportType } from '../../../apis/reports'
-import DecisionBar from './DecisionBar'
+import { formatKstDateTime } from '../../../utils/kstDateTime'
+import DecisionBar, { type Decision } from './DecisionBar'
 import { formatDateTime } from './format'
 
 const TYPE_LABELS: Record<ReportType, string> = {
@@ -44,9 +45,15 @@ const FILTERS: { value: AdminReportStatus | null; label: string }[] = [
   { value: null, label: '전체' },
 ]
 
-function ReportCard({ report }: { report: AdminReportSummary }) {
+function ReportCard({ report, canSanction, onReviewed }: {
+  report: AdminReportSummary
+  canSanction: boolean
+  onReviewed: (message: string) => void
+}) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const reviewKey = ['admin', 'review-report', report.reportId]
+  const isReviewing = useIsMutating({ mutationKey: reviewKey, exact: true }) > 0
 
   const detail = useQuery({
     queryKey: ['report-detail', report.reportId],
@@ -63,9 +70,15 @@ function ReportCard({ report }: { report: AdminReportSummary }) {
   ])
 
   const review = useMutation({
-    mutationFn: ({ approved, comment }: { approved: boolean; comment: string }) =>
-      reviewAdminReport(report.reportId, approved, comment),
-    onSuccess: refresh,
+    mutationKey: reviewKey,
+    mutationFn: ({ decision, comment }: { decision: Decision; comment: string }) =>
+      reviewAdminReport(report.reportId, decision === 'approve', comment, decision === 'sanction'),
+    onSuccess: async (result, { decision }) => {
+      if (result.sanction) onReviewed('제보를 반려하고 제재를 적용했어요.')
+      else if (decision === 'sanction') onReviewed('제보를 반려했어요. 제재 내역은 생성되지 않았어요.')
+      else onReviewed(result.status === 'APPROVED' ? '제보를 승인했어요.' : '제보를 반려했어요.')
+      await refresh()
+    },
   })
 
   const clear = useMutation({
@@ -74,6 +87,8 @@ function ReportCard({ report }: { report: AdminReportSummary }) {
   })
 
   const canClear = report.status === 'APPROVED' && report.blocksAdoption
+  const sanction = detail.data?.sanction ?? report.sanction
+  const canSanctionReport = canSanction && detail.isSuccess && detail.data.status === 'PENDING'
 
   return (
     <li className="rounded-[22px] border border-[#E2EAF4] bg-white p-4">
@@ -97,6 +112,11 @@ function ReportCard({ report }: { report: AdminReportSummary }) {
         )}
         {report.blocksAdoption && (
           <span className="rounded-full bg-[#FFF1F1] px-2 py-0.5 text-[12px] font-bold text-[#B84D4D]">입양 차단 중</span>
+        )}
+        {sanction && (
+          <span className="rounded-full bg-[#FFF1F1] px-2 py-0.5 text-[12px] font-bold text-[#B84D4D] [html[data-dd-theme=dark]_&]:bg-[#351F2B] [html[data-dd-theme=dark]_&]:text-[#FFD0D6]">
+            {sanction.permanent ? '영구 제재' : '제재 부과'}
+          </span>
         )}
       </div>
 
@@ -143,12 +163,26 @@ function ReportCard({ report }: { report: AdminReportSummary }) {
             </div>
           )}
 
-          {report.status === 'PENDING' && (
+          {sanction && (
+            <div className="mt-2 space-y-1 rounded-xl bg-[#F4F7FB] p-3 text-[13px] text-[#53647E] [html[data-dd-theme=dark]_&]:bg-[var(--dd-subtle)] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
+              <p>제재 시작 {formatKstDateTime(sanction.startsAt) ?? '시각 정보 없음'}</p>
+              {sanction.permanent
+                ? <p>영구 제재</p>
+                : <p>제재 종료 {formatKstDateTime(sanction.until) ?? '시각 정보 없음'}</p>}
+            </div>
+          )}
+
+          {report.status === 'PENDING' && (detail.data?.status ?? 'PENDING') === 'PENDING' && !review.isSuccess && (
             <DecisionBar
               commentLabel="처리 메모 (제보자에게 보여요)"
-              busy={review.isPending}
+              canSanction={canSanctionReport}
+              busy={isReviewing}
               error={review.isError ? getErrorMessage(review.error) : ''}
-              onDecide={(decision, comment) => review.mutate({ approved: decision === 'approve', comment })}
+              onDecide={(decision, comment) => {
+                if (queryClient.isMutating({ mutationKey: reviewKey, exact: true })) return
+                if (decision === 'sanction' && !canSanctionReport) return
+                review.mutate({ decision, comment })
+              }}
             />
           )}
 
@@ -174,9 +208,9 @@ function ReportCard({ report }: { report: AdminReportSummary }) {
   )
 }
 
-/** 관리자 화면의 제보 탭. 제보를 승인 · 반려하고, 정비가 끝난 막힘 제보의 입양 차단을 풉니다. */
-export default function ReportReviewPanel() {
+export default function ReportReviewPanel({ canSanction }: { canSanction: boolean }) {
   const [status, setStatus] = useState<AdminReportStatus | null>('PENDING')
+  const [message, setMessage] = useState('')
   const reports = useQuery({
     queryKey: ['admin', 'reports', status],
     queryFn: ({ signal }) => getAdminReports(status, signal),
@@ -203,6 +237,8 @@ export default function ReportReviewPanel() {
         ))}
       </div>
 
+      {message && <p role="status" className="mt-3 text-[13px] font-bold text-[#3981F7]">{message}</p>}
+
       {reports.isPending ? (
         <p role="status" className="py-8 text-center text-[14px] text-[#637790]">제보를 불러오는 중이에요.</p>
       ) : reports.isError ? (
@@ -216,7 +252,9 @@ export default function ReportReviewPanel() {
         </p>
       ) : (
         <ul className="mt-3 space-y-3">
-          {reports.data.map((report) => <ReportCard key={report.reportId} report={report} />)}
+          {reports.data.map((report) => (
+            <ReportCard key={report.reportId} report={report} canSanction={canSanction} onReviewed={setMessage} />
+          ))}
         </ul>
       )}
     </section>

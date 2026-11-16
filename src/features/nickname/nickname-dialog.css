@@ -21,14 +21,10 @@
 .dd-nick-input:focus {border-color:#367fe3;box-shadow:0 0 0 2px rgba(54,127,227,.17)}
 .dd-nick-input[aria-invalid='true'] {border-color:#bd4d55}
 .dd-nick-pledge {resize:vertical}
-.dd-nick-input-row {display:flex;align-items:stretch;gap:7px}
-.dd-nick-input-row .dd-nick-input {flex:1;width:0}
-.dd-nick-check {flex:none;padding:0 10px;border-radius:11px;color:#fff;background:#387fd0;font-size:12px;font-weight:800}
 .dd-nick-primary {width:100%;min-height:45px;border-radius:12px;background:#327cdb;color:#fff;font-size:14px;font-weight:800}
-.dd-nick-primary:disabled,.dd-nick-check:disabled {opacity:.43;cursor:not-allowed}
+.dd-nick-primary:disabled {opacity:.43;cursor:not-allowed}
 .dd-nick-help {margin:0;font-size:11px;line-height:1.6;color:#526d85}
-.dd-nick-success,.dd-nick-error {margin:0;font-size:12px;line-height:1.5;font-weight:750}
-.dd-nick-success {color:#157a45}.dd-nick-error {color:#c0273b}
+.dd-nick-error {margin:0;font-size:12px;line-height:1.5;font-weight:750;color:#c0273b}
 .dd-nick-disclaimer {font-size:10px;line-height:1.65;color:#607589;margin:0}
 html[data-dd-theme='dark'] .dd-nick-dialog {background:rgba(24,39,57,.75);color:#f1f6ff;border-color:rgba(109,140,175,.55)}
 html[data-dd-theme='dark'] .dd-nick-notice {background: #5d7faa;color: #fff;}
@@ -36,9 +32,8 @@ html[data-dd-theme='dark'] .dd-nick-warning {color:#ffc6cd;background:rgba(114,4
 html[data-dd-theme='dark'] .dd-nick-input {color:#f1f6ff;background:rgba(21,35,53,.92);border-color:#5d7898}
 html[data-dd-theme='dark'] .dd-nick-close {background:rgba(125,158,194,.15)}
 html[data-dd-theme='dark'] .dd-nick-help,html[data-dd-theme='dark'] .dd-nick-disclaimer {color:#bed0e4}
-html[data-dd-theme='dark'] .dd-nick-success {color:#8ae1b0}
 html[data-dd-theme='dark'] .dd-nick-error {color:#ffacb7}
-@media (max-width:360px) {.dd-nick-dialog {padding:15px}.dd-nick-check {padding:0 8px}}
+@media (max-width:360px) {.dd-nick-dialog {padding:15px}}
 .dd-reportable-name {cursor:context-menu;user-select:none;-webkit-user-select:none;touch-action:pan-y}
 .dd-reportable-name:focus-visible {outline:2px solid #3981f7;border-radius:3px;outline-offset:2px}
 .dd-nick-toast {position:fixed;z-index:10003;left:50%;bottom:max(80px,env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:90vw;border-radius:12px;padding:11px 14px;background:rgba(29,53,78,.9);color:#fff;font-size:12px;font-weight:600;box-shadow:0 8px 25px rgba(0,0,0,.2)}

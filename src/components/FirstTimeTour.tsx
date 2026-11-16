@@ -37,9 +37,9 @@ const TOUR_STEPS: readonly TourStep[] = [
     ],
   },
   {
-    path: '/social', target: 'social', label: '소셜',
+    path: '/social', target: 'social', label: '랭킹',
     title: '친구를 초대하고 주간 순위를 확인해요',
-    description: '친구에게 또랑 링크를 공유하고, 내 주간 기록과 전체 TOP 10을 확인할 수 있어요.',
+    description: '친구에게 또랑 링크를 공유하고, 내 주간 기록과 이번 주 순위를 확인할 수 있어요.',
   },
   {
     path: '/notifications', target: 'notifications', label: '알림',
