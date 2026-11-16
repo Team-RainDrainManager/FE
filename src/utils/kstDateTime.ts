@@ -23,7 +23,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeZone: KST_TIME_ZONE,
 })
 
-function parseServerDateTime(value: string | null | undefined): Date | null {
+export function parseServerDateTime(value: string | null | undefined): Date | null {
   const parts = value?.trim().match(SERVER_DATE_TIME)
   if (!parts) return null
 

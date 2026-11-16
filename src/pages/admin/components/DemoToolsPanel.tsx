@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
@@ -11,6 +11,7 @@ import { getCurrentCoordinates } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
 import { getRainNotice } from '../../../apis/rain-notice'
 import type { Coordinates } from '../../../apis/requests'
+import { AccountId } from '../../../features/account/AccountId'
 import { formatKstDateTime, KST_TIME_ZONE } from '../../../utils/kstDateTime'
 
 // 서버의 비 예보 기준(강수확률 60% 이상이고 강수량 5mm 이상)을 넉넉히 넘는 값입니다.
@@ -58,21 +59,49 @@ function describe(result: ForecastSimulateResult): string {
   return '취소할 예보가 없어요.'
 }
 
+function readDemoCoordinates(storageKey: string): Coordinates | undefined {
+  try {
+    const saved = sessionStorage.getItem(storageKey)
+    if (!saved) return
+    const coordinates = JSON.parse(saved) as Partial<Coordinates> | null
+    if (
+      typeof coordinates?.latitude === 'number' && Math.abs(coordinates.latitude) <= 90 &&
+      typeof coordinates.longitude === 'number' && Math.abs(coordinates.longitude) <= 180
+    ) {
+      return { latitude: coordinates.latitude, longitude: coordinates.longitude }
+    }
+  } catch {
+    // 저장소를 읽을 수 없으면 기본 시연 위치로 시작합니다.
+  }
+}
+
 /**
  * 데모데이 시연 도구 (ADMIN 전용).
  * 가상 예보를 보내 점검 요청을 만들고, 지도의 '비 오는 중' 표시를 켜고 끕니다.
  */
 export default function DemoToolsPanel() {
   const queryClient = useQueryClient()
+  const accountId = useContext(AccountId)
+  const locationStorageKey = `ddorang:demo-coordinates:${accountId ?? 'session'}`
   const [option, setOption] = useState<RainStart>('tomorrow')
-  const [coordinates, setCoordinates] = useState<Coordinates>()
+  const [coordinates, setCoordinates] = useState(() => readDemoCoordinates(locationStorageKey))
   const [armed, setArmed] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
+  function selectCoordinates(next: Coordinates | undefined) {
+    setCoordinates(next)
+    try {
+      if (next) sessionStorage.setItem(locationStorageKey, JSON.stringify(next))
+      else sessionStorage.removeItem(locationStorageKey)
+    } catch {
+      // 저장소를 쓸 수 없어도 열린 시연 도구에서는 선택한 위치를 사용합니다.
+    }
+  }
+
   const location = useMutation({
     mutationFn: getCurrentCoordinates,
-    onSuccess: setCoordinates,
+    onSuccess: selectCoordinates,
   })
 
   const notice = useQuery({
@@ -157,7 +186,7 @@ export default function DemoToolsPanel() {
         <h3 className="text-[15px] font-bold text-[#203451]">시연 위치</h3>
         <p role="status" className="mt-1 text-[13px] leading-5 text-[#637790]">
           {coordinates
-            ? `현재 위치 · 위도 ${coordinates.latitude.toFixed(5)}, 경도 ${coordinates.longitude.toFixed(5)}`
+            ? `선택한 위치 · 위도 ${coordinates.latitude.toFixed(5)}, 경도 ${coordinates.longitude.toFixed(5)}`
             : '기본 위치 · 역곡동'}
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -179,7 +208,7 @@ export default function DemoToolsPanel() {
             onClick={() => {
               clearFeedback()
               setArmed(false)
-              setCoordinates(undefined)
+              selectCoordinates(undefined)
               location.reset()
             }}
             className="min-h-11 rounded-xl border border-[#DCE5F0] bg-white px-2 text-[13px] font-bold text-[#53647E] disabled:opacity-50"

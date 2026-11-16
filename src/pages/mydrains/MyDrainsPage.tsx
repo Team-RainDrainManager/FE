@@ -251,7 +251,7 @@ export default function MyDrainsPage() {
             <DrainCard
               key={adoption.adoption_id}
               adoption={adoption}
-              accountPauseUntil={pauseQuery.data?.activeUntil ?? null}
+              accountPauseUntil={pauseQuery.data?.activeUntil}
               onOpen={openModal}
             />
           ))}
