@@ -1,5 +1,6 @@
 import { apiClient } from './axios-instance'
 import type { ReportDetail, ReportSummary } from './reports'
+import type { Coordinates } from './requests'
 
 // 관리자(ADMIN · CITY_OFFICIAL) 전용 API. 권한이 없으면 서버가 403으로 거절합니다.
 
@@ -165,15 +166,18 @@ export type ForecastSimulateResult = {
 }
 
 // POST /api/v1/admin/forecasts/simulate : 가상 예보 적용. 기준(강수확률 60% · 강수량 5mm)에 못 미치면 취소로 처리됩니다.
-export async function simulateForecast(input: {
-  pop: number
-  mm: number
-  /** 한국 시각 (예: 2026-11-12T15:00:00). 지금부터 3시간 뒤 이후여야 합니다. */
-  rainStartAt: string
-}): Promise<ForecastSimulateResult> {
+export async function simulateForecast(
+  input: {
+    pop: number
+    mm: number
+    /** 한국 시각 (예: 2026-11-12T15:00:00). 지금부터 3시간 뒤 이후여야 합니다. */
+    rainStartAt: string
+  },
+  coordinates?: Coordinates,
+): Promise<ForecastSimulateResult> {
   const { data: body } = await apiClient.post<ApiResponse<ForecastSimulateResult>>(
     '/api/v1/admin/forecasts/simulate',
-    input,
+    { ...input, ...coordinates },
   )
   return unwrap(body)
 }
@@ -199,10 +203,10 @@ export type SimulateRainResult = {
 }
 
 // POST /api/v1/admin/weather/simulate-rain : 지금부터 minutes분 동안 '비 오는 중'으로 표시 (0이면 해제)
-export async function simulateRain(minutes: number): Promise<SimulateRainResult> {
+export async function simulateRain(minutes: number, coordinates?: Coordinates): Promise<SimulateRainResult> {
   const { data: body } = await apiClient.post<ApiResponse<SimulateRainResult>>(
     '/api/v1/admin/weather/simulate-rain',
-    { minutes },
+    { minutes, ...coordinates },
   )
   return unwrap(body)
 }

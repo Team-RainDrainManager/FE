@@ -218,6 +218,27 @@ export type AdoptionRegisterResponse = {
   nextManagementAt: string
 }
 
+type AdoptionNicknameCheck = {
+  nickname: string
+  available: boolean
+}
+
+export async function checkAdoptionNickname(
+  nickname: string,
+  excludeAdoptionId?: number,
+  signal?: AbortSignal,
+): Promise<AdoptionNicknameCheck> {
+  const { data: body } = await apiClient.get<ApiResponse<AdoptionNicknameCheck>>(
+    '/api/v1/adoptions/nickname/check',
+    { params: { nickname: nickname.trim(), excludeAdoptionId }, signal },
+  )
+  const result = unwrap(body)
+  if (typeof result?.available !== 'boolean') {
+    throw new Error('또랑이 이름 확인 응답이 올바르지 않아요.')
+  }
+  return result
+}
+
 // 최종 입양 등록
 export async function registerAdoption(
   drainId: number,
