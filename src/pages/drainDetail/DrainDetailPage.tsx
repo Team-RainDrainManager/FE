@@ -42,7 +42,6 @@ export default function DrainDetailPage() {
   const {
     data: drain,
     isPending,
-    isError,
     error,
     refetch,
   } = useQuery({
@@ -146,7 +145,7 @@ export default function DrainDetailPage() {
     )
   }
 
-  if (isError || !drain) {
+  if (!drain) {
     return (
       <div className="px-5 py-16 text-center">
         <h2 className="text-base font-bold text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
@@ -174,7 +173,12 @@ export default function DrainDetailPage() {
   const showActionBar = isMine && adopted && drain.status !== 'REMOVED'
 
   const actions = (
-    <DrainActions key={drain.id} drain={drain} isMine={isMine} rainRequest={rainRequest} />
+    <DrainActions
+      key={`${drain.id}:${validRequestId ? requestId : 'routine'}`}
+      drain={drain}
+      isMine={isMine}
+      rainRequest={rainRequest}
+    />
   )
 
   return (

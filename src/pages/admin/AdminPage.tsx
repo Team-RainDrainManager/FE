@@ -2,18 +2,21 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { isStaffRole, useMyRole } from '../../features/admin/useMyRole'
+import BugReportReviewPanel from './components/BugReportReviewPanel'
 import DemoToolsPanel from './components/DemoToolsPanel'
 import PhotoReviewPanel from './components/PhotoReviewPanel'
 import ReportReviewPanel from './components/ReportReviewPanel'
 
-type Tab = 'reports' | 'reviews' | 'demo'
+type Tab = 'reports' | 'reviews' | 'bug-reports' | 'demo'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'reports', label: '제보' },
   { id: 'reviews', label: '사진 검토' },
 ]
-// 시연용 API는 운영자(ADMIN)만 쓸 수 있습니다. 시군 담당자에게는 탭을 보이지 않습니다.
-const DEMO_TAB: { id: Tab; label: string } = { id: 'demo', label: '시연 도구' }
+const ADMIN_TABS: { id: Tab; label: string }[] = [
+  { id: 'bug-reports', label: '버그 신고' },
+  { id: 'demo', label: '시연 도구' },
+]
 
 /**
  * 운영자 · 시군 담당자가 쓰는 관리 화면입니다.
@@ -22,7 +25,9 @@ const DEMO_TAB: { id: Tab; label: string } = { id: 'demo', label: '시연 도구
 export default function AdminPage() {
   const { role, isPending } = useMyRole()
   const [tab, setTab] = useState<Tab>('reports')
-  const tabs = role === 'ADMIN' ? [...TABS, DEMO_TAB] : TABS
+  const isAdmin = role === 'ADMIN'
+  const tabs = isAdmin ? [...TABS, ...ADMIN_TABS] : TABS
+  const activeTab = tabs.some((item) => item.id === tab) ? tab : 'reports'
 
   if (isPending) {
     return (
@@ -55,9 +60,9 @@ export default function AdminPage() {
         주민이 올린 제보와, AI가 확신하지 못한 사진을 확인해 처리해요.
       </p>
 
-      <div role="tablist" aria-label="관리 종류" className={`mb-4 mt-3 grid gap-1 rounded-2xl bg-[#EAF2FF] p-1 ${tabs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      <div role="tablist" aria-label="관리 종류" className={`mb-4 mt-3 grid gap-1 rounded-2xl bg-[#EAF2FF] p-1 ${isAdmin ? 'grid-cols-4' : 'grid-cols-2'}`}>
         {tabs.map((item) => {
-          const active = tab === item.id
+          const active = activeTab === item.id
           return (
             <button
               key={item.id}
@@ -67,7 +72,7 @@ export default function AdminPage() {
               aria-selected={active}
               aria-controls={`admin-panel-${item.id}`}
               onClick={() => setTab(item.id)}
-              className={`min-h-11 rounded-xl border text-[15px] font-bold ${
+              className={`min-h-11 rounded-xl border px-1 text-[13px] font-bold min-[380px]:text-[15px] ${
                 active
                   ? 'border-[#C6DCFF] bg-white text-[#3981F7]'
                   : 'border-transparent text-[#53647E]'
@@ -79,8 +84,11 @@ export default function AdminPage() {
         })}
       </div>
 
-      <div id={`admin-panel-${tab}`} role="tabpanel" aria-labelledby={`admin-tab-${tab}`}>
-        {tab === 'reports' ? <ReportReviewPanel /> : tab === 'reviews' ? <PhotoReviewPanel /> : <DemoToolsPanel />}
+      <div id={`admin-panel-${activeTab}`} role="tabpanel" aria-labelledby={`admin-tab-${activeTab}`}>
+        {activeTab === 'reports' && <ReportReviewPanel canSanction={isAdmin} />}
+        {activeTab === 'reviews' && <PhotoReviewPanel />}
+        {activeTab === 'bug-reports' && isAdmin && <BugReportReviewPanel />}
+        {activeTab === 'demo' && isAdmin && <DemoToolsPanel />}
       </div>
     </div>
   )

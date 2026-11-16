@@ -36,6 +36,13 @@ export type ReportStatus =
   | 'REJECTED'
   | 'CLEARED'
 
+export type ReportSanction = {
+  sanctionId: number
+  startsAt: string
+  until: string | null
+  permanent: boolean
+}
+
 // 1. 제보 생성 요청
 export type CreateReportRequest = {
   drainId?: number
@@ -60,6 +67,7 @@ export type ReportSummary = {
   type: ReportType
   status: ReportStatus
   createdAt: string
+  sanction?: ReportSanction | null
 }
 
 // 내 제보 목록 응답
@@ -83,6 +91,7 @@ export type ReportDetail = {
   resolvedAt: string | null
   clearedAt: string | null
   createdAt: string
+  sanction?: ReportSanction | null
 }
 
 // =====================================

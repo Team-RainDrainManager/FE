@@ -6,7 +6,7 @@ import { nextAfterLogin } from './auth-flow'
 import { beginFirstRun } from '../../utils/firstRun'
 import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import './auth-pages.css'
-import { validateNickname } from '../../features/nickname/nickname-policy'
+import { NICKNAME_LENGTH_HINT, validateNickname } from '../../features/nickname/nickname-policy'
 
 export default function EmailSignupPage() {
   const navigate = useNavigate()
@@ -20,6 +20,7 @@ export default function EmailSignupPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (pending) return
     if (password !== confirm) { setError('비밀번호가 일치하지 않습니다.'); return }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/.test(password)) {
       setError('비밀번호는 8~64자이며 영문과 숫자가 각각 1개 이상 필요합니다.'); return
@@ -28,7 +29,7 @@ export default function EmailSignupPage() {
     if (!nicknameValidation.valid) { setError(nicknameValidation.reason); return }
     setPending(true); setError('')
     try {
-      const tokens = await emailSignup(email.trim(), password, nickname.trim())
+      const tokens = await emailSignup(email.trim(), password, nicknameValidation.value)
       beginFirstRun()
       useMyDrainsStore.getState().reset()
       setTokens(tokens)
@@ -50,7 +51,8 @@ export default function EmailSignupPage() {
       <label htmlFor="signup-confirm">비밀번호 확인</label>
       <input id="signup-confirm" type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="비밀번호 재입력" />
       <label htmlFor="signup-nickname">닉네임</label>
-      <input id="signup-nickname" required minLength={2} maxLength={12} value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="한글 2~6자 / 영어 2~12자" />
+      <input id="signup-nickname" required autoComplete="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} aria-describedby="signup-nickname-hint" />
+      <p id="signup-nickname-hint" className="dd-auth-explainer">{NICKNAME_LENGTH_HINT}</p>
       {error && <p role="alert" className="dd-auth-error">{error}</p>}
       <button type="submit" className="dd-auth-primary" disabled={pending}>{pending ? '가입 중…' : '계정 만들기'}</button>
     </form>

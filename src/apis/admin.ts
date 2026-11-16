@@ -1,5 +1,5 @@
 import { apiClient } from './axios-instance'
-import type { ReportDetail, ReportType } from './reports'
+import type { ReportDetail, ReportSummary } from './reports'
 
 // 관리자(ADMIN · CITY_OFFICIAL) 전용 API. 권한이 없으면 서버가 403으로 거절합니다.
 
@@ -24,21 +24,14 @@ function requireId(id: number, label: string) {
 
 // ───────── 제보 ─────────
 
-export type AdminReportStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CLEARED'
+export type AdminReportStatus = ReportSummary['status']
 
-export type AdminReportSummary = {
-  reportId: number
-  drainId: number | null
-  type: ReportType
-  status: AdminReportStatus
+export type AdminReportSummary = ReportSummary & {
   blocksAdoption: boolean
-  createdAt: string
 }
 
-export type AdminReportDetail = Omit<ReportDetail, 'status'> & {
-  status: AdminReportStatus
+export type AdminReportDetail = ReportDetail & {
   blocksAdoption?: boolean
-  clearedAt?: string | null
 }
 
 // GET /api/v1/admin/reports : 제보 목록 (status를 보내면 그 상태만)
@@ -59,17 +52,24 @@ export async function getAdminReports(
   return result.reports
 }
 
-// PATCH /api/v1/admin/reports/{reportId} : 제보 승인 · 반려 (반려는 사유 필수)
+// PATCH /api/v1/admin/reports/{reportId} : 제보 승인 · 반려 · 제재
 export async function reviewAdminReport(
   reportId: number,
   approved: boolean,
   adminComment: string,
+  sanction = false,
 ): Promise<AdminReportDetail> {
   requireId(reportId, '제보')
   const comment = adminComment.trim()
+  if (sanction && approved) throw new Error('승인과 제재는 함께 처리할 수 없어요.')
+  if (!approved && !comment) throw new Error('반려 사유를 적어 주세요.')
   const { data: body } = await apiClient.patch<ApiResponse<AdminReportDetail>>(
     `/api/v1/admin/reports/${reportId}`,
-    { approved, ...(comment ? { adminComment: comment } : {}) },
+    {
+      approved,
+      ...(comment ? { adminComment: comment } : {}),
+      ...(sanction ? { sanction: true } : {}),
+    },
   )
   return unwrap(body)
 }

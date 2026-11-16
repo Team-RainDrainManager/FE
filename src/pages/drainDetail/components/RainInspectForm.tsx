@@ -15,6 +15,7 @@ import {
 } from '../../../apis/adoptions'
 import { getErrorMessage } from '../../../apis/auth'
 import { gradeLabel } from '../../../utils/dirtGrade'
+import type { InspectionRequest } from '../../../types/notifications'
 import {
   completeInspection,
   getInspectionEligibility,
@@ -193,31 +194,33 @@ export default function RainInspectForm({
     retry: 1,
   })
 
-  // 점검 이후 최신 데이터 불러오기
+  async function showResult(result: InspectionSubmitResponse) {
+    clearDraft(draftKey)
+    setFinalResult(result)
 
-const refreshData = async () => {
-  await Promise.all([
-    queryClient.invalidateQueries({
-      queryKey: ['rain-requests'],
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ['my-adoptions'],
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ['drain-detail', drainId],
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ['map-drains'],
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ['adoption-inspections'],
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ['drain-growth', drainId],
-    }),
-  ])
-}
+    if (eligibilityRequestId !== undefined && result.status === 'COMPLETED') {
+      const queryKey = ['rain-inspection-context', eligibilityRequestId]
+      await queryClient.cancelQueries({ queryKey, exact: true })
+      // 완료 응답을 먼저 반영해 결과를 닫았을 때 인증 버튼이 다시 나타나지 않게 합니다.
+      queryClient.setQueryData<InspectionRequest[]>(queryKey, (requests) =>
+        requests?.map((request) => request.requestId === eligibilityRequestId
+          ? { ...request, state: 'COMPLETED', availableActions: [] }
+          : request),
+      )
+    }
 
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['rain-requests'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-adoptions'] }),
+      queryClient.invalidateQueries({ queryKey: ['drain-detail', drainId] }),
+      queryClient.invalidateQueries({ queryKey: ['map-drains'] }),
+      queryClient.invalidateQueries({ queryKey: ['adoption-inspections'] }),
+      queryClient.invalidateQueries({ queryKey: ['drain-growth', drainId] }),
+      ...(eligibilityRequestId !== undefined
+        ? [queryClient.invalidateQueries({ queryKey: ['rain-notice'] })]
+        : []),
+    ])
+  }
 
   // 1단계: 점검 전 사진 제출 및 AI 판정
   const startMutation = useMutation({
@@ -268,9 +271,7 @@ const refreshData = async () => {
         )
       } else {
         // COMPLETED / PENDING / REJECTED
-        clearDraft(draftKey)
-        setFinalResult(result)
-        await refreshData()
+        await showResult(result)
       }
     },
   })
@@ -312,9 +313,7 @@ const refreshData = async () => {
         return
       }
 
-      clearDraft(draftKey)
-      setFinalResult(result)
-      await refreshData()
+      await showResult(result)
     },
   })
 
