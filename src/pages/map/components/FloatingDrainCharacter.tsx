@@ -14,6 +14,7 @@ export default function FloatingDrainCharacter({ drain }: {
       <GrowthReactionButton
         key={`${drain.id}:${level}:${hasLevel || unadopted}`}
         level={level}
+        unadopted={unadopted}
         name={drain.nickname ?? drain.name}
         size={180}
         variant="map"

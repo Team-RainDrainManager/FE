@@ -28,3 +28,11 @@
 @media (prefers-reduced-motion: reduce) {
   .dd-growth-action { animation: none !important; }
 }
+
+.dd-growth-action--adoption-hop { animation: dd-adoption-hop 1.6s ease-in-out 3; }
+@keyframes dd-adoption-hop {
+  0%, 82%, 100% { transform: translateY(0); }
+  16% { transform: translateY(3px); }
+  46% { transform: translateY(-18px); }
+  74% { transform: translateY(1px); }
+}
