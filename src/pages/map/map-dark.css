@@ -158,19 +158,23 @@ html[data-dd-theme='dark'] .dd-map-overlay .drain-available .dd-face { backgroun
   }
 }
 
+/* 외곽선 안쪽의 상태색만 밝아졌다 어두워집니다. */
 .drain-dot { position: relative; }
-.drain-dot::after {
+.drain-dot::before {
   content: '';
   position: absolute;
-  inset: -5px;
-  border: 3px solid transparent;
+  inset: 0;
   border-radius: inherit;
-  background: inherit;
-  mask: radial-gradient(circle, transparent 47%, #000 62%, transparent 76%);
+  background: white;
+  opacity: 0;
   pointer-events: none;
-  opacity: .35;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .drain-dot::after { animation: dd-dot-glow var(--pulse-duration) ease-in-out var(--pulse-delay) infinite; }
+  .drain-dot::before {
+    animation: dd-dot-light var(--pulse-duration) ease-in-out var(--pulse-delay) infinite;
+  }
 }
-@keyframes dd-dot-glow { 0%, 100% { opacity: .22; } 50% { opacity: .56; } }
+@keyframes dd-dot-light {
+  0%, 100% { background-color: #000; opacity: .34; }
+  50% { background-color: #fff; opacity: .42; }
+}
