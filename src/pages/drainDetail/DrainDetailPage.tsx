@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -6,7 +6,9 @@ import { getAdoptionDrainDetail, getMyAdoptionList } from '../../apis/adoptions'
 import { getDrainGrowth } from '../../apis/growth'
 import { getPauseStatus } from '../../apis/profile-settings'
 import { getMyRainRequests } from '../../apis/requests'
+import { AccountId } from '../../features/account/AccountId'
 import { useAuthStore } from '../../store/useAuthStore'
+import { parseServerDateTime } from '../../utils/kstDateTime'
 import ModalShell from '../../components/common/Modalshell'
 
 import AdoptionCare from './components/AdoptionCare'
@@ -28,6 +30,7 @@ const BADGE_CLASS =
 
 export default function DrainDetailPage() {
   const queryClient = useQueryClient()
+  const accountId = useContext(AccountId)
   const accessToken = useAuthStore((state) => state.accessToken)
   const [now, setNow] = useState(() => Date.now())
   const [releaseOpen, setReleaseOpen] = useState(false)
@@ -86,15 +89,15 @@ export default function DrainDetailPage() {
     adoptionId !== undefined &&
     (myAdoptions?.adoptions.some((item) => item.adoptionId === adoptionId) ?? false)
 
-  const { data: pauseStatus } = useQuery({
-    queryKey: ['pause-status', adoptionId],
+  const pauseQuery = useQuery({
+    queryKey: ['pause-status', accountId],
     queryFn: getPauseStatus,
     enabled: isMine,
     staleTime: 30_000,
   })
 
-  const pauseUntil = isMine ? (pauseStatus?.activeUntil ?? null) : null
-  const pauseEndTime = pauseUntil ? new Date(pauseUntil).getTime() : 0
+  const pauseUntil = isMine ? (pauseQuery.data?.activeUntil ?? null) : null
+  const pauseEndTime = parseServerDateTime(pauseUntil)?.getTime() ?? 0
   const activePauseUntil = pauseEndTime > now ? pauseUntil : null
 
   useEffect(() => {

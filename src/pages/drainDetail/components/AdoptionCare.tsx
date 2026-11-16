@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { getAdoptionDetail } from '../../../apis/adoptions'
+import { formatKstDateTime } from '../../../utils/kstDateTime'
 import { formatCareDate } from '../../mydrains/utils'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -44,6 +45,13 @@ export default function AdoptionCare({
     ? Math.max(1, Math.floor((now - adoptedAt) / DAY_MS) + 1)
     : null
   const overdue = !activePauseUntil && days !== null && days < 0
+  const nextCheckDate = nextManagementAt
+    ? new Date(nextManagementAt).toLocaleDateString('ko-KR', {
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'Asia/Seoul',
+      })
+    : '—'
 
   return (
     <section aria-label="돌봄 일정" className="mt-6 break-keep">
@@ -99,15 +107,13 @@ export default function AdoptionCare({
               </span>
 
               <div className="min-w-0">
-                <dt className="mb-0.5 text-xs font-bold text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">다음 점검 예정일</dt>
+                <dt className="mb-0.5 text-xs font-bold text-[#536A7A] [html[data-dd-theme=dark]_&]:text-[var(--dd-muted)]">
+                  {activePauseUntil ? '점검 쉬기 종료' : '다음 점검 예정일'}
+                </dt>
                 <dd className="text-[17px] leading-tight font-extrabold tracking-tight text-[#17344C] [html[data-dd-theme=dark]_&]:text-[var(--dd-ink)]">
-                  {nextManagementAt
-                    ? new Date(nextManagementAt).toLocaleDateString('ko-KR', {
-                        month: 'long',
-                        day: 'numeric',
-                        timeZone: 'Asia/Seoul',
-                      })
-                    : '—'}
+                  {activePauseUntil
+                    ? formatKstDateTime(activePauseUntil) ?? '—'
+                    : nextCheckDate}
                 </dd>
               </div>
             </div>

@@ -4,18 +4,18 @@ import { Link } from 'react-router'
 
 import GrowthReactionButton from '../../../components/common/GrowthReactionButton'
 import LevelUpCelebration from '../../../components/LevelUpCelebration'
+import { formatKstDateTime, parseServerDateTime } from '../../../utils/kstDateTime'
 
 import type {
   DrainModalType,
   MyAdoptionDto,
 } from '../../../types/myDrains'
 
-import { formatCareDate } from '../utils'
 import GrowthProgress from './GrowthProgress'
 
 type Props = {
   adoption: MyAdoptionDto
-  accountPauseUntil: string | null
+  accountPauseUntil: string | null | undefined
   onOpen: (modal: DrainModalType) => void
 }
 
@@ -41,41 +41,28 @@ export default function DrainCard({
     } catch { /* ignore */ }
   }, [adoption.level,drainId])
 
-  // 현재 시각은 렌더링이 아닌 Effect의 타이머에서 갱신
-  const [now, setNow] = useState<number | null>(null)
+  const pauseUntil =
+    accountPauseUntil === undefined ? adoption.pause_until : accountPauseUntil
+  const pauseEndTime = parseServerDateTime(pauseUntil)?.getTime() ?? 0
+  const [now, setNow] = useState(() => Date.now())
+  const paused = pauseEndTime > now
 
   useEffect(() => {
-    const updateTime = () => {
-      setNow(Date.now())
+    let timer: number
+    function updateTime() {
+      const currentTime = Date.now()
+      setNow(currentTime)
+      const remaining = pauseEndTime - currentTime
+      timer = window.setTimeout(updateTime, remaining > 0 ? Math.min(remaining, 60_000) : 60_000)
     }
+    timer = window.setTimeout(updateTime, 0)
+    return () => window.clearTimeout(timer)
+  }, [pauseEndTime])
 
-    const initialTimer = window.setTimeout(updateTime, 0)
-    const interval = window.setInterval(updateTime, 60_000)
-
-    return () => {
-      window.clearTimeout(initialTimer)
-      window.clearInterval(interval)
-    }
-  }, [])
-
-  const pauseUntil =
-    accountPauseUntil ?? adoption.pause_until
-
-  const pauseEndTime = pauseUntil
-    ? new Date(pauseUntil).getTime()
-    : null
-
-  const paused =
-    now !== null &&
-    pauseEndTime !== null &&
-    Number.isFinite(pauseEndTime) &&
-    pauseEndTime > now
-
-  const nextInspectionTime =
-    new Date(adoption.next_inspection_at).getTime()
+const nextInspectionTime =
+  parseServerDateTime(adoption.next_inspection_at)?.getTime() ?? NaN
 
   const inspectionOverdue =
-    now !== null &&
     !paused &&
     Number.isFinite(nextInspectionTime) &&
     nextInspectionTime < now
@@ -123,14 +110,25 @@ export default function DrainCard({
 
       <dl className="mt-3 space-y-2 rounded-2xl bg-[#F4F7FC] p-3 text-xs leading-relaxed">
         <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2">
-          <dt className="text-[#78899F]">마지막 돌봄</dt><dd className="text-[#637790]">{adoption.last_care_at? formatCareDate(adoption.last_care_at): '기록 없음'}</dd>
+          <dt className="text-[#78899F]">마지막 돌봄</dt>
+<dd className="text-[#637790]">
+  {formatKstDateTime(adoption.last_care_at) ?? '기록 없음'}
+</dd>
         </div>
         <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2">
           <dt className="text-[#78899F]">{paused ? '점검 쉬기 종료' : '다음 점검'}</dt>
-          <dd className={`font-bold ${inspectionOverdue ? 'text-[#AD731D]' : 'text-[#203451]'}`}>{paused ? pauseUntil ? formatCareDate(pauseUntil) : '미정' : adoption.next_inspection_at ? formatCareDate(adoption.next_inspection_at) : '미정'}</dd>
+          <dd className={`font-bold ${inspectionOverdue ? 'text-[#AD731D]' : 'text-[#203451]'}`}>
+            {paused
+              ? formatKstDateTime(pauseUntil) ?? '미정'
+              : formatKstDateTime(adoption.next_inspection_at) ?? '미정'}
+          </dd>
         </div>
       </dl>
-      <button type="button" onClick={() => onOpen({ type: 'inspect', drainId })} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#6099E8] px-3 text-sm font-bold text-white transition hover:bg-[#4A88DB] active:scale-[0.99]">
+      <button
+        type="button"
+        onClick={() => onOpen({ type: 'inspect', drainId })}
+        className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#6099E8] px-3 text-sm font-bold text-white transition hover:bg-[#4A88DB] active:scale-[0.99]"
+      >
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="M4 6h4l2-3h4l2 3h4v14H4z" strokeLinejoin="round"/><circle cx="12" cy="13" r="4"/></svg>
         사진으로 점검 기록
       </button>

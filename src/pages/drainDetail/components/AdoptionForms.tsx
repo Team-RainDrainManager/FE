@@ -162,7 +162,7 @@ export function AdoptForm({
   let nicknameHint = '1~20자로 입력해 주세요.'
   if (nicknameTaken) {
     nicknameHint = '이미 사용 중인 또랑이 이름이에요.'
-  } else if (checkingName && !error) {
+  } else if (checkingName) {
     if (nicknameCheck.isFetching) nicknameHint = '또랑이 이름을 확인하고 있어요.'
     else if (nicknameCheck.isError) nicknameHint = '중복 확인을 못 했어요. 입양할 때 다시 확인해요.'
     else if (nicknameCheck.isSuccess) nicknameHint = '사용할 수 있는 또랑이 이름이에요.'
@@ -455,6 +455,7 @@ export function AdoptForm({
 
       {error && (
         <p
+          id={phase === 'register' ? 'adoption-name-hint' : undefined}
           role="alert"
           className="rounded-xl bg-[#FDECEC] [html[data-dd-theme=dark]_&]:bg-[#4a2834] p-3 text-sm leading-relaxed text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]"
         >
@@ -573,13 +574,15 @@ export function AdoptForm({
               className="mt-2 w-full rounded-xl border border-[#DCE8F1] p-3 text-sm"
             />
           </label>
-          <p
-            id="adoption-name-hint"
-            role="status"
-            className={`-mt-2 text-xs ${nicknameTaken ? 'text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]' : 'text-[var(--dd-muted)]'}`}
-          >
-            {nicknameHint}
-          </p>
+          {!error && (
+            <p
+              id="adoption-name-hint"
+              role="status"
+              className={`-mt-2 text-xs ${nicknameTaken ? 'text-[#B84D4D] [html[data-dd-theme=dark]_&]:text-[#ffc9d2]' : 'text-[var(--dd-muted)]'}`}
+            >
+              {nicknameHint}
+            </p>
+          )}
 
           <label className="flex gap-2 text-sm leading-relaxed text-[#24496B]">
             <input

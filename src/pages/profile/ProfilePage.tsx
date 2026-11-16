@@ -51,6 +51,7 @@ function getCareStatus(adoption: MyAdoptionDto, now: number, accountPause?: stri
 export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [nickname, setNickname] = useState<string | null>(null)
+  const [participationScore, setParticipationScore] = useState<number | null>(null)
   const [photo, setPhoto] = useState('')
   const [photoBusy, setPhotoBusy] = useState(false)
   const queryClient = useQueryClient()
@@ -64,6 +65,7 @@ export default function ProfilePage() {
       if (!active) return
       const serverName = me.nickname?.trim() || '또랑이집사'
       setNickname(serverName)
+      setParticipationScore(Number.isFinite(me.participationScore) ? me.participationScore : null)
       setPhoto(me.profileImage ?? '')
       // Existing social mock UI also reads this value; do not invent another name.
       saveToStorage(NAME_STORAGE_KEY, serverName)
@@ -198,16 +200,31 @@ export default function ProfilePage() {
       </section>
 
       <section className="dd-profile-panel">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="dd-profile-stat">
-            <p className="text-xs font-semibold">입양한 또랑이</p>
-            <p className="mt-1 text-[24px] font-extrabold leading-none tracking-[-0.04em] text-[var(--dd-blue)]">{listReady ? adoptedCount : '—'}{listReady && <span className="ml-1 text-[12px] font-bold">개</span>}</p>
-          </div>
-          <div className="dd-profile-stat">
-            <p className="text-xs font-semibold">최근 14일 점검</p>
-            <p className="mt-1 text-[24px] font-extrabold leading-none tracking-[-0.04em] text-[var(--dd-blue)]">{listReady ? recentlyCheckedCount : '—'}{listReady && <span className="ml-1 text-[12px] font-bold">개</span>}</p>
-          </div>
-        </div>
+        <div className="grid grid-cols-2 gap-2 min-[360px]:grid-cols-3">
+  <div className="dd-profile-stat flex flex-col justify-between">
+    <p className="text-xs font-semibold">입양한 또랑이</p>
+    <p className="mt-1 text-[24px] font-extrabold leading-none tracking-[-0.04em] text-[var(--dd-blue)]">
+      {listReady ? adoptedCount : '—'}
+      {listReady && <span className="ml-1 text-[12px] font-bold">개</span>}
+    </p>
+  </div>
+
+  <div className="dd-profile-stat flex flex-col justify-between">
+    <p className="text-xs font-semibold">최근 14일 점검</p>
+    <p className="mt-1 text-[24px] font-extrabold leading-none tracking-[-0.04em] text-[var(--dd-blue)]">
+      {listReady ? recentlyCheckedCount : '—'}
+      {listReady && <span className="ml-1 text-[12px] font-bold">개</span>}
+    </p>
+  </div>
+
+  <div className="dd-profile-stat col-span-2 flex min-w-0 flex-col justify-between min-[360px]:col-span-1">
+    <p className="text-xs font-semibold">포인트</p>
+    <p className="mt-1 break-words text-[24px] font-extrabold leading-none tracking-[-0.04em] text-[var(--dd-blue)]">
+      {participationScore === null ? '—' : participationScore.toLocaleString('ko-KR')}
+      {participationScore !== null && <span className="ml-1 text-[12px] font-bold">{' P'}</span>}
+    </p>
+  </div>
+</div>
         {!careReady ? (
           <p className="dd-profile-note" role="status">{!listReady ? listMessage : pauseQuery.isError ? '점검 상태를 불러오지 못했어요.' : '점검 상태를 확인하고 있어요.'}</p>
         ) : needsCare.length > 0 ? (
