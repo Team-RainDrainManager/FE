@@ -164,6 +164,14 @@ export async function emailLogin(email: string, password: string): Promise<AuthT
 export async function emailSignup(email: string, password: string, nickname: string): Promise<AuthTokens> {
   return unwrap<AuthTokens>(await publicClient.post('/api/v1/auth/signup', { email, password, nickname }))
 }
+export async function checkNicknameAvailable(nickname: string, signal?: AbortSignal): Promise<boolean> {
+  const available = unwrap<boolean>(await publicClient.get('/api/v1/users/nickname/available', {
+    params: { nickname: nickname.trim() },
+    signal,
+  }))
+  if (typeof available !== 'boolean') throw new Error('닉네임 확인 응답이 올바르지 않아요.')
+  return available
+}
 export async function getOnboarding(): Promise<OnboardingStatus> {
   return unwrap<OnboardingStatus>(await apiClient.get('/api/v1/users/me/onboarding'))
 }

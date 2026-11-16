@@ -113,6 +113,7 @@ export default function DrainModal({
         selected ? (
           <RenameForm
             key={selected.adoption_id}
+            adoptionId={selected.adoption_id}
             currentName={selected.adoption_name}
             isSaving={isRenaming}
             errorMessage={renameError}

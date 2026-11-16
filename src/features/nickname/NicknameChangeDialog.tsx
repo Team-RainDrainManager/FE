@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { changeNickname, getErrorMessage } from '../../apis/auth'
+import { useQuery } from '@tanstack/react-query'
+import { changeNickname, checkNicknameAvailable, getErrorMessage } from '../../apis/auth'
 import { NICKNAME_LENGTH_HINT, validateNickname } from './nickname-policy'
 import './nickname-dialog.css'
 
@@ -22,12 +23,31 @@ export default function NicknameChangeDialog({ currentNickname, onClose, onChang
   const [step, setStep] = useState<Step>('notice')
   const [confirmation, setConfirmation] = useState('')
   const [nickname, setNickname] = useState('')
+  const [nicknameToCheck, setNicknameToCheck] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const validation = validateNickname(nickname)
-  const canSave = validation.valid && validation.value !== currentNickname.trim()
+  const canCheckNickname = validation.valid && validation.value.toLowerCase() !== currentNickname.trim().toLowerCase()
+
+  const nicknameCheck = useQuery({
+    queryKey: ['user-nickname-availability', nicknameToCheck],
+    queryFn: ({ signal }) => checkNicknameAvailable(nicknameToCheck, signal),
+    enabled: nicknameToCheck !== '',
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const nicknameTaken = nicknameToCheck !== '' && nicknameCheck.isSuccess && !nicknameCheck.isFetching && !nicknameCheck.data
+  const canSave = validation.valid && validation.value !== currentNickname.trim() && !nicknameTaken
   const requested = forced ? PLEDGE : '동의'
   const canClose = !forced && Boolean(onClose)
+  let nicknameHint = !validation.valid && nickname.length > 0 ? validation.reason : NICKNAME_LENGTH_HINT
+  if (nicknameTaken) {
+    nicknameHint = '이미 사용 중인 닉네임이에요.'
+  } else if (nicknameToCheck) {
+    if (nicknameCheck.isFetching) nicknameHint = '닉네임을 확인하고 있어요.'
+    else if (nicknameCheck.isError) nicknameHint = '중복 확인을 못 했어요. 저장할 때 다시 확인해요.'
+    else if (nicknameCheck.isSuccess) nicknameHint = '사용할 수 있는 닉네임이에요.'
+  }
 
   useEffect(() => {
     const previous = document.body.style.overflow
@@ -87,20 +107,25 @@ export default function NicknameChangeDialog({ currentNickname, onClose, onChang
             value={nickname}
             onChange={event => {
               setNickname(event.target.value)
+              setNicknameToCheck('')
               setError('')
             }}
+            onBlur={() => setNicknameToCheck(canCheckNickname ? validation.value : '')}
             autoCapitalize="off"
             autoComplete="nickname"
             spellCheck={false}
             required
             disabled={pending}
             aria-describedby={nicknameHintId}
-            aria-invalid={nickname.length > 0 && !validation.valid}
+            aria-invalid={nicknameTaken || (nickname.length > 0 && !validation.valid)}
           />
-          <p id={nicknameHintId} className="dd-nick-help">
-            {!validation.valid && nickname.length > 0 ? validation.reason : NICKNAME_LENGTH_HINT}
+          <p
+            id={nicknameHintId}
+            role={error ? 'alert' : 'status'}
+            className={error || nicknameTaken ? 'dd-nick-error' : 'dd-nick-help'}
+          >
+            {error || nicknameHint}
           </p>
-          {error && <p role="alert" className="dd-nick-error">{error}</p>}
           <button type="submit" className="dd-nick-primary" disabled={pending || !canSave}>{pending ? '변경 중…' : '변경'}</button>
         </form>}
       </section>
