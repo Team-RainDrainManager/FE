@@ -9,6 +9,10 @@ html {
 .dd-shared-sheet {
   width: min(100%, 430px);
   border-radius: 24px 24px 0 0;
+}
+
+.dd-shared-sheet,
+.dd-sheet-enter {
   animation: dd-slide-in 280ms cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -26,6 +30,17 @@ html {
 
 .dd-shared-body {
   padding-bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+.dd-shared-body[data-has-footer="true"] {
+  min-height: 0;
+  padding-bottom: 17px;
+}
+
+.dd-shared-footer {
+  flex: none;
+  border-top: 1px solid var(--dd-line, #dae8f4);
+  padding: 12px 17px max(12px, env(safe-area-inset-bottom));
 }
 
 @keyframes dd-sheet-fade {
@@ -52,7 +67,8 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   .dd-shared-overlay,
-  .dd-shared-sheet {
+  .dd-shared-sheet,
+  .dd-sheet-enter {
     animation: none;
   }
 }

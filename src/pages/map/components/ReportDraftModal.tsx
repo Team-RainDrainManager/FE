@@ -1,11 +1,9 @@
 import {
-  useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
-  type ReactNode,
 } from 'react'
-import { createPortal } from 'react-dom'
 import {
   useMutation,
   useQuery,
@@ -19,6 +17,7 @@ import {
 import { getErrorMessage } from '../../../apis/auth'
 import { AI_REQUEST_TIMEOUT_MS, apiClient } from '../../../apis/axios-instance'
 import CameraCapture, { type CaptureMeta } from '../../../components/common/CameraCapture'
+import Sheet from '../../../components/common/Sheet'
 import CapturedPreview from '../../../components/common/camera/CapturedPreview'
 import type { Coordinates } from '../../../components/common/camera/geo'
 import { requestMotionPermission } from '../../../components/common/camera/motion'
@@ -105,57 +104,6 @@ const LABEL_CLASS =
 const BUTTON_CLASS =
   'min-h-11 w-full rounded-xl bg-[#6384EF] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#5476E3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6384EF] disabled:cursor-not-allowed disabled:opacity-50'
 
-function ReportOverlay({
-  children,
-  onDismiss,
-  busy = false,
-}: {
-  children: ReactNode
-  onDismiss: () => void
-  busy?: boolean
-}) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    const dialog = dialogRef.current
-    const previousFocus = document.activeElement
-    const previousOverflow = document.body.style.overflow
-
-    document.body.style.overflow = 'hidden'
-
-    if (dialog && !dialog.open) {
-      dialog.showModal()
-    }
-
-    return () => {
-      dialog?.close()
-      document.body.style.overflow = previousOverflow
-
-      if (previousFocus instanceof HTMLElement) {
-        previousFocus.focus()
-      }
-    }
-  }, [])
-
-  return createPortal(
-    <dialog
-      ref={dialogRef}
-      aria-label="빗물받이 제보"
-      className="fixed inset-0 m-auto max-h-none max-w-none overflow-visible border-0 bg-transparent p-0 text-[#203451] outline-none backdrop:bg-[#182238]/55"
-      onCancel={(event) => {
-        event.preventDefault()
-
-        if (!busy) {
-          onDismiss()
-        }
-      }}
-    >
-      {children}
-    </dialog>,
-    document.body,
-  )
-}
-
 function CameraIcon() {
   return (
     <svg
@@ -180,6 +128,7 @@ export default function ReportDraftModal({
   onClose,
   onComplete,
 }: Props) {
+  const formId = useId()
   const queryClient = useQueryClient()
   const [type, setType] = useState<ReportType>('BLOCKAGE')
   // 지도에서 선택한 빗물받이 ID만 사용하며 모달에서는 변경할 수 없습니다.
@@ -415,398 +364,355 @@ export default function ReportDraftModal({
 
   if (submittedReportId !== null) {
     return (
-      <ReportOverlay onDismiss={finishReport}>
-        <section
-          aria-labelledby="report-result-title"
-          className="max-h-[85dvh] w-[calc(100vw-40px)] max-w-[390px] overflow-y-auto rounded-[24px] bg-white p-5 shadow-2xl"
-        >
-          <h2
-            id="report-result-title"
-            className="text-center text-lg font-bold text-[#203451]"
+      <Sheet title="제보 접수 결과" onClose={finishReport}>
+        {detailPending ? (
+          <p
+            role="status"
+            className="py-8 text-center text-sm text-[#8294A5]"
           >
-            제보 접수 결과
-          </h2>
-
-          {detailPending ? (
+            접수된 제보를 확인하고 있어요.
+          </p>
+        ) : detailIsError ? (
+          <div className="py-5 text-center">
             <p
-              role="status"
-              className="py-8 text-center text-sm text-[#8294A5]"
+              role="alert"
+              className="text-sm leading-6 text-[#B84D4D]"
             >
-              접수된 제보를 확인하고 있어요.
+              제보는 접수됐지만 상세 정보를 불러오지 못했어요.
             </p>
-          ) : detailIsError ? (
-            <div className="py-5 text-center">
-              <p
-                role="alert"
-                className="text-sm leading-6 text-[#B84D4D]"
-              >
-                제보는 접수됐지만 상세 정보를 불러오지 못했어요.
-              </p>
-              <p className="mt-2 text-xs text-[#8294A5]">
-                {getErrorMessage(detailError)}
-              </p>
-              <button
-                type="button"
-                onClick={() => void refetchDetail()}
-                className="mt-4 text-sm font-bold text-[#6384EF]"
-              >
-                다시 조회
-              </button>
-            </div>
-          ) : reportDetail ? (
-            <div className="mt-5 space-y-4">
-              <p className="text-center text-sm font-bold text-[#259B68]">
-                {reportDetail.status === 'PENDING'
-                  ? '제보가 접수됐어요!'
-                  : '제보 정보를 확인했어요.'}
-              </p>
+            <p className="mt-2 text-xs text-[#8294A5]">
+              {getErrorMessage(detailError)}
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetchDetail()}
+              className="mt-4 text-sm font-bold text-[#6384EF]"
+            >
+              다시 조회
+            </button>
+          </div>
+        ) : reportDetail ? (
+          <div className="mt-5 space-y-4">
+            <p className="text-center text-sm font-bold text-[#259B68]">
+              {reportDetail.status === 'PENDING'
+                ? '제보가 접수됐어요!'
+                : '제보 정보를 확인했어요.'}
+            </p>
 
-              <div className="space-y-3 rounded-2xl bg-[#F4F6FB] p-4 text-sm leading-6 text-[#385A73]">
-                <p>제보 번호: #{reportDetail.reportId}</p>
-                <p>
-                  접수 상태:{' '}
-                  {RESULT_STATUS_LABELS[reportDetail.status] ?? '상태 확인 필요'}
-                </p>
-                <p>
-                  접수 일시:{' '}
-                  {new Date(reportDetail.createdAt).toLocaleString(
-                    'ko-KR',
-                  )}
-                </p>
-
-                {reportDetail.description && (
-                  <p className="whitespace-pre-wrap break-words">
-                    내용: {reportDetail.description}
-                  </p>
+            <div className="space-y-3 rounded-2xl bg-[#F4F6FB] p-4 text-sm leading-6 text-[#385A73]">
+              <p>제보 번호: #{reportDetail.reportId}</p>
+              <p>
+                접수 상태:{' '}
+                {RESULT_STATUS_LABELS[reportDetail.status] ?? '상태 확인 필요'}
+              </p>
+              <p>
+                접수 일시:{' '}
+                {new Date(reportDetail.createdAt).toLocaleString(
+                  'ko-KR',
                 )}
+              </p>
 
-                {reportDetail.adminComment && (
-                  <p className="whitespace-pre-wrap break-words">
-                    관리자 답변: {reportDetail.adminComment}
-                  </p>
-                )}
-              </div>
-
-              {reportDetail.photoUrl && (
-                <img
-                  src={reportDetail.photoUrl}
-                  alt="접수된 제보 사진"
-                  className="max-h-52 w-full rounded-xl object-contain"
-                />
+              {reportDetail.description && (
+                <p className="whitespace-pre-wrap break-words">
+                  내용: {reportDetail.description}
+                </p>
               )}
 
-              {reportDetail.type === 'BLOCKAGE' && (
-                <SafetyReportLink
-                  reportId={reportDetail.reportId}
-                  latitude={reportDetail.latitude}
-                  longitude={reportDetail.longitude}
-                  description={reportDetail.description}
-                />
+              {reportDetail.adminComment && (
+                <p className="whitespace-pre-wrap break-words">
+                  관리자 답변: {reportDetail.adminComment}
+                </p>
               )}
-
-              <p className="text-center text-[13px] text-[#516A7D]">
-                관리자 승인 후 경험치가 지급돼요.
-              </p>
             </div>
-          ) : null}
 
-          <button
-            type="button"
-            onClick={finishReport}
-            className={`mt-5 ${BUTTON_CLASS}`}
-          >
-            확인
-          </button>
-        </section>
-      </ReportOverlay>
+            {reportDetail.photoUrl && (
+              <img
+                src={reportDetail.photoUrl}
+                alt="접수된 제보 사진"
+                className="max-h-52 w-full rounded-xl object-contain"
+              />
+            )}
+
+            {reportDetail.type === 'BLOCKAGE' && (
+              <SafetyReportLink
+                reportId={reportDetail.reportId}
+                latitude={reportDetail.latitude}
+                longitude={reportDetail.longitude}
+                description={reportDetail.description}
+              />
+            )}
+
+            <p className="text-center text-[13px] text-[#516A7D]">
+              관리자 승인 후 경험치가 지급돼요.
+            </p>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={finishReport}
+          className={`mt-5 ${BUTTON_CLASS}`}
+        >
+          확인
+        </button>
+      </Sheet>
     )
   }
 
   return (
-    <ReportOverlay
-      onDismiss={onClose}
-      busy={mutation.isPending || assessmentMutation.isPending}
-    >
-      <section
-        aria-labelledby="report-title"
-        className="flex max-h-[85dvh] w-[calc(100vw-40px)] max-w-[390px] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_20px_70px_rgba(15,23,42,0.22)]"
-      >
-        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-[#EDF1F5] px-5 pb-4 pt-5">
-          <div>
-            <h2
-              id="report-title"
-              className="text-lg font-bold text-[#203451]"
-            >
-              빗물받이 제보
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-[#7F8DA5]">
-              {isOdor
-                ? '사진 또는 설명으로 악취를 제보할 수 있어요.'
-                : '현장 사진과 함께 상태를 알려주세요.'}
+    <Sheet
+      title="빗물받이 제보"
+      description={isOdor
+        ? '사진 또는 설명으로 악취를 제보할 수 있어요.'
+        : '현장 사진과 함께 상태를 알려주세요.'}
+      onClose={onClose}
+      busy={cameraOpen || mutation.isPending || assessmentMutation.isPending}
+      footer={(
+        <div className="space-y-3">
+          {submissionBlock && !assessmentMutation.isPending && (
+            <p className="text-center text-[13px] leading-5 text-[#516A7D]">
+              {submissionBlock}
             </p>
-          </div>
-
+          )}
           <button
-            type="button"
-            onClick={onClose}
-            disabled={mutation.isPending || assessmentMutation.isPending}
-            aria-label="제보 창 닫기"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F4F6FA] text-xl text-[#7F8DA5] transition hover:bg-[#EAEFFA] focus-visible:outline-2 focus-visible:outline-[#6384EF] disabled:opacity-40"
+            type="submit"
+            form={formId}
+            disabled={cameraOpen || Boolean(submissionBlock) || mutation.isPending || assessmentMutation.isPending}
+            className={BUTTON_CLASS}
           >
-            ×
+            {mutation.isPending
+              ? '제보 접수 중...'
+              : '제보 제출하기'}
           </button>
         </div>
+      )}
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label
+            htmlFor="report-type"
+            className={LABEL_CLASS}
+          >
+            제보 종류
+          </label>
+          <select
+            id="report-type"
+            value={type}
+            disabled={mutation.isPending || assessmentMutation.isPending}
+            onChange={(event) => {
+              const nextType = event.target.value as ReportType
+              setType(nextType)
+              setFormError('')
+              mutation.reset()
+              if (nextType === 'BLOCKAGE' && photo && assessmentMutation.isIdle) {
+                assessmentMutation.mutate(photo)
+              }
+            }}
+            className={FIELD_CLASS}
+          >
+            {REPORT_TYPES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex min-h-0 flex-col"
-        >
-          <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
-            <div>
-              <label
-                htmlFor="report-type"
-                className={LABEL_CLASS}
-              >
-                제보 종류
-              </label>
-              <select
-                id="report-type"
-                value={type}
-                disabled={mutation.isPending || assessmentMutation.isPending}
-                onChange={(event) => {
-                  const nextType = event.target.value as ReportType
-                  setType(nextType)
-                  setFormError('')
-                  mutation.reset()
-                  if (nextType === 'BLOCKAGE' && photo && assessmentMutation.isIdle) {
-                    assessmentMutation.mutate(photo)
-                  }
-                }}
-                className={FIELD_CLASS}
-              >
-                {REPORT_TYPES.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
+        {/* 지도에서 선택한 빗물받이 정보를 읽기 전용으로 표시합니다. */}
+        <div>
+          <span className={LABEL_CLASS}>대상 빗물받이</span>
+          <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-[#DFE5F0] bg-[#F4F6FB] px-3 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#304563]">
+                {selectedDrainName || '선택한 빗물받이'}
+              </p>
+
             </div>
+          </div>
+        </div>
 
-            {/* 지도에서 선택한 빗물받이 정보를 읽기 전용으로 표시합니다. */}
-            <div>
-              <span className={LABEL_CLASS}>대상 빗물받이</span>
-              <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-[#DFE5F0] bg-[#F4F6FB] px-3 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#304563]">
-                    {selectedDrainName || '선택한 빗물받이'}
-                  </p>
-                  
-                </div>
-              </div>
-            </div>
+        {isLocationFix && (
+          <div className="space-y-2 rounded-xl bg-[#F4F6FB] p-3">
+            <p className="text-sm font-bold text-[#304563]">
+              빗물받이의 실제 위치
+            </p>
+            <p className="text-[13px] leading-5 text-[#516A7D]">
+              빗물받이 바로 앞에 서서 아래 버튼을 눌러 주세요. 지금 서 있는 곳이 새 위치로 접수돼요.
+            </p>
 
-            {isLocationFix && (
-              <div className="space-y-2 rounded-xl bg-[#F4F6FB] p-3">
-                <p className="text-sm font-bold text-[#304563]">
-                  빗물받이의 실제 위치
-                </p>
-                <p className="text-[13px] leading-5 text-[#516A7D]">
-                  빗물받이 바로 앞에 서서 아래 버튼을 눌러 주세요. 지금 서 있는 곳이 새 위치로 접수돼요.
-                </p>
+            <button
+              type="button"
+              disabled={mutation.isPending || assessmentMutation.isPending}
+              onClick={() => void handleCurrentLocation()}
+              className="min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-3 text-sm font-bold text-[#6384EF] disabled:opacity-50"
+            >
+              {newLatitude && newLongitude ? '지금 위치로 다시 정하기' : '지금 서 있는 곳을 새 위치로 정하기'}
+            </button>
 
-                <button
-                  type="button"
-                  disabled={mutation.isPending || assessmentMutation.isPending}
-                  onClick={() => void handleCurrentLocation()}
-                  className="min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-3 text-sm font-bold text-[#6384EF] disabled:opacity-50"
-                >
-                  {newLatitude && newLongitude ? '지금 위치로 다시 정하기' : '지금 서 있는 곳을 새 위치로 정하기'}
-                </button>
-
-                {newLatitude && newLongitude && (
-                  <p role="status" className="text-[13px] font-semibold leading-5 text-[#247A4B]">
-                    새 위치를 정했어요. (위도 {Number(newLatitude).toFixed(5)}, 경도 {Number(newLongitude).toFixed(5)})
-                  </p>
-                )}
-              </div>
+            {newLatitude && newLongitude && (
+              <p role="status" className="text-[13px] font-semibold leading-5 text-[#247A4B]">
+                새 위치를 정했어요. (위도 {Number(newLatitude).toFixed(5)}, 경도 {Number(newLongitude).toFixed(5)})
+              </p>
             )}
+          </div>
+        )}
 
-            <div>
-              <span className={LABEL_CLASS}>
-                {isOdor ? '제보 사진 (선택)' : '제보 사진'}
-              </span>
+        <div>
+          <span className={LABEL_CLASS}>
+            {isOdor ? '제보 사진 (선택)' : '제보 사진'}
+          </span>
 
-              {cameraOpen && (
-                <CameraCapture
-                  title="제보 사진 촬영"
-                  drainId={
-                    // 위치 수정 제보는 등록된 위치와 멀리 있는 것이 정상입니다.
-                    isLocationFix ? undefined : initialDrainId ?? undefined
-                  }
-                  enforceDistance={false}
-                  onCapture={handlePhotoChange}
-                  onCancel={() => setCameraOpen(false)}
-                />
-              )}
+          {cameraOpen && (
+            <CameraCapture
+              title="제보 사진 촬영"
+              drainId={
+                // 위치 수정 제보는 등록된 위치와 멀리 있는 것이 정상입니다.
+                isLocationFix ? undefined : initialDrainId ?? undefined
+              }
+              enforceDistance={false}
+              onCapture={handlePhotoChange}
+              onCancel={() => setCameraOpen(false)}
+            />
+          )}
 
-              {photo ? (
-                <div className="overflow-hidden rounded-2xl border border-[#DCE4F8] bg-[#F5F7FF] p-3">
-                  <CapturedPreview file={photo} alt="찍은 제보 사진" />
+          {photo ? (
+            <div className="overflow-hidden rounded-2xl border border-[#DCE4F8] bg-[#F5F7FF] p-3">
+              <CapturedPreview file={photo} alt="찍은 제보 사진" />
 
-                  <div className="mt-3 flex items-center justify-between border-t border-[#E2E8F6] pt-1">
-                    <span
-                      role="status"
-                      className="text-xs font-medium text-[#637CE1]"
-                    >
-                      사진 촬영 완료
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={mutation.isPending || assessmentMutation.isPending}
-                        onClick={openCamera}
-                        className="min-h-11 px-2 text-[13px] font-semibold text-[#637CE1] disabled:opacity-50"
-                      >
-                        다시 찍기
-                      </button>
-                      <button
-                        type="button"
-                        disabled={mutation.isPending || assessmentMutation.isPending}
-                        onClick={removePhoto}
-                        className="min-h-11 px-2 text-[13px] font-medium text-[#516A7D] disabled:opacity-50"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : !safetyConfirmed ? (
-                <SafetyStart
-                  disabled={mutation.isPending || assessmentMutation.isPending}
-                  onStart={() => {
-                    setSafetyConfirmed(true)
-                    setCameraOpen(true)
-                  }}
-                />
-              ) : (
-                <button
-                  type="button"
-                  disabled={mutation.isPending || assessmentMutation.isPending}
-                  onClick={openCamera}
-                  className="flex min-h-[108px] w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#BAC8F4] bg-[#F5F7FF] px-3 py-4 text-center transition hover:bg-[#EAF0FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8CA2F5] disabled:opacity-50"
-                >
-                  <CameraIcon />
-                  <span className="text-sm font-semibold text-[#637CE1]">
-                    사진 촬영
-                  </span>
-                </button>
-              )}
-
-              {/* 막힘 제보만 AI가 '직접 치우기 어려운 막힘'으로 확인해야 접수됩니다. (서버 규칙과 같음) */}
-              {isBlockage && assessmentMutation.isPending && (
-                <p
+              <div className="mt-3 flex items-center justify-between border-t border-[#E2E8F6] pt-1">
+                <span
                   role="status"
-                  className="mt-3 animate-pulse rounded-xl bg-[#F5F7FF] p-3 text-center text-sm font-semibold text-[#3855B8]"
+                  className="text-xs font-medium text-[#637CE1]"
                 >
-                  AI가 사진을 확인하고 있어요. 길면 1분쯤 걸려요.
-                </p>
-              )}
+                  사진 촬영 완료
+                </span>
 
-              {isBlockage && assessmentMutation.isError && photo && (
-                <>
-                  <p role="alert" className="mt-3 rounded-xl bg-[#FFF1F1] p-3 text-sm leading-relaxed text-[#B84D4D]">
-                    {getErrorMessage(assessmentMutation.error)}
-                  </p>
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => assessmentMutation.mutate(photo)}
-                    disabled={mutation.isPending}
-                    className="mt-2 min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-4 py-3 text-sm font-bold text-[#6384EF] transition hover:bg-[#F5F7FF] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={mutation.isPending || assessmentMutation.isPending}
+                    onClick={openCamera}
+                    className="min-h-11 px-2 text-[13px] font-semibold text-[#637CE1] disabled:opacity-50"
                   >
-                    AI 확인 다시 하기
+                    다시 찍기
                   </button>
-                </>
-              )}
-
-              {assessment && (
-                <div role="status" className="mt-3 space-y-2 rounded-xl border border-[#DCE4F8] bg-[#F5F7FF] p-3 text-sm leading-6 text-[#304563]">
-                  <p className="font-bold text-[#3855B8]">
-                    AI 확인 결과: {gradeLabel(assessment.grade)}
-                  </p>
-                  {assessment.reason?.trim() && (
-                    <p className="whitespace-pre-wrap break-words">{assessment.reason}</p>
-                  )}
-                  <p
-                    className={`rounded-lg p-2.5 text-[13px] font-semibold leading-5 ${
-                      uncleanable
-                        ? 'bg-[#EAF7EF] text-[#247A4B]'
-                        : 'bg-[#FFF4DC] text-[#8A6510]'
-                    }`}
+                  <button
+                    type="button"
+                    disabled={mutation.isPending || assessmentMutation.isPending}
+                    onClick={removePhoto}
+                    className="min-h-11 px-2 text-[13px] font-medium text-[#516A7D] disabled:opacity-50"
                   >
-                    {uncleanable
-                      ? '직접 치우기 어려운 막힘으로 확인됐어요. 아래에서 제보를 제출해 주세요.'
-                      : '직접 치울 수 있는 상태로 보여요. 막힘 제보는 덮개 틈 안쪽까지 막혀 치울 수 없을 때만 접수돼요. 치울 수 있다면 입양하거나 점검으로 기록해 주세요.'}
-                  </p>
-                  {!uncleanable && (
-                    <p className="text-[13px] leading-5 text-[#516A7D]">
-                      사진이 잘못 찍혔다면 다시 찍어 주세요. 악취나 위치 문제는 제보 종류를 바꿔 접수할 수 있어요.
-                    </p>
-                  )}
+                    삭제
+                  </button>
                 </div>
+              </div>
+            </div>
+          ) : !safetyConfirmed ? (
+            <SafetyStart
+              disabled={mutation.isPending || assessmentMutation.isPending}
+              onStart={() => {
+                setSafetyConfirmed(true)
+                setCameraOpen(true)
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              disabled={mutation.isPending || assessmentMutation.isPending}
+              onClick={openCamera}
+              className="flex min-h-[108px] w-full flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#BAC8F4] bg-[#F5F7FF] px-3 py-4 text-center transition hover:bg-[#EAF0FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8CA2F5] disabled:opacity-50"
+            >
+              <CameraIcon />
+              <span className="text-sm font-semibold text-[#637CE1]">
+                사진 촬영
+              </span>
+            </button>
+          )}
+
+          {/* 막힘 제보만 AI가 '직접 치우기 어려운 막힘'으로 확인해야 접수됩니다. (서버 규칙과 같음) */}
+          {isBlockage && assessmentMutation.isPending && (
+            <p
+              role="status"
+              className="mt-3 animate-pulse rounded-xl bg-[#F5F7FF] p-3 text-center text-sm font-semibold text-[#3855B8]"
+            >
+              AI가 사진을 확인하고 있어요. 길면 1분쯤 걸려요.
+            </p>
+          )}
+
+          {isBlockage && assessmentMutation.isError && photo && (
+            <>
+              <p role="alert" className="mt-3 rounded-xl bg-[#FFF1F1] p-3 text-sm leading-relaxed text-[#B84D4D]">
+                {getErrorMessage(assessmentMutation.error)}
+              </p>
+              <button
+                type="button"
+                onClick={() => assessmentMutation.mutate(photo)}
+                disabled={mutation.isPending}
+                className="mt-2 min-h-11 w-full rounded-xl border border-[#6384EF] bg-white px-4 py-3 text-sm font-bold text-[#6384EF] transition hover:bg-[#F5F7FF] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                AI 확인 다시 하기
+              </button>
+            </>
+          )}
+
+          {assessment && (
+            <div role="status" className="mt-3 space-y-2 rounded-xl border border-[#DCE4F8] bg-[#F5F7FF] p-3 text-sm leading-6 text-[#304563]">
+              <p className="font-bold text-[#3855B8]">
+                AI 확인 결과: {gradeLabel(assessment.grade)}
+              </p>
+              {assessment.reason?.trim() && (
+                <p className="whitespace-pre-wrap break-words">{assessment.reason}</p>
+              )}
+              <p
+                className={`rounded-lg p-2.5 text-[13px] font-semibold leading-5 ${
+                  uncleanable
+                    ? 'bg-[#EAF7EF] text-[#247A4B]'
+                    : 'bg-[#FFF4DC] text-[#8A6510]'
+                }`}
+              >
+                {uncleanable
+                  ? '직접 치우기 어려운 막힘으로 확인됐어요. 아래에서 제보를 제출해 주세요.'
+                  : '직접 치울 수 있는 상태로 보여요. 막힘 제보는 덮개 틈 안쪽까지 막혀 치울 수 없을 때만 접수돼요. 치울 수 있다면 입양하거나 점검으로 기록해 주세요.'}
+              </p>
+              {!uncleanable && (
+                <p className="text-[13px] leading-5 text-[#516A7D]">
+                  사진이 잘못 찍혔다면 다시 찍어 주세요. 악취나 위치 문제는 제보 종류를 바꿔 접수할 수 있어요.
+                </p>
               )}
             </div>
+          )}
+        </div>
 
-            <div>
-              <label
-                htmlFor="report-note"
-                className={LABEL_CLASS}
-              >
-                상세 내용
-              </label>
-              <textarea
-                id="report-note"
-                rows={3}
-                maxLength={1000}
-                value={note}
-                disabled={mutation.isPending || assessmentMutation.isPending}
-                onChange={(event) =>
-                  setNote(event.target.value)
-                }
-                placeholder="빗물받이의 상태를 설명해 주세요."
-                className="block w-full resize-none rounded-xl border border-[#DFE5F0] bg-white px-3 py-3 text-sm leading-5 outline-none placeholder:text-[#9AA5B7] focus:border-[#7C93F2] focus:ring-2 focus:ring-[#EEF2FF]"
-              />
-            </div>
+        <div>
+          <label
+            htmlFor="report-note"
+            className={LABEL_CLASS}
+          >
+            상세 내용
+          </label>
+          <textarea
+            id="report-note"
+            rows={3}
+            maxLength={1000}
+            value={note}
+            disabled={mutation.isPending || assessmentMutation.isPending}
+            onChange={(event) =>
+              setNote(event.target.value)
+            }
+            placeholder="빗물받이의 상태를 설명해 주세요."
+            className="block w-full resize-none rounded-xl border border-[#DFE5F0] bg-white px-3 py-3 text-sm leading-5 outline-none placeholder:text-[#9AA5B7] focus:border-[#7C93F2] focus:ring-2 focus:ring-[#EEF2FF]"
+          />
+        </div>
 
-            {errorMessage && (
-              <p
-                role="alert"
-                className="rounded-xl bg-[#FFF1F1] p-3 text-xs leading-5 text-[#B84D4D]"
-              >
-                {errorMessage}
-              </p>
-            )}
-          </div>
-
-          <div className="shrink-0 space-y-3 border-t border-[#EDF1F5] bg-white px-5 pb-5 pt-3">
-            
-            {submissionBlock && !assessmentMutation.isPending && (
-              <p className="text-center text-[13px] leading-5 text-[#516A7D]">
-                {submissionBlock}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={Boolean(submissionBlock) || mutation.isPending || assessmentMutation.isPending}
-              className={BUTTON_CLASS}
-            >
-              {mutation.isPending
-                ? '제보 접수 중...'
-                : '제보 제출하기'}
-            </button>
-          </div>
-        </form>
-      </section>
-    </ReportOverlay>
+        {errorMessage && (
+          <p
+            role="alert"
+            className="rounded-xl bg-[#FFF1F1] p-3 text-xs leading-5 text-[#B84D4D]"
+          >
+            {errorMessage}
+          </p>
+        )}
+      </form>
+    </Sheet>
   )
 }

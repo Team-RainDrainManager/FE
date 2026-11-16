@@ -16,7 +16,6 @@ import { withdrawMyAccount } from '../../apis/account'
 import { useAuthStore } from '../../store/useAuthStore'
 import { clearOnboardingProgress } from '../login/auth-flow'
 import { useOnboardingStore } from '../../store/useOnboardingStore'
-import { useMyDrainsStore } from '../../store/useMyDrainsStore'
 import { queryClient } from '../../apis/query-client'
 import { clearDemoAccountData, clearLocalDdorangiData } from '../../utils/firstRun'
 import { useThemeStore, type ThemeMode } from '../../store/useThemeStore'
@@ -37,7 +36,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
   const accountId = useContext(AccountId)
   const clearAuth = useAuthStore(s => s.clear)
   const clearOnboarding = useOnboardingStore(s => s.clear)
-  const clearMyDrains = useMyDrainsStore(s => s.reset)
   const [confirmAction, setConfirmAction] = useState<'logout' | 'delete' | null>(null)
   const [accountBusy, setAccountBusy] = useState(false)
   const [accountError, setAccountError] = useState('')
@@ -136,7 +134,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
     if (!pauseStatus?.canApply || pauseStatus.activeUntil || pauseBusy) return
     setPauseBusy(true)
     setPauseError('')
-    setPauseConfirm(false)
     try {
       await requestPause()
       setPauseMessage('점검 쉬기 신청이 완료됐습니다.')
@@ -163,6 +160,7 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
       setPauseError(getErrorMessage(error))
     } finally {
       setPauseBusy(false)
+      setPauseConfirm(false)
     }
   }
 
@@ -174,13 +172,12 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
   }
 
   function clearLocalAccountState() {
-    clearAuth()
-    clearOnboardingProgress()
-    clearOnboarding()
-    clearMyDrains()
-    queryClient.clear()
-    clearDemoAccountData()
-  }
+  clearAuth()
+  clearOnboardingProgress()
+  clearOnboarding()
+  queryClient.clear()
+  clearDemoAccountData()
+}
 
   async function handleLogout() {
     if (accountBusy) return
@@ -342,25 +339,43 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
         </span>
         <span className="dd-settings-pause-arrow" aria-hidden="true">{pauseOpen ? '⌄' : '›'}</span>
       </button>
-      {pauseOpen && <div className="dd-settings-pause-preview">
+      {pauseOpen && <div className="dd-settings-pause-preview break-keep">
         {pauseLoading ? <p role="status">쉬기 상태를 확인하는 중입니다…</p> : <>
           {pauseError && <p role="alert" className="text-[#C65A62]">{pauseError}</p>}
           {pauseMessage && <p role="status">{pauseMessage}</p>}
-          {pauseStatus && <>
+          {pauseStatus && (pauseConfirm ? (
+            <div className="space-y-3" role="group" aria-label="점검 쉬기 신청 확인">
+              <div className="space-y-1">
+                <p className="text-sm font-bold leading-5 text-[var(--dd-ink)]">14일 쉬기를 신청하시겠습니까?</p>
+                <p className="text-xs leading-5 text-[var(--dd-muted)]">신청 후 취소할 수 없습니다.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={pauseBusy}
+                  onClick={() => setPauseConfirm(false)}
+                  className="min-h-11 rounded-xl border border-[var(--dd-line)] bg-[var(--dd-surface)] px-3 text-sm font-semibold text-[var(--dd-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#257ACB] disabled:opacity-60"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  disabled={pauseBusy}
+                  onClick={() => { void applyPause() }}
+                  className="min-h-11 rounded-xl bg-[#2269BC] px-3 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#257ACB] disabled:opacity-60"
+                >
+                  {pauseBusy ? '신청 중…' : '신청 확정'}
+                </button>
+              </div>
+            </div>
+          ) : <>
             {pauseStatus.activeUntil ? <p>{prettyDate(pauseStatus.activeUntil)}까지 정기 점검을 쉬고 있습니다.</p>
               : pauseStatus.canApply ? <p>신청하면 14일 동안 정기 점검과 자동 입양 해제가 보류됩니다. 취소·연장은 할 수 없고, 90일에 한 번 신청할 수 있습니다. 비 예보 점검 요청은 계속 받습니다.</p>
               : <p>{pauseStatus.reason === 'NO_ADOPTION' ? '입양한 빗물받이가 있어야 신청할 수 있습니다.' : '현재 점검 쉬기를 신청할 수 없습니다.'}</p>}
             {!pauseStatus.canApply && pauseStatus.nextAvailableAt && <p>다음 신청 가능일: {prettyDate(pauseStatus.nextAvailableAt)}</p>}
-            {pauseStatus.canApply && !pauseStatus.activeUntil && !pauseConfirm &&
+            {pauseStatus.canApply && !pauseStatus.activeUntil &&
               <button type="button" disabled={pauseBusy} onClick={() => setPauseConfirm(true)}>점검 쉬기 신청</button>}
-            {pauseConfirm && <div className="mt-3 space-y-2" role="group" aria-label="점검 쉬기 신청 확인">
-              <p>14일 쉬기를 신청하시겠습니까? 신청 후 취소할 수 없습니다.</p>
-              <div className="flex gap-2">
-                <button type="button" disabled={pauseBusy} onClick={() => setPauseConfirm(false)}>취소</button>
-                <button type="button" disabled={pauseBusy} onClick={() => { void applyPause() }}>{pauseBusy ? '신청 중…' : '신청 확정'}</button>
-              </div>
-            </div>}
-          </>}
+          </>)}
         </>}
       </div>}
     </div>
