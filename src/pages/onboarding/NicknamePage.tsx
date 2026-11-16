@@ -28,7 +28,7 @@ export default function NicknamePage() {
   let nicknameHint = NICKNAME_LENGTH_HINT
   if (nicknameTaken) {
     nicknameHint = '이미 사용 중인 닉네임이에요.'
-  } else if (nicknameToCheck && !error) {
+  } else if (nicknameToCheck) {
     if (nicknameCheck.isFetching) nicknameHint = '닉네임을 확인하고 있어요.'
     else if (nicknameCheck.isError) nicknameHint = '중복 확인을 못 했어요. 저장할 때 다시 확인해요.'
     else if (nicknameCheck.isSuccess) nicknameHint = '사용할 수 있는 닉네임이에요.'
@@ -82,10 +82,13 @@ export default function NicknamePage() {
         aria-describedby="onboarding-nickname-hint"
         aria-invalid={nicknameTaken}
       />
-      <p id="onboarding-nickname-hint" role="status" className={nicknameTaken ? 'dd-auth-error' : 'dd-auth-explainer'}>
-        {nicknameHint}
+      <p
+        id="onboarding-nickname-hint"
+        role={error ? 'alert' : 'status'}
+        className={error || nicknameTaken ? 'dd-auth-error' : 'dd-auth-explainer'}
+      >
+        {error || nicknameHint}
       </p>
-      {error && <p role="alert" className="dd-auth-error">{error}</p>}
       <button type="submit" disabled={pending || nicknameTaken} className="dd-auth-primary">{pending ? '저장 중…' : '또랑이 시작하기'}</button>
     </form>}
   </main></div>
