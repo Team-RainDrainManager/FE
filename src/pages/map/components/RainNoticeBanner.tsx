@@ -8,6 +8,8 @@ import { getRainNotice, type RainNotice } from '../../../apis/rain-notice'
 import type { Coordinates } from '../../../apis/requests'
 import { formatKstDayAndTime, getKstDayLabel } from '../../../utils/kstDateTime'
 
+let forecastAcknowledged = false
+
 function shortLabel(notice: RainNotice, now: number): string {
   if (notice.state === 'RAINING') return '비 오는 중'
   const day = getKstDayLabel(notice.forecast?.rainDate, now)
@@ -20,12 +22,6 @@ function shortLabel(notice: RainNotice, now: number): string {
  */
 export default function RainNoticeBanner({ coordinates }: { coordinates: Coordinates }) {
   const [open, setOpen] = useState(false)
-  const [seenForecasts, setSeenForecasts] = useState<string[]>(() => {
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem('ddorang:seen-rain-forecasts') ?? '[]')
-      return Array.isArray(saved) ? saved.filter((key): key is string => typeof key === 'string').slice(-64) : []
-    } catch { return [] }
-  })
   const [now, setNow] = useState(() => Date.now())
   const { data: notice } = useQuery({
     queryKey: ['rain-notice', coordinates],
@@ -45,20 +41,10 @@ export default function RainNoticeBanner({ coordinates }: { coordinates: Coordin
   const rainStart = formatKstDayAndTime(notice.forecast?.rainStartAt, now)
   const deadline = formatKstDayAndTime(notice.forecast?.completeDeadlineAt, now)
   const help = notice.help
-  const forecast = notice.forecast
-  const forecastKey = notice.state === 'FORECAST' && forecast
-    ? `${forecast.rainDate}:${forecast.forecastId}:${forecast.simulated}`
-    : null
-  const highlighted = forecastKey !== null && !seenForecasts.includes(forecastKey)
+  const highlighted = notice.state === 'FORECAST' && !!notice.forecast && !forecastAcknowledged
 
   function toggleDetails() {
-    if (highlighted && forecastKey) {
-      const updated = [...seenForecasts, forecastKey].slice(-64)
-      setSeenForecasts(updated)
-      try {
-        localStorage.setItem('ddorang:seen-rain-forecasts', JSON.stringify(updated))
-      } catch { /* 저장이 차단되어도 현재 화면의 확인 상태는 유지합니다. */ }
-    }
+    if (highlighted) forecastAcknowledged = true
     setOpen((value) => !value)
   }
 
@@ -69,12 +55,10 @@ export default function RainNoticeBanner({ coordinates }: { coordinates: Coordin
         aria-expanded={open}
         onClick={toggleDetails}
         className={`flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-[13px] font-bold shadow-[0_4px_14px_rgba(23,43,77,0.12)] ${
-          highlighted
-            ? 'dd-rain-forecast-unseen'
-            : raining
+          raining
             ? 'border-[#3981F7] bg-[#3981F7] text-white'
             : 'border-[#C6DCFF] bg-[#EAF2FF] text-[#3981F7]'
-        }`}
+        } ${highlighted ? 'dd-rain-forecast-unseen' : ''}`}
       >
         <span aria-hidden="true">{raining ? '☔' : '🌧'}</span>
         <span>{shortLabel(notice, now)}</span>
