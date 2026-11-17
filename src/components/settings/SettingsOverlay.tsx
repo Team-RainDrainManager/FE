@@ -16,6 +16,10 @@ export default function SettingsOverlay({ onClose }: { onClose: () => void }) {
             <p className="dd-settings-modal__eyebrow">MY DDORANG</p>
             <h2 id="dd-settings-modal-title">설정</h2>
           </div>
+          <button type="button" className="ml-auto mr-3 min-h-9 text-xs font-semibold" onClick={() => {
+            onClose()
+            window.dispatchEvent(new Event('ddorang:replay-tour'))
+          }}>튜토리얼 다시보기</button>
           <button type="button" className="dd-settings-modal__report" aria-label="버그 신고하기" title="버그 신고"
             onClick={() => reportTriggerRef.current?.click()}>
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none"

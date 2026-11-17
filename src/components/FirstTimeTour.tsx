@@ -101,7 +101,19 @@ export default function FirstTimeTour() {
   const { pathname } = useLocation()
   const [step, setStep] = useState(readTourStep)
   const [open, setOpen] = useState(hasPendingTour)
+  const replay = useRef(false)
+  const touch = useRef<{x:number; y:number} | null>(null)
   const current = TOUR_STEPS[step]
+  useEffect(() => {
+    function restart() {
+      replay.current = true
+      setStep(0)
+      setOpen(true)
+      navigate(TOUR_STEPS[0].path, { replace: true })
+    }
+    window.addEventListener('ddorang:replay-tour', restart)
+    return () => window.removeEventListener('ddorang:replay-tour', restart)
+  }, [navigate])
 
   useEffect(() => {
     if (!open) return
@@ -116,7 +128,7 @@ export default function FirstTimeTour() {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        finishFirstRun()
+        if (!replay.current) finishFirstRun()
         clearTourStep()
         setOpen(false)
       }
@@ -126,14 +138,14 @@ export default function FirstTimeTour() {
   }, [open])
 
   function close() {
-    finishFirstRun()
+    if (!replay.current) finishFirstRun()
     clearTourStep()
     setOpen(false)
   }
 
   function moveTo(nextStep: number) {
     // 저장을 먼저 해야 탭 이동 중 컴포넌트가 재마운트돼도 1단계로 돌아가지 않습니다.
-    saveTourStep(nextStep)
+    if (!replay.current) saveTourStep(nextStep)
     setStep(nextStep)
     const nextPath = TOUR_STEPS[nextStep].path
     if (pathname !== nextPath) navigate(nextPath, { replace: true })
@@ -152,7 +164,19 @@ export default function FirstTimeTour() {
         <span className="dd-tour-kicker">또랑이의 첫 사용 안내 <span>{step + 1} / {TOUR_STEPS.length}</span></span>
         <button type="button" className="dd-tour-skip" onClick={close}>건너뛰기</button>
       </div>
-      <div className="dd-tour-bubble-content" aria-live="polite">
+      <div className="dd-tour-bubble-content" aria-live="polite" style={{touchAction:'pan-y'}}
+        onTouchStart={e => { const t=e.touches[0]; touch.current=e.touches.length===1 ? {x:t.clientX,y:t.clientY} : null }}
+        onTouchCancel={() => { touch.current=null }}
+        onTouchEnd={e => {
+          const start=touch.current
+          touch.current=null
+          if (!start || e.touches.length) return
+          const dx=e.changedTouches[0].clientX-start.x
+          const dy=e.changedTouches[0].clientY-start.y
+          if (Math.abs(dx)<50 || Math.abs(dx)<1.6*Math.abs(dy)) return
+          const dest=step+(dx<0 ? 1 : -1)
+          if (dest>=0 && dest<TOUR_STEPS.length) moveTo(dest)
+        }}>
         <div className="dd-tour-bubble-character" aria-hidden="true">
           <Character type="state" state={step === 0 ? 'joy' : 'happy'} size={62} />
         </div>
