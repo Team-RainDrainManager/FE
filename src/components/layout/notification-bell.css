@@ -1,0 +1,15 @@
+.dd-bell-inner, .dd-bell-outer {
+  animation: dd-bell-inner 2.7s linear infinite;
+}
+.dd-bell-outer { animation-name: dd-bell-outer; }
+@keyframes dd-bell-inner {
+  0%, 22%, 83%, 100% { opacity: 0; }
+  30%, 75% { opacity: 1; }
+}
+@keyframes dd-bell-outer {
+  0%, 46%, 83%, 100% { opacity: 0; }
+  54%, 75% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-bell-inner, .dd-bell-outer { animation: none; }
+}
