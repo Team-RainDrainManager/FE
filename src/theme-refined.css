@@ -1310,7 +1310,7 @@ html[data-dd-theme='dark'] header button.dd-invite-trigger {
   -webkit-tap-highlight-color: transparent;
 }
 
-.dd-settings-modal__scroll.dd-shared-body { padding: 0; }
+.dd-settings-modal__scroll.dd-shared-body { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
 /* The settings dimensions stay intact; animation uses the shared sheet keyframes. */
 .dd-settings-backdrop .dd-settings-modal.dd-shared-sheet {
   animation: dd-slide-in 280ms cubic-bezier(.22, 1, .36, 1) !important;
