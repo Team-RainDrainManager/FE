@@ -1,5 +1,5 @@
 .dd-bell-inner, .dd-bell-outer {
-  animation: dd-bell-inner 2.7s linear infinite;
+  animation: dd-bell-inner 1.8s linear infinite;
 }
 .dd-bell-outer { animation-name: dd-bell-outer; }
 @keyframes dd-bell-inner {
