@@ -4,7 +4,7 @@ import { NavLink } from 'react-router'
 import drainIcon from '../../assets/icons/tab-drain.svg'
 import mapIcon from '../../assets/icons/tab-map.svg'
 import activityIcon from '../../assets/icons/activity.svg'
-import bellIcon from '../../assets/icons/tab-bell.svg'
+import { useNotificationBell } from './useNotificationBell'
 import NotificationBellIcon from './NotificationBellIcon'
 import userIcon from '../../assets/icons/user.svg'
 
@@ -12,11 +12,12 @@ const NAV_ITEMS = [
   { label: '또랑이', path: '/my-drains', icon: drainIcon },
   { label: '랭킹', path: '/social', icon: activityIcon },
   { label: '지도', path: '/map', icon: mapIcon },
-  { label: '알림', path: '/notifications', icon: bellIcon },
+  { label: '알림', path: '/notifications' },
   { label: '프로필', path: '/profile', icon: userIcon },
 ]
 
 export default function BottomNavigation() {
+  const bell = useNotificationBell()
   return (
     <nav
       aria-label="하단 메뉴"
@@ -27,6 +28,7 @@ export default function BottomNavigation() {
           <NavLink
             key={path}
             to={path}
+            onClick={path === '/notifications' ? bell.dismiss : undefined}
             className={({ isActive }) =>
               `flex h-[56px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7] ${
                 isActive
@@ -37,7 +39,7 @@ export default function BottomNavigation() {
           >
             {({ isActive }) => (
               <>
-                {label === '알림' ? <NotificationBellIcon isActive={isActive} /> : (
+                {label === '알림' ? <NotificationBellIcon isActive={isActive} ringing={bell.ringing} /> : (
                   <span
                   aria-hidden="true"
                   className="block h-6 w-6"
