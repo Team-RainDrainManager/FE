@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import Character from './common/Character'
 import { finishFirstRun, hasPendingTour } from '../utils/firstRun'
@@ -26,6 +26,11 @@ const TOUR_STEPS: readonly TourStep[] = [
     description: '검색과 상태 필터로 빗물받이를 찾고, 현황을 살피거나 문제가 있다면 제보할 수 있어요.',
   },
   {
+    path: '/map', target: 'map', label: '빗물받이 목록',
+    title: '목록에서 빗물받이를 찾아보세요',
+    description: '지도에서 빗물받이 목록을 열면 검색과 필터에 맞는 결과가 나와요. 항목을 누르면 해당 빗물받이를 선택해요.',
+  },
+  {
     path: '/my-drains', target: 'my-drains', label: '또랑이',
     title: '돌볼수록 성장하는 또랑이!',
     description: '입양한 또랑이의 성장과 점검 기록이 모여요. 처음 입양 수가 0개인 것은 정상이에요.',
@@ -37,9 +42,19 @@ const TOUR_STEPS: readonly TourStep[] = [
     ],
   },
   {
+    path: '/my-drains', target: 'my-drains', label: '성장 도감',
+    title: '또랑이의 성장 모습을 살펴보세요',
+    description: '성장 도감에서 현재 레벨과 지나온 모습을 확인하세요. 흑백으로 표시된 미해금 단계도 눌러서 크게 볼 수 있어요.',
+  },
+  {
     path: '/social', target: 'social', label: '랭킹',
-    title: '친구를 초대하고 주간 순위를 확인해요',
-    description: '친구에게 또랑 링크를 공유하고, 내 주간 기록과 이번 주 순위를 확인할 수 있어요.',
+    title: '이번 주 내 기록과 순위를 확인하세요',
+    description: '내 주간 기록에서 점수와 순위를 확인하세요. 전체 TOP 3 아래의 주간 랭킹 요약에서 전체 랭킹을 열 수 있어요.',
+  },
+  {
+    path: '/social', target: 'social', label: '친구 초대',
+    title: '친구에게 또랑 링크를 보내세요',
+    description: '화면 오른쪽 위의 친구 초대 아이콘을 누르고 초대 링크 공유하기를 선택하세요. 기기에 따라 공유창이 열리거나 링크가 복사돼요.',
   },
   {
     path: '/notifications', target: 'notifications', label: '알림',
