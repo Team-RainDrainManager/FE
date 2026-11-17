@@ -190,3 +190,15 @@ html[data-dd-theme='dark'] .dd-map-overlay .drain-available .dd-face { backgroun
   0%, 100% { --dd-led-phase: 0; }
   50% { --dd-led-phase: 1; }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-dd-theme='dark']) .drain-dot::before { opacity: 0; }
+  html:not([data-dd-theme='dark']) .drain-dot::after { opacity: var(--dd-led-phase); }
+  html:not([data-dd-theme='dark']) .dd-filter-led {
+    animation: dd-filter-led-brightness 5s ease-in-out infinite;
+  }
+}
+@keyframes dd-filter-led-brightness {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
