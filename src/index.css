@@ -169,3 +169,39 @@ dialog[open] * {
   nav[aria-label="하단 메뉴"] > div { transform: translateY(-4px); }
 }
 nav[data-ios-standalone="true"] > div { transform: translateY(-4px); }
+
+/* 카드 외곽만 지정한다. 같은 색을 두 테마의 모든 카드에서 공유한다. */
+:root { --dd-card-edge: #d0dce8; }
+html[data-dd-theme='dark'] { --dd-card-edge: #3b5068; }
+
+/* 기존 1px 테두리는 색만 변경해 안쪽 여백과 그림자를 보존한다. */
+html:root :is(
+  .dd-login-features, .dd-auth-card, .dd-mypage .mp-card,
+  .dd-settings-card,
+  .dd-settings-modal .dd-settings-page--embedded > .dd-settings-card,
+  section[aria-label="푸시 알림 안내"],
+  section[role="status"].break-keep.rounded-\[22px\],
+  article.relative.rounded-\[24px\].border,
+  div.rounded-2xl.border.p-6.text-center,
+  section[aria-label="빗물받이 위치"],
+  section[aria-label="또랑이 캐릭터와 성장 상태"],
+  section[aria-label="빗물받이 관리"].border,
+  section:is([aria-label="최근 돌봄 기록"], [aria-label="현장 사진"], [aria-label="돌봄 일정"]) > div.rounded-\[22px\].border,
+  section[aria-label="안전신문고 신고"],
+  ul.divide-y.rounded-\[22px\].border,
+  section[aria-label="시연 도구"] > div.rounded-\[22px\].border,
+  section:is([aria-label="사진 검토"], [aria-label="제보 처리"]) > ul > li.rounded-\[22px\].border,
+  section[aria-label="앱 버그 신고 관리"] article.rounded-2xl.border
+) { border-color: var(--dd-card-edge) !important; }
+
+/* 원래 테두리 공간이 없는 카드는 안쪽으로 그려 치수를 보존한다. */
+html:root :is(
+  section[aria-labelledby="social-weekly-title"],
+  section[aria-labelledby="social-top-title"],
+  .dd-profile > section,
+  article.my-3.rounded-\[22px\].p-3\.5
+) {
+  border-color: var(--dd-card-edge) !important;
+  outline: 1px solid var(--dd-card-edge);
+  outline-offset: -1px;
+}
