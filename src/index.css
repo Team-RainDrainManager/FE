@@ -163,3 +163,9 @@ dialog[open],
 dialog[open] * {
   overscroll-behavior: contain;
 }
+
+/* Move the controls inside the existing 68px row, retaining its safe-area padding. */
+@media (display-mode: standalone) {
+  nav[aria-label="하단 메뉴"] > div { transform: translateY(-4px); }
+}
+nav[data-ios-standalone="true"] > div { transform: translateY(-4px); }
