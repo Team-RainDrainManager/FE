@@ -41,7 +41,7 @@ export default function GrowthCatalog({
             </select>
           </label>
 
-          <div className="mb-4 flex items-center gap-3 rounded-2xl bg-[#E5F7FF] p-3">
+          <div className="dd-growth-catalog-summary mb-4 flex items-center gap-3 rounded-2xl bg-[#E5F7FF] p-3">
             <Character
               type="level"
               level={selected.level}
@@ -72,7 +72,7 @@ export default function GrowthCatalog({
               onClick={() => onPreview(level)}
               className={`flex flex-col items-center rounded-xl border p-2 ${
                 level === selected?.level
-                  ? 'border-[#57ABE8] bg-[#EEFAFF]'
+                  ? 'dd-growth-catalog-current border-[#57ABE8] bg-[#EEFAFF]'
                   : 'border-[#DFEAF4]'
               }`}
             >

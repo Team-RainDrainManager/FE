@@ -1287,3 +1287,15 @@ body:has(.dd-settings-backdrop) header button[aria-label="설정 열기"] > span
   .dd-settings-modal { animation: none !important; }
 }
 
+/* DDORANG_GROWTH_LIGHT_CARD_CONTRAST_V1: pale growth cards keep dark text even in dark theme. */
+html[data-dd-theme='dark'] .dd-growth-catalog-summary h3,
+html[data-dd-theme='dark'] .dd-growth-catalog-current > strong {
+  color: #203451 !important;
+}
+html[data-dd-theme='dark'] .dd-growth-catalog-summary strong {
+  color: #2866b8 !important;
+}
+html[data-dd-theme='dark'] .dd-growth-catalog-summary span,
+html[data-dd-theme='dark'] .dd-growth-catalog-current > span {
+  color: #526e89 !important;
+}
