@@ -80,19 +80,6 @@ export default function Header() {
         </h1>
       </div>
 
-      {pathname.replace(/\/$/, '') === '/social' && (
-        <button
-          type="submit"
-          form="ranking-invite"
-          aria-label="친구 초대하기"
-          className="ml-auto mr-1 grid size-11 shrink-0 place-items-center rounded-xl text-[#203451] focus-visible:outline-2 focus-visible:outline-[#3981F7]"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="9" cy="6.5" r="3.5" />
-            <path d="M2 21v-1.5a7 7 0 0 1 14 0V21M19 7v7m-3.5-3.5h7" />
-          </svg>
-        </button>
-      )}
       {!showBackButton && (
         <button
           type="button"

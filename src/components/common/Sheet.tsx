@@ -8,6 +8,8 @@ type Props = {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
+  className?: string
+  closeLabel?: string
   busy?: boolean
 }
 
@@ -18,6 +20,8 @@ export default function Sheet({
   children,
   footer,
   busy = false,
+  className,
+  closeLabel,
 }: Props) {
   const titleId = useId()
   const descriptionId = useId()
@@ -108,7 +112,7 @@ export default function Sheet({
 
   return createPortal(
     <div
-      className="dd21-sanctions-overlay dd-shared-overlay"
+      className={['dd21-sanctions-overlay dd-shared-overlay', className].filter(Boolean).join(' ')}
       data-closing={closing}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) dismiss()
@@ -153,15 +157,22 @@ export default function Sheet({
           <span />
         </div>
         <header className="dd21-sanctions-heading shrink-0">
-  <div className="min-w-0">
-    <h2 id={titleId}>{title}</h2>
-    {description && (
-      <p id={descriptionId} className="mt-1 break-keep text-xs leading-5 text-[var(--dd-muted)]">
-        {description}
-      </p>
-    )}
-  </div>
-</header>
+          <div className="min-w-0">
+            <h2 id={titleId}>{title}</h2>
+            {description && (
+              <p id={descriptionId} className="mt-1 break-keep text-xs leading-5 text-[var(--dd-muted)]">
+                {description}
+              </p>
+            )}
+          </div>
+          {closeLabel && (
+            <button type="button" aria-label={closeLabel} onClick={dismiss} disabled={busy}>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="m5 5 14 14M19 5 5 19" />
+              </svg>
+            </button>
+          )}
+        </header>
         <div className="dd21-sanctions-body dd-shared-body" data-has-footer={Boolean(footer)}>
           {children}
         </div>
