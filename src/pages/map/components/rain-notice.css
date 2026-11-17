@@ -1,23 +1,27 @@
-/* 버튼 내부 색만 천천히 밝아지며, 확인하면 클래스가 제거됩니다. */
 .dd-rain-forecast-unseen {
-  border-color: #465f9e;
-  background-color: #263e74;
-  color: #fff;
+  background-color: #eaf2ff;
+  border-color: #c6dcff;
+  color: #3981f7;
+  --rain-alert-bg: #ffecec;
+  --rain-alert-line: #f6b7ba;
+  --rain-alert-text: #b52632;
 }
 html[data-dd-theme='dark'] .dd-rain-forecast-unseen {
-  border-color: #7d9be0;
-  background-color: #304b85;
-  color: #fff;
+  background-color: var(--dd-subtle);
+  color: var(--dd-blue);
+  --rain-alert-bg: #552936;
+  --rain-alert-line: #b77383;
+  --rain-alert-text: #ffb9c1;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .dd-rain-forecast-unseen { animation: dd-rain-forecast-light 5s ease-in-out infinite; }
-  html[data-dd-theme='dark'] .dd-rain-forecast-unseen { animation-name: dd-rain-forecast-light-dark; }
+  .dd-rain-forecast-unseen {
+    animation: dd-rain-forecast-alert 1.8s ease-in-out infinite alternate;
+  }
 }
-@keyframes dd-rain-forecast-light {
-  0%, 100% { background-color: #263e74; border-color: #465f9e; }
-  50% { background-color: #3c5790; border-color: #7292ce; }
-}
-@keyframes dd-rain-forecast-light-dark {
-  0%, 100% { background-color: #304b85; border-color: #7d9be0; }
-  50% { background-color: #47649e; border-color: #a1baf0; }
+@keyframes dd-rain-forecast-alert {
+  to {
+    background-color: var(--rain-alert-bg);
+    border-color: var(--rain-alert-line);
+    color: var(--rain-alert-text);
+  }
 }

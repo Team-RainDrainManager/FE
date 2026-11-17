@@ -1,6 +1,7 @@
 
 import { useLocation, useNavigate } from 'react-router'
 import { useState } from 'react'
+import InviteButton from './InviteButton'
 import SettingsOverlay from '../settings/SettingsOverlay'
 
 import backIcon from '../../assets/icons/back.svg'
@@ -81,22 +82,25 @@ export default function Header() {
       </div>
 
       {!showBackButton && (
-        <button
-          type="button"
-          onClick={openSettings}
+        <div className="flex items-center gap-1">
+          <InviteButton />
+          <button
+            type="button"
+            onClick={openSettings}
 
-          aria-label="설정 열기"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
-        >
-          <span
-            aria-hidden="true"
-            className="block h-[22px] w-[22px] bg-current"
-            style={{
-              mask: `url("${gearIcon}") center / contain no-repeat`,
-              WebkitMask: `url("${gearIcon}") center / contain no-repeat`,
-            }}
-          />
-        </button>
+            aria-label="설정 열기"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]"
+          >
+            <span
+              aria-hidden="true"
+              className="block h-[22px] w-[22px] bg-current"
+              style={{
+                mask: `url("${gearIcon}") center / contain no-repeat`,
+                WebkitMask: `url("${gearIcon}") center / contain no-repeat`,
+              }}
+            />
+          </button>
+        </div>
       )}
       {settingsOpen && <SettingsOverlay onClose={() => setSettingsOpen(false)} />}
     </header>

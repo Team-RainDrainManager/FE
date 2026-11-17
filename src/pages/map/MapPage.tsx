@@ -1152,7 +1152,7 @@ const statusNotice = drainsError
                     {option.value !== 'all' && (
                       <span
                         aria-hidden="true"
-                        className={`hidden h-1.5 w-1.5 shrink-0 rounded-full min-[360px]:block ${
+                        className={`dd-filter-led hidden h-1.5 w-1.5 shrink-0 rounded-full min-[360px]:block ${
                           active && option.value !== 'unadopted'
                             ? 'bg-white'
                             : FILTER_DOTS[

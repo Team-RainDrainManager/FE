@@ -21,7 +21,7 @@ export default function GrowthCatalog({
       {selected && (
         <>
           <label className="mb-4 block text-xs font-bold">
-            또랑 선택
+            또랑이 선택
 
             <select
               value={selected.drain.drain_id}
@@ -76,11 +76,13 @@ export default function GrowthCatalog({
                   : 'border-[#DFEAF4]'
               }`}
             >
-              <Character
-                type="level"
-                level={level}
-                size={86}
-              />
+              <div className={selected && level <= selected.level ? undefined : 'grayscale'}>
+                <Character
+                  type="level"
+                  level={level}
+                  size={86}
+                />
+              </div>
 
               <strong className="mt-1 text-xs">
                 Lv.{level}
@@ -103,14 +105,16 @@ export default function GrowthCatalog({
 
 export function GrowthPreview({
   level,
+  achieved,
   onBack,
 }: {
   level: number
+  achieved: boolean
   onBack: () => void
 }) {
   return (
     <div className="text-center">
-      <div className="flex justify-center">
+      <div className={achieved ? 'flex justify-center' : 'flex justify-center grayscale'}>
         <Character
           type="level"
           level={level}

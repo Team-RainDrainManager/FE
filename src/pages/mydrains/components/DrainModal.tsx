@@ -35,7 +35,7 @@ type Props = {
 }
 
 const TITLES: Record<DrainModalType['type'], string> = {
-  growth: '빗물받이별 성장 도감',
+  growth: '또랑이 성장 도감',
   preview: '성장 모습 미리보기',
   inspect: '사진으로 점검 기록',
   rename: '또랑이 이름 변경',
@@ -90,6 +90,7 @@ export default function DrainModal({
       {modal.type === 'preview' && (
         <GrowthPreview
           level={modal.level}
+          achieved={!!selected && modal.level <= selected.level}
           onBack={() =>
             onOpen({
               type: 'growth',
