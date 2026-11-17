@@ -223,7 +223,7 @@ export default function MyDrainsPage() {
             <button
               type="button"
               onClick={() => openModal({ type: 'growth', drainId: data.adoptions[0].drain.drain_id })}
-              className="absolute inset-x-0 bottom-0 rounded-full bg-[#6099E8] py-1 text-xs font-bold text-white hover:bg-[#4A88DB]"
+              className="absolute inset-x-0 top-[56px] -translate-x-[7px] rounded-full bg-[#6099E8] py-1 text-xs font-bold text-white hover:bg-[#4A88DB]"
             >
               성장 도감
             </button>
