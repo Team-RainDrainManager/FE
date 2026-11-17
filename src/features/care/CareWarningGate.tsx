@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { createPortal } from 'react-dom'
+import Sheet from '../../components/common/Sheet'
 import { useQuery } from '@tanstack/react-query'
 import { getMyAdoptions } from '../../apis/my-drains'
 import { getPauseStatus } from '../../apis/profile-settings'
@@ -29,16 +29,13 @@ export default function CareWarningGate() {
   const paused = now !== null && typeof until === 'string' && new Date(until).getTime() > now
   const show = Boolean(now !== null && account !== null && adoptions.isSuccess && pause.isSuccess && warning && !paused)
   if (!show || !warning) return null
-  return createPortal(
-    <div className="dd21-care-warning-overlay" role="presentation">
-      <section role="alertdialog" aria-modal="true" aria-labelledby="dd21-care-warning-title" aria-describedby="dd21-care-warning-text" className="dd21-care-warning-box">
-        <h2 id="dd21-care-warning-title">미관리 경고</h2>
+  return (
+    <Sheet title="미관리 경고" onClose={() => setDismissedIds(ids => [...ids, warning.adoptionId])} closeLabel="미관리 경고 닫기">
         <p id="dd21-care-warning-text" className="dd21-care-warning-message">{warning.nickname || `빗물받이 #${warning.drainId}`}의 관리 기한이 초과되어 미관리 경고가 발생했습니다. 서버 정책에 따라 28일 미관리 시 경고, 35일 미관리 시 입양이 자동 해제될 수 있습니다.</p>
         <div className="dd21-care-warning-actions">
           <button type="button" onClick={() => setDismissedIds(ids => [...ids, warning.adoptionId])}>확인</button>
           <Link to="/my-drains" onClick={() => setDismissedIds(ids => [...ids, warning.adoptionId])}>또랑이 확인</Link>
         </div>
-      </section>
-    </div>, document.body,
+    </Sheet>
   )
 }

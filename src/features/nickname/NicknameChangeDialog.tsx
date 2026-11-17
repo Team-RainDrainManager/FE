@@ -1,5 +1,5 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { useId, useState, type FormEvent } from 'react'
+import Sheet from '../../components/common/Sheet'
 import { useQuery } from '@tanstack/react-query'
 import { changeNickname, checkNicknameAvailable, getErrorMessage } from '../../apis/auth'
 import { NICKNAME_LENGTH_HINT, validateNickname } from './nickname-policy'
@@ -17,7 +17,6 @@ const NOTICE = '다른 사람에게 불쾌감을 주거나, 운영 원칙에 맞
 const PLEDGE = '다른 사람에게 불쾌감을 주는 닉네임을 사용하지 않겠습니다.'
 
 export default function NicknameChangeDialog({ currentNickname, onClose, onChanged, forced = false }: Props) {
-  const titleId = useId()
   const nicknameInputId = useId()
   const nicknameHintId = useId()
   const [step, setStep] = useState<Step>('notice')
@@ -49,16 +48,6 @@ export default function NicknameChangeDialog({ currentNickname, onClose, onChang
     else if (nicknameCheck.isSuccess) nicknameHint = '사용할 수 있는 닉네임이에요.'
   }
 
-  useEffect(() => {
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape' && canClose) onClose?.()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => { document.body.style.overflow = previous; window.removeEventListener('keydown', onKey) }
-  }, [canClose, onClose])
-
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!validation.valid || !canSave || pending) return
@@ -72,15 +61,9 @@ export default function NicknameChangeDialog({ currentNickname, onClose, onChang
     } finally { setPending(false) }
   }
 
-  const content = (
-    <div className="dd-nick-backdrop" onMouseDown={event => {
-      if (canClose && event.target === event.currentTarget) onClose?.()
-    }}>
-      <section className={`dd-nick-dialog${forced ? ' dd-nick-forced' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <div className="dd-nick-heading">
-          <h2 id={titleId}>{forced ? '닉네임 이용 제한' : '닉네임 변경'}</h2>
-          {canClose && <button className="dd-nick-close" type="button" aria-label="닫기" onClick={onClose}>×</button>}
-        </div>
+  return (
+    <Sheet title={forced ? '닉네임 이용 제한' : '닉네임 변경'} onClose={() => onClose?.()}
+      dismissible={canClose} busy={pending} closeLabel={canClose ? '닉네임 변경 닫기' : undefined}>
         {step === 'notice' && <div className="dd-nick-flow">
           <p className={forced ? 'dd-nick-warning' : 'dd-nick-notice'}>
             {forced ? '운영원칙에 위배되는 닉네임으로 신고가 접수되어 닉네임이 일시적으로 비활성화 되었으며, 닉네임 변경 후 앱을 이용하실 수 있습니다.' : NOTICE}
@@ -128,8 +111,6 @@ export default function NicknameChangeDialog({ currentNickname, onClose, onChang
           </p>
           <button type="submit" className="dd-nick-primary" disabled={pending || !canSave}>{pending ? '변경 중…' : '변경'}</button>
         </form>}
-      </section>
-    </div>
+    </Sheet>
   )
-  return createPortal(content, document.body)
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Sheet from '../common/Sheet'
 
 function isMobileDevice() {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
@@ -36,6 +37,7 @@ async function copyInviteLink(url: string) {
 export default function InviteButton() {
   const inviting = useRef(false)
   const [notice, setNotice] = useState('')
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     if (!notice) return
@@ -73,14 +75,23 @@ export default function InviteButton() {
 
   return (
     <>
-      <button type="button" aria-label="친구 초대하기" onClick={() => void shareInvite()}
-        className="flex h-10 w-10 shrink-0 items-center justify-center bg-transparent [-webkit-tap-highlight-color:transparent] text-[#203451] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]">
+      <button type="button" aria-label="친구 초대하기" aria-haspopup="dialog" onClick={() => setOpen(true)}
+        className="dd-invite-trigger flex h-10 w-10 shrink-0 items-center justify-center bg-transparent [-webkit-tap-highlight-color:transparent] text-[#203451] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="9" cy="6.5" r="3.5" />
           <path d="M2 21v-1.5a7 7 0 0 1 14 0V21M19 7v7m-3.5-3.5h7" />
         </svg>
       </button>
-      {notice && (
+      {open && (
+        <Sheet title="친구 초대하기" onClose={() => setOpen(false)} closeLabel="친구 초대 닫기">
+          <button type="button" onClick={() => void shareInvite()}
+            className="min-h-11 w-full rounded-xl bg-[#3981F7] px-4 py-3 text-sm font-bold text-white">
+            초대 링크 공유하기
+          </button>
+          {notice && <p role="status" className="mt-3 text-center text-sm">{notice}</p>}
+        </Sheet>
+      )}
+      {!open && notice && (
         <p role="status" className="fixed inset-x-5 bottom-[calc(84px+env(safe-area-inset-bottom))] z-50 mx-auto w-fit max-w-[420px] rounded-xl bg-[#193454] px-4 py-3 text-center text-[13px] text-white shadow-lg">
           {notice}
         </p>

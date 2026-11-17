@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
+import Sheet from '../../components/common/Sheet'
 import '../nickname/nickname-dialog.css'
 import { storeDemoReport } from './nickname-report-store'
 
@@ -42,9 +43,7 @@ export default function ReportableNickname({ targetId, nickname, isMe = false }:
       onContextMenu={event => { if (!isMe) { event.preventDefault(); clearPress(); setReportOpen(true) } }}
       onKeyDown={event => { if (!isMe && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setReportOpen(true) } }}
     >{nickname}</span>
-    {reportOpen && createPortal(<div className="dd-nick-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReportOpen(false) }}>
-      <section className="dd-nick-dialog" role="dialog" aria-modal="true" aria-label="닉네임 신고하기">
-        <div className="dd-nick-heading"><h2>닉네임 신고하기</h2><button type="button" className="dd-nick-close" aria-label="닫기" onClick={() => setReportOpen(false)}>×</button></div>
+    {reportOpen && <Sheet title="닉네임 신고하기" onClose={() => setReportOpen(false)} closeLabel="닉네임 신고 닫기">
         <div className="dd-nick-flow">
           <p className="dd-nick-notice">{nickname} 님의 닉네임을 신고하시겠습니까?</p>
           <p className="dd-nick-disclaimer">현재는 UI 시연 단계입니다. 신고는 이 브라우저에만 저장되며 관리자 서버로 전송되지 않습니다.</p>
@@ -54,8 +53,7 @@ export default function ReportableNickname({ targetId, nickname, isMe = false }:
             setNotice(saved ? '시연용 신고를 이 브라우저에 저장했습니다.' : '신고 시연을 저장하지 못했습니다.')
           }}>신고</button>
         </div>
-      </section>
-    </div>, document.body)}
+    </Sheet>}
     {notice && createPortal(<div className="dd-nick-toast" role="status">{notice}</div>, document.body)}
   </>
 }

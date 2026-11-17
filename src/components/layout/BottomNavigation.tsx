@@ -20,6 +20,7 @@ export default function BottomNavigation() {
   const bell = useNotificationBell()
   return (
     <nav
+      data-ios-standalone={(navigator as Navigator & { standalone?: boolean }).standalone || undefined}
       aria-label="하단 메뉴"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-[#EDF1F6] bg-white pb-[env(safe-area-inset-bottom)]"
     >

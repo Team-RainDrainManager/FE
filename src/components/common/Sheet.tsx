@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type MouseEventHandler } from 'react'
 import { createPortal } from 'react-dom'
 import '../../features/account/sanctions-warning.css'
+
+// Nested sheets share one overflow lock, even when closed in a different order.
+const openSheets: HTMLElement[] = []
+let savedBodyOverflow = ''
 
 type Props = {
   title: string
@@ -11,6 +15,10 @@ type Props = {
   className?: string
   closeLabel?: string
   busy?: boolean
+  dismissible?: boolean
+  onContentClickCapture?: MouseEventHandler<HTMLDivElement>
+  heading?: ReactNode
+  appearance?: { overlay: string; panel: string; grab: string; indicator: string; body: string }
 }
 
 export default function Sheet({
@@ -22,21 +30,26 @@ export default function Sheet({
   busy = false,
   className,
   closeLabel,
+  dismissible = true,
+  heading,
+  appearance,
+  onContentClickCapture,
 }: Props) {
   const titleId = useId()
   const descriptionId = useId()
   const sheetRef = useRef<HTMLElement>(null)
+  const dragged = useRef(false)
   const dragStart = useRef<number | null>(null)
-  const closeRef = useRef({ onClose, busy })
+  const closeRef = useRef({ onClose, busy, dismissible })
   const closingRef = useRef(false)
   const [closing, setClosing] = useState(false)
 
   useEffect(() => {
-    closeRef.current = { onClose, busy }
-  }, [onClose, busy])
+    closeRef.current = { onClose, busy, dismissible }
+  }, [onClose, busy, dismissible])
 
   const dismiss = useCallback(() => {
-    if (closeRef.current.busy || closingRef.current) return
+    if (!closeRef.current.dismissible || closeRef.current.busy || closingRef.current) return
     closingRef.current = true
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       closeRef.current.onClose()
@@ -48,7 +61,7 @@ export default function Sheet({
   useEffect(() => {
     if (!closing) return
     const timer = window.setTimeout(() => {
-      if (closeRef.current.busy) {
+      if (closeRef.current.busy || !closeRef.current.dismissible) {
         closingRef.current = false
         setClosing(false)
         return
@@ -60,13 +73,16 @@ export default function Sheet({
 
   useEffect(() => {
     const previousFocus = document.activeElement
-    const previousOverflow = document.body.style.overflow
+    const panel = sheetRef.current
+    if (!panel) return
+    if (openSheets.length === 0) savedBodyOverflow = document.body.style.overflow
+    openSheets.push(panel)
     document.body.style.overflow = 'hidden'
-    sheetRef.current?.focus({ preventScroll: true })
+    panel.focus({ preventScroll: true })
 
     function onKeyDown(event: KeyboardEvent) {
       const panel = sheetRef.current
-      if (!panel || event.defaultPrevented || document.querySelector('dialog[open]')) return
+      if (!panel || openSheets.at(-1) !== panel || event.defaultPrevented || document.querySelector('dialog[open]')) return
       const focused = document.activeElement
       const activeDialog = focused?.closest('[aria-modal="true"]')
       if (activeDialog && activeDialog !== panel) return
@@ -104,15 +120,21 @@ export default function Sheet({
 
     document.addEventListener('keydown', onKeyDown)
     return () => {
-      document.body.style.overflow = previousOverflow
+      const index = openSheets.indexOf(panel)
+      if (index !== -1) openSheets.splice(index, 1)
+      document.body.style.overflow = openSheets.length ? 'hidden' : savedBodyOverflow
       document.removeEventListener('keydown', onKeyDown)
-      if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true })
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true })
+      } else {
+        openSheets.at(-1)?.focus({ preventScroll: true })
+      }
     }
   }, [dismiss])
 
   return createPortal(
     <div
-      className={['dd21-sanctions-overlay dd-shared-overlay', className].filter(Boolean).join(' ')}
+      className={[appearance?.overlay ?? 'dd21-sanctions-overlay', 'dd-shared-overlay', className].filter(Boolean).join(' ')}
       data-closing={closing}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) dismiss()
@@ -123,23 +145,29 @@ export default function Sheet({
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={heading ? undefined : titleId}
+        aria-label={heading ? title : undefined}
         aria-describedby={description ? descriptionId : undefined}
         aria-busy={busy}
         inert={closing}
-        className="dd21-sanctions-sheet dd-shared-sheet"
+        className={[appearance?.panel ?? 'dd21-sanctions-sheet', 'dd-shared-sheet'].join(' ')}
       >
-        <div
-          className="dd21-sanctions-grab"
-          aria-hidden="true"
+        <button
+          type="button"
+          className={appearance?.grab ?? "dd21-sanctions-grab"}
+          aria-label="아래로 밀거나 눌러 닫기"
+          disabled={busy || !dismissible}
+          onClick={() => { if (!dragged.current) dismiss(); dragged.current = false }}
           onPointerDown={(event) => {
-            if (busy || closing || (event.pointerType === 'mouse' && event.button !== 0)) return
+            if (!dismissible || busy || closing || (event.pointerType === 'mouse' && event.button !== 0)) return
+            dragged.current = false
             dragStart.current = event.clientY
             event.currentTarget.setPointerCapture(event.pointerId)
           }}
           onPointerMove={(event) => {
             if (dragStart.current === null) return
             const distance = Math.max(0, event.clientY - dragStart.current)
+            if (distance > 8) dragged.current = true
             sheetRef.current?.style.setProperty('transform', 'translateY(' + distance + 'px)')
           }}
           onPointerUp={(event) => {
@@ -154,9 +182,9 @@ export default function Sheet({
             sheetRef.current?.style.removeProperty('transform')
           }}
         >
-          <span />
-        </div>
-        <header className="dd21-sanctions-heading shrink-0">
+          <span className={appearance?.indicator} />
+        </button>
+        {heading ?? <header className="dd21-sanctions-heading shrink-0">
           <div className="min-w-0">
             <h2 id={titleId}>{title}</h2>
             {description && (
@@ -172,8 +200,8 @@ export default function Sheet({
               </svg>
             </button>
           )}
-        </header>
-        <div className="dd21-sanctions-body dd-shared-body" data-has-footer={Boolean(footer)}>
+        </header>}
+        <div className={[appearance?.body ?? 'dd21-sanctions-body', 'dd-shared-body'].join(' ')} onClickCapture={onContentClickCapture} data-has-footer={Boolean(footer)}>
           {children}
         </div>
         {footer && <footer className="dd-shared-footer">{footer}</footer>}
