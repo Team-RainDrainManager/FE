@@ -55,10 +55,10 @@ export default function RainNoticeBanner({ coordinates }: { coordinates: Coordin
         aria-expanded={open}
         onClick={toggleDetails}
         className={`flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-[13px] font-bold shadow-[0_4px_14px_rgba(23,43,77,0.12)] ${
-          raining
+          highlighted ? 'dd-rain-forecast-unseen' : raining
             ? 'border-[#3981F7] bg-[#3981F7] text-white'
             : 'border-[#C6DCFF] bg-[#EAF2FF] text-[#3981F7]'
-        } ${highlighted ? 'dd-rain-forecast-unseen' : ''}`}
+        }`}
       >
         <span aria-hidden="true">{raining ? '☔' : '🌧'}</span>
         <span>{shortLabel(notice, now)}</span>

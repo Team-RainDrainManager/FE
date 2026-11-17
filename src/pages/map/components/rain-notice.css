@@ -1,3 +1,18 @@
+.dd-rain-forecast-unseen {
+  background-color: #eaf2ff;
+  border-color: #c6dcff;
+  color: #3981f7;
+  --rain-alert-bg: #ffecec;
+  --rain-alert-line: #f6b7ba;
+  --rain-alert-text: #b52632;
+}
+html[data-dd-theme='dark'] .dd-rain-forecast-unseen {
+  background-color: var(--dd-subtle);
+  color: var(--dd-blue);
+  --rain-alert-bg: #552936;
+  --rain-alert-line: #b77383;
+  --rain-alert-text: #ffb9c1;
+}
 @media (prefers-reduced-motion: no-preference) {
   .dd-rain-forecast-unseen {
     animation: dd-rain-forecast-alert 1.8s ease-in-out infinite alternate;
@@ -5,8 +20,8 @@
 }
 @keyframes dd-rain-forecast-alert {
   to {
-    background-color: #ffecec;
-    border-color: #f6b7ba;
-    color: #b52632;
+    background-color: var(--rain-alert-bg);
+    border-color: var(--rain-alert-line);
+    color: var(--rain-alert-text);
   }
 }
