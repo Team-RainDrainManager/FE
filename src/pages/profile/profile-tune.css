@@ -55,7 +55,7 @@ html[data-dd-theme='dark'] .dd-profile {
 .dd-profile > section {
   padding: 12px 14px;
   background: var(--dd-surface);
-  border: 1px solid var(--dd-line);
+  border: none;
   border-radius: 20px;
 }
 .dd-profile-action {
