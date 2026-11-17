@@ -75,7 +75,7 @@ export default function InspectionRequestCard({
       : Math.max(0, request.remainingMinutes)
 
   return (
-    <article className="my-3 rounded-[22px] border border-[#dfe6f3] bg-white p-3.5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]">
+    <article className="my-3 rounded-[22px] bg-white p-3.5 [html[data-dd-theme=dark]_&]:border-[#354962] [html[data-dd-theme=dark]_&]:bg-[#182638]">
       <div className="flex items-center gap-2.5">
         <div
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#eaf0ff] [html[data-dd-theme=dark]_&]:bg-[#283f5b]"
