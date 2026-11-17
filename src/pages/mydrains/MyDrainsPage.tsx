@@ -213,8 +213,21 @@ export default function MyDrainsPage() {
           </p>
         </div>
 
-        <div className="shrink-0 origin-bottom-right scale-120">
-          <Character type="state" state="happy" size={69} />
+        <div className="relative h-[69px] w-[69px] shrink-0">
+          <div className="pointer-events-none origin-bottom-right scale-120">
+            <div className="origin-[50%_24%] scale-75">
+              <Character type="state" state="happy" size={69} />
+            </div>
+          </div>
+          {data.adoptions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => openModal({ type: 'growth', drainId: data.adoptions[0].drain.drain_id })}
+              className="absolute inset-x-0 bottom-0 rounded-full bg-[#6099E8] py-1 text-xs font-bold text-white hover:bg-[#4A88DB]"
+            >
+              성장 도감
+            </button>
+          )}
         </div>
       </section>
 
@@ -282,22 +295,6 @@ export default function MyDrainsPage() {
       >
         지도에서 찾아보기
       </Link>
-
-      {data.adoptions.length > 0 && (
-        <button
-          type="button"
-          onClick={() =>
-            openModal({
-              type: 'growth',
-              drainId:
-                data.adoptions[0].drain.drain_id,
-            })
-          }
-          className="ml-2 mt-3 inline-flex min-h-10 items-center rounded-xl border border-[#E0E8F3] bg-white px-3 text-xs font-semibold text-[#3981F7]"
-        >
-          Lv.0~50 성장 도감
-        </button>
-      )}
 
       {modal && (
         <DrainModal
