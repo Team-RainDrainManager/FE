@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import Character from './common/Character'
 import { finishFirstRun, hasPendingTour } from '../utils/firstRun'
@@ -26,6 +26,11 @@ const TOUR_STEPS: readonly TourStep[] = [
     description: '검색과 상태 필터로 빗물받이를 찾고, 현황을 살피거나 문제가 있다면 제보할 수 있어요.',
   },
   {
+    path: '/map', target: 'map', label: '빗물받이 목록',
+    title: '목록에서 빗물받이를 찾아보세요',
+    description: '지도에서 빗물받이 목록을 열면 검색과 필터에 맞는 결과가 나와요. 항목을 누르면 해당 빗물받이를 선택해요.',
+  },
+  {
     path: '/my-drains', target: 'my-drains', label: '또랑이',
     title: '돌볼수록 성장하는 또랑이!',
     description: '입양한 또랑이의 성장과 점검 기록이 모여요. 처음 입양 수가 0개인 것은 정상이에요.',
@@ -37,9 +42,19 @@ const TOUR_STEPS: readonly TourStep[] = [
     ],
   },
   {
+    path: '/my-drains', target: 'my-drains', label: '성장 도감',
+    title: '또랑이의 성장 모습을 살펴보세요',
+    description: '성장 도감에서 현재 레벨과 지나온 모습을 확인하세요. 흑백으로 표시된 미해금 단계도 눌러서 크게 볼 수 있어요.',
+  },
+  {
     path: '/social', target: 'social', label: '랭킹',
-    title: '친구를 초대하고 주간 순위를 확인해요',
-    description: '친구에게 또랑 링크를 공유하고, 내 주간 기록과 이번 주 순위를 확인할 수 있어요.',
+    title: '이번 주 내 기록과 순위를 확인하세요',
+    description: '내 주간 기록에서 점수와 순위를 확인하세요. 전체 TOP 3 아래의 주간 랭킹 요약에서 전체 랭킹을 열 수 있어요.',
+  },
+  {
+    path: '/social', target: 'social', label: '친구 초대',
+    title: '친구에게 또랑 링크를 보내세요',
+    description: '화면 오른쪽 위의 친구 초대 아이콘을 누르고 초대 링크 공유하기를 선택하세요. 기기에 따라 공유창이 열리거나 링크가 복사돼요.',
   },
   {
     path: '/notifications', target: 'notifications', label: '알림',
@@ -86,7 +101,19 @@ export default function FirstTimeTour() {
   const { pathname } = useLocation()
   const [step, setStep] = useState(readTourStep)
   const [open, setOpen] = useState(hasPendingTour)
+  const replay = useRef(false)
+  const touch = useRef<{x:number; y:number} | null>(null)
   const current = TOUR_STEPS[step]
+  useEffect(() => {
+    function restart() {
+      replay.current = true
+      setStep(0)
+      setOpen(true)
+      navigate(TOUR_STEPS[0].path, { replace: true })
+    }
+    window.addEventListener('ddorang:replay-tour', restart)
+    return () => window.removeEventListener('ddorang:replay-tour', restart)
+  }, [navigate])
 
   useEffect(() => {
     if (!open) return
@@ -101,7 +128,7 @@ export default function FirstTimeTour() {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        finishFirstRun()
+        if (!replay.current) finishFirstRun()
         clearTourStep()
         setOpen(false)
       }
@@ -111,14 +138,14 @@ export default function FirstTimeTour() {
   }, [open])
 
   function close() {
-    finishFirstRun()
+    if (!replay.current) finishFirstRun()
     clearTourStep()
     setOpen(false)
   }
 
   function moveTo(nextStep: number) {
     // 저장을 먼저 해야 탭 이동 중 컴포넌트가 재마운트돼도 1단계로 돌아가지 않습니다.
-    saveTourStep(nextStep)
+    if (!replay.current) saveTourStep(nextStep)
     setStep(nextStep)
     const nextPath = TOUR_STEPS[nextStep].path
     if (pathname !== nextPath) navigate(nextPath, { replace: true })
@@ -137,7 +164,19 @@ export default function FirstTimeTour() {
         <span className="dd-tour-kicker">또랑이의 첫 사용 안내 <span>{step + 1} / {TOUR_STEPS.length}</span></span>
         <button type="button" className="dd-tour-skip" onClick={close}>건너뛰기</button>
       </div>
-      <div className="dd-tour-bubble-content" aria-live="polite">
+      <div className="dd-tour-bubble-content" aria-live="polite" style={{touchAction:'pan-y'}}
+        onTouchStart={e => { const t=e.touches[0]; touch.current=e.touches.length===1 ? {x:t.clientX,y:t.clientY} : null }}
+        onTouchCancel={() => { touch.current=null }}
+        onTouchEnd={e => {
+          const start=touch.current
+          touch.current=null
+          if (!start || e.touches.length) return
+          const dx=e.changedTouches[0].clientX-start.x
+          const dy=e.changedTouches[0].clientY-start.y
+          if (Math.abs(dx)<50 || Math.abs(dx)<1.6*Math.abs(dy)) return
+          const dest=step+(dx<0 ? 1 : -1)
+          if (dest>=0 && dest<TOUR_STEPS.length) moveTo(dest)
+        }}>
         <div className="dd-tour-bubble-character" aria-hidden="true">
           <Character type="state" state={step === 0 ? 'joy' : 'happy'} size={62} />
         </div>

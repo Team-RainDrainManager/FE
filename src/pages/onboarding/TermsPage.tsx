@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import Sheet from '../../components/common/Sheet'
 import { getErrorMessage, getTerms, getTermsContent, type TermsContent } from '../../apis/auth'
 import { useOnboardingStore } from '../../store/useOnboardingStore'
 import '../login/auth-pages.css'
@@ -56,12 +57,10 @@ export default function TermsPage() {
       <button type="button" className="dd-auth-primary" disabled={!canProceed} onClick={() => navigate('/onboarding/verify')}>동의하고 계속</button>
     </>}
   </main>
-  {(detailsPending || detail || detailError) && <div className="dd-terms-overlay" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) { setDetail(null); setDetailError(''); setDetailsPending(false) } }}>
-    <section className="dd-terms-modal" role="dialog" aria-modal="true" aria-labelledby="terms-dialog-title">
-      <div className="dd-terms-modal-heading"><h2 id="terms-dialog-title">{detail?.title || '약관 자세히 보기'}</h2><button type="button" aria-label="닫기" onClick={() => { setDetail(null); setDetailError(''); setDetailsPending(false) }}>✕</button></div>
+  {(detailsPending || detail || detailError) && <Sheet title={detail?.title || '약관 자세히 보기'}
+    closeLabel="약관 닫기" onClose={() => { setDetail(null); setDetailError(''); setDetailsPending(false) }}>
       <div className="dd-terms-modal-content">{detailsPending ? '불러오는 중…' : detailError ? <p role="alert">{detailError}</p> : detail?.content ?? '별도의 약관 전문이 없는 항목입니다.'}</div>
       <button type="button" className="dd-auth-primary" onClick={() => { setDetail(null); setDetailError(''); setDetailsPending(false) }}>확인</button>
-    </section>
-  </div>}
+  </Sheet>}
   </div>
 }

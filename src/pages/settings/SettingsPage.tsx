@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState, type FormEvent, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
+import Sheet from '../../components/common/Sheet'
 import { useNavigate } from 'react-router'
 import { isAxiosError } from 'axios'
 import { logout, getErrorMessage } from '../../apis/auth'
@@ -384,16 +385,11 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
       <button type="button" disabled={accountBusy} onClick={() => {setAccountError('');setWithdrawWord('');setConfirmAction('delete')}}>회원 탈퇴</button>
     </div>
     <p className="text-center text-[11px] text-[#8299B0]">또랑 · 우리 동네 빗물받이 돌봄 서비스</p>
-    {confirmAction && createPortal(
-      <div className="dd-settings-account-backdrop" onMouseDown={event => {
-        if (event.target === event.currentTarget && !accountBusy) setConfirmAction(null)
-      }}>
-        <section className="dd-settings-account-dialog" role="alertdialog" aria-modal="true"
-          aria-labelledby="dd-settings-account-title" aria-describedby="dd-settings-account-description">
-          <h3 id="dd-settings-account-title">{confirmAction === 'logout' ? '로그아웃하시겠습니까?' : '정말 회원 탈퇴하시겠습니까?'}</h3>
-          <p id="dd-settings-account-description">{confirmAction === 'logout'
-            ? '현재 기기의 로그인 정보가 삭제됩니다.'
-            : '회원 탈퇴 후에는 계정을 복구할 수 없을 수 있습니다. 아래에 ‘탈퇴’를 입력해야 요청을 보낼 수 있습니다.'}</p>
+    {confirmAction && <Sheet
+      title={confirmAction === 'logout' ? '로그아웃하시겠습니까?' : '정말 회원 탈퇴하시겠습니까?'}
+      description={confirmAction === 'logout' ? '현재 기기의 로그인 정보가 삭제됩니다.' : '회원 탈퇴 후에는 계정을 복구할 수 없을 수 있습니다. 아래에 ‘탈퇴’를 입력해야 요청을 보낼 수 있습니다.'}
+      busy={accountBusy} closeLabel="계정 확인 닫기" onClose={() => setConfirmAction(null)}>
+      <div className="dd-settings-account-content">
           {confirmAction === 'delete' && <label htmlFor="settings-withdraw-word">확인을 위해 탈퇴 입력
             <input id="settings-withdraw-word" autoComplete="off" value={withdrawWord}
               disabled={accountBusy} onChange={event => setWithdrawWord(event.target.value)} placeholder="탈퇴" />
@@ -406,22 +402,10 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
               {accountBusy ? '처리 중…' : confirmAction === 'logout' ? '로그아웃' : '회원 탈퇴 확인'}
             </button>
           </div>
-        </section>
-      </div>, document.body
-    )}
-    {reportView && createPortal(
-      <div
-        className="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 p-4"
-        onClick={(event) => {
-          if (event.target === event.currentTarget) closeReport()
-        }}
-      >
-        <section
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bug-report-title"
-          className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl bg-[var(--dd-surface)] p-5 text-[var(--dd-ink)] shadow-2xl"
-        >
+      </div>
+    </Sheet>}
+    {reportView && <Sheet title={reportView === 'history' ? '내 버그 신고 내역' : reportId !== null ? '버그 신고 접수 결과' : '버그 신고'}
+      onClose={closeReport} busy={reportBusy} closeLabel="버그 신고 닫기">
           {reportView === 'history' ? (
             <MyBugReportsPanel onBack={() => setReportView('form')} onClose={closeReport} />
           ) : reportId !== null ? (
@@ -514,9 +498,6 @@ export default function SettingsPage({ embedded = false, reportButtonRef }: { em
               </fieldset>
             </form>
           )}
-        </section>
-      </div>,
-      document.body,
-    )}
+    </Sheet>}
   </div>
 }

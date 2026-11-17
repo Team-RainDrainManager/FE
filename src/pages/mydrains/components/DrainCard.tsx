@@ -74,7 +74,17 @@ const nextInspectionTime =
           <GrowthReactionButton key={`${drainId}:${adoption.level}`} level={adoption.level} name={adoption.adoption_name} size={92} variant="card" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="break-words text-base font-bold tracking-tight text-[#203451]">{adoption.adoption_name}</h3>
+          <div className="flex items-center justify-between gap-2">
+          <h3 className="min-w-0 flex-1 break-words text-base font-bold tracking-tight text-[#203451]">{adoption.adoption_name}</h3>
+        <button
+          type="button"
+          aria-label={`${adoption.adoption_name} 이름 변경`}
+          onClick={() => onOpen({ type: 'rename', drainId })}
+          className="shrink-0 rounded-lg px-1 py-1.5 text-xs font-semibold text-[#3981F7]"
+        >
+          이름 변경
+        </button>
+          </div>
           <p className="mt-1 text-xs font-semibold text-[#3981F7]">Lv.{adoption.level} · {adoption.stage}</p>
           <p className="mt-1 text-xs text-[#78899F]">{adoption.drain.name}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -82,16 +92,6 @@ const nextInspectionTime =
             {paused && <span className="rounded-lg bg-[#EAF2FF] px-2 py-1 text-[10px] font-bold text-[#3981F7]">점검 쉬는 중</span>}
           </div>
         </div>
-      </div>
-      <div className="mt-1 flex justify-end">
-        <button
-          type="button"
-          aria-label={`${adoption.adoption_name} 이름 변경`}
-          onClick={() => onOpen({ type: 'rename', drainId })}
-          className="rounded-lg px-1 py-1.5 text-xs font-semibold text-[#3981F7]"
-        >
-          이름 변경
-        </button>
       </div>
       <GrowthProgress adoption={adoption} />
       {celebrate && <LevelUpCelebration level={adoption.level} onClose={()=>setCelebrate(false)}/>}
