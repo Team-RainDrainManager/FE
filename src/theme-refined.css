@@ -1325,3 +1325,11 @@ html[data-dd-theme='dark'] header button.dd-invite-trigger {
 .dd-settings-account-content label { display: block; font-size: 13px; font-weight: 700; }
 .dd-settings-account-content input { width: 100%; min-height: 44px; margin-top: 8px; padding: 10px; border: 1px solid var(--dd-line); border-radius: 10px; }
 .dd-settings-account-content [role='alert'] { color: #c04455; }
+
+/* DDORANG_INVITE_CLOSE_ICON_ONLY_V1: icon-only close for the friend invite sheet. */
+.dd21-sanctions-heading > button[aria-label="친구 초대 닫기"],
+html[data-dd-theme='dark'] .dd21-sanctions-heading > button[aria-label="친구 초대 닫기"] {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
