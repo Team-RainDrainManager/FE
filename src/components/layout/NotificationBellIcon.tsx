@@ -8,8 +8,16 @@ export default function NotificationBellIcon({ isActive, ringing }: { isActive: 
       <span className="absolute inset-0" style={{ backgroundColor: 'currentColor', mask, WebkitMask: mask }} />
       {ringing && (
         <svg viewBox="0 0 24 24" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round">
-          <path className="dd-bell-inner" d="M3.6 7.5q-2 3 0 6M20.4 7.5q2 3 0 6" />
-          <path className="dd-bell-outer" d="M0.7 5.4q-3.6 5.1 0 10.2M23.3 5.4q3.6 5.1 0 10.2" />
+          <g className="dd-bell-inner">
+            {[undefined, 'translate(24 0) scale(-1 1)'].map((transform, i) => (
+              <path key={i} transform={transform} d="M2.6 7.5q-2 3 0 6" />
+            ))}
+          </g>
+          <g className="dd-bell-outer">
+            {[undefined, 'translate(24 0) scale(-1 1)'].map((transform, i) => (
+              <path key={i} transform={transform} d="M-.3 5.4q-3.6 5.1 0 10.2" />
+            ))}
+          </g>
         </svg>
       )}
     </span>
