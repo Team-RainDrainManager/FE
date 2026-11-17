@@ -76,7 +76,7 @@ export default function GrowthCatalog({
                   : 'border-[#DFEAF4]'
               }`}
             >
-              <div className={selected && level <= selected.level ? undefined : 'grayscale'}>
+              <div className={selected && level <= selected.level ? undefined : 'grayscale brightness-65'}>
                 <Character
                   type="level"
                   level={level}
@@ -114,7 +114,7 @@ export function GrowthPreview({
 }) {
   return (
     <div className="text-center">
-      <div className={achieved ? 'flex justify-center' : 'flex justify-center grayscale'}>
+      <div className={achieved ? 'flex justify-center' : 'flex justify-center grayscale brightness-65'}>
         <Character
           type="level"
           level={level}

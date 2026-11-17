@@ -74,7 +74,7 @@ export default function InviteButton() {
   return (
     <>
       <button type="button" aria-label="친구 초대하기" onClick={() => void shareInvite()}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#203451] transition-colors hover:bg-[#F3F6FA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]">
+        className="flex h-10 w-10 shrink-0 items-center justify-center bg-transparent [-webkit-tap-highlight-color:transparent] text-[#203451] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3981F7]">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="9" cy="6.5" r="3.5" />
           <path d="M2 21v-1.5a7 7 0 0 1 14 0V21M19 7v7m-3.5-3.5h7" />
