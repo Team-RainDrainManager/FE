@@ -1309,3 +1309,19 @@ html[data-dd-theme='dark'] header button.dd-invite-trigger {
   filter: none !important;
   -webkit-tap-highlight-color: transparent;
 }
+
+.dd-settings-modal__scroll.dd-shared-body { padding: 0; }
+/* The settings dimensions stay intact; animation uses the shared sheet keyframes. */
+.dd-settings-backdrop .dd-settings-modal.dd-shared-sheet {
+  animation: dd-slide-in 280ms cubic-bezier(.22, 1, .36, 1) !important;
+}
+.dd-settings-backdrop[data-closing='true'] .dd-settings-modal.dd-shared-sheet {
+  animation: dd-slide-in 220ms ease-in reverse both !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-settings-backdrop .dd-settings-modal.dd-shared-sheet { animation: none !important; }
+}
+
+.dd-settings-account-content label { display: block; font-size: 13px; font-weight: 700; }
+.dd-settings-account-content input { width: 100%; min-height: 44px; margin-top: 8px; padding: 10px; border: 1px solid var(--dd-line); border-radius: 10px; }
+.dd-settings-account-content [role='alert'] { color: #c04455; }
