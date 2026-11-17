@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useState } from 'react'
 import { useMyWeeklyRank, useTopRanks, type Rank } from '../../apis/leaderboard'
 import { AccountId } from '../../features/account/AccountId'
 
@@ -22,39 +22,6 @@ const rankColors = [
 ]
 
 
-
-function isMobileDevice() {
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-    || (window.matchMedia('(pointer: coarse)').matches && window.innerWidth <= 1024)
-}
-
-async function copyInviteLink(url: string) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(url)
-      return
-    } catch {
-      // 클립보드 권한이 제한된 환경에서는 선택 복사를 시도합니다.
-    }
-  }
-
-  const previousFocus = document.activeElement
-  const field = document.createElement('textarea')
-  field.value = url
-  field.readOnly = true
-  field.style.position = 'fixed'
-  field.style.opacity = '0'
-  field.style.pointerEvents = 'none'
-  document.body.appendChild(field)
-
-  try {
-    field.select()
-    if (!document.execCommand('copy')) throw new Error('링크 복사 실패')
-  } finally {
-    field.remove()
-    if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true })
-  }
-}
 
 function WeekMetric({ label, value, unit }: {
   label: string
@@ -147,43 +114,6 @@ export default function SocialPage() {
   const weekly = useMyWeeklyRank(accountId)
   const leaderboard = useTopRanks(accountId)
   const [showAll, setShowAll] = useState(false)
-  const inviting = useRef(false)
-  const [notice, setNotice] = useState('')
-
-  useEffect(() => {
-    if (!notice) return
-    const timer = window.setTimeout(() => setNotice(''), 2300)
-    return () => window.clearTimeout(timer)
-  }, [notice])
-
-  async function shareInvite() {
-    if (inviting.current) return
-    inviting.current = true
-
-    try {
-      const url = new URL('/social', window.location.origin).href
-      if (isMobileDevice() && typeof navigator.share === 'function') {
-        try {
-          await navigator.share({
-            title: '또랑 친구 초대',
-            text: '또랑에서 함께 물길을 돌봐요!',
-            url,
-          })
-          return
-        } catch (error) {
-          if (error instanceof DOMException && error.name === 'AbortError') return
-        }
-      }
-
-      await copyInviteLink(url)
-      setNotice('초대 링크가 복사됐어요.')
-    } catch {
-      setNotice('링크 복사에 실패했어요. 주소창의 링크를 복사해 주세요.')
-    } finally {
-      inviting.current = false
-    }
-  }
-
 
   const rankings = leaderboard.data?.rankings ?? []
   const myIndex = rankings.findIndex(entry => entry.isMe)
@@ -214,22 +144,6 @@ export default function SocialPage() {
 
   return (
     <div className="rank-page">
-      <button type="button" className="rank-card rank-invite" onClick={() => void shareInvite()}>
-          <span className="grid size-12 shrink-0 place-items-center rounded-[15px] bg-[#eaf3ff] text-[#2068cd] [html[data-dd-theme=dark]_&]:bg-[#283f5b] [html[data-dd-theme=dark]_&]:text-[#9bcaff]">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="9" cy="6.5" r="3.5" />
-              <path d="M2 21v-1.5a7 7 0 0 1 14 0V21M19 7v7m-3.5-3.5h7" />
-            </svg>
-          </span>
-          <span className="grid min-w-0 flex-1 gap-0.5">
-            <strong className="text-base font-extrabold tracking-tight">친구 초대하기</strong>
-            <small className="text-xs leading-relaxed text-[#536e8a] [html[data-dd-theme=dark]_&]:text-[#b4c7de]">또랑 링크를 친구에게 보내요.</small>
-          </span>
-          <svg className="shrink-0 text-[#286dc4] [html[data-dd-theme=dark]_&]:text-[#9bcaff]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="m9 5 7 7-7 7" />
-          </svg>
-      </button>
-
       <section
         aria-labelledby="social-weekly-title"
         aria-busy={weekly.isFetching}
@@ -280,11 +194,6 @@ export default function SocialPage() {
         </Sheet>
       )}
 
-      {notice && (
-        <p role="status" className="fixed inset-x-5 bottom-[calc(84px+env(safe-area-inset-bottom))] z-50 mx-auto w-fit max-w-[420px] rounded-xl bg-[#193454] px-4 py-3 text-center text-[13px] text-white shadow-lg">
-          {notice}
-        </p>
-      )}
     </div>
   )
 }
