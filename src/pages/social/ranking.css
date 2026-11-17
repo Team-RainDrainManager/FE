@@ -30,14 +30,6 @@ html[data-dd-theme='dark'] :is(.rank-page, .rank-overlay) {
   background: var(--rank-card);
   border-radius: 15px;
 }
-.rank-invite {
-  display: flex;
-  align-items: center;
-  text-align: left;
-  gap: 16px;
-  padding: 10px 15px;
-  min-height: 71px;
-}
 .rank-week {
   display: grid;
   grid-template-columns: 1.06fr 2fr;
