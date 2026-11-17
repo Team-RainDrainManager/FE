@@ -107,17 +107,6 @@ export default function CameraCapture({
     if (shotUrlRef.current) URL.revokeObjectURL(shotUrlRef.current)
   }, [])
 
-  // 페이지가 확대된 채로 들어와도 카메라는 원래 배율로 보여 주고, 카메라 안에서는 확대되지 않게 합니다.
-  useEffect(() => {
-    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')
-    if (!meta) return
-    const original = meta.content
-    meta.content = `${original}, maximum-scale=1, user-scalable=no`
-    return () => {
-      meta.content = original
-    }
-  }, [])
-
   const handleCaptured = async ({ canvas, takenAt, coordinates }: Captured) => {
     setError('')
     try {
