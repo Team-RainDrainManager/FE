@@ -1299,3 +1299,13 @@ html[data-dd-theme='dark'] .dd-growth-catalog-summary span,
 html[data-dd-theme='dark'] .dd-growth-catalog-current > span {
   color: #526e89 !important;
 }
+
+/* Header invite icon shares the gear's bare appearance in every theme/state. */
+header button.dd-invite-trigger,
+html[data-dd-theme='dark'] header button.dd-invite-trigger {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0;
+  filter: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
