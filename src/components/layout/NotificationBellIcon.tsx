@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router'
 import { apiClient } from '../../apis/axios-instance'
 import { useAuthStore } from '../../store/useAuthStore'
-import bellIcon from '../../assets/icons/tab-bell.svg'
+import bellIcon from '../../assets/icons/tab-bell.png'
+import './notification-bell.css'
 
 // Server unread summary only. No fake notification, automatic read API or push subscription.
 const SEEN_KEY = 'ddorang:notification-bell-last-seen-count'
@@ -82,19 +83,16 @@ export default function NotificationBellIcon({ isActive }: { isActive: boolean }
   }, [pathname])
 
   const hasNew = pathname !== '/notifications' && unread !== null && unread > seen
-  if (hasNew) {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="block h-6 w-6" fill="none" stroke={isActive ? '#3981F7' : '#8C9AB0'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 9h18c0-1-3-2-3-9Z" />
-        <path d="M10 21h4M2.4 5.4l-1.4 2M21.6 5.4l1.4 2M4.7 2.8 3 4.2M19.3 2.8 21 4.2" />
-      </svg>
-    )
-  }
+  const mask = `url("${bellIcon}") center / contain no-repeat`
   return (
-    <span aria-hidden="true" className="block h-6 w-6" style={{
-      backgroundColor: isActive ? '#3981F7' : '#8C9AB0',
-      mask: `url("${bellIcon}") center / contain no-repeat`,
-      WebkitMask: `url("${bellIcon}") center / contain no-repeat`,
-    }} />
+    <span aria-hidden="true" className="relative block h-6 w-6" style={{ color: isActive ? '#3981F7' : '#8C9AB0' }}>
+      <span className="absolute inset-0" style={{ backgroundColor: 'currentColor', mask, WebkitMask: mask }} />
+      {hasNew && (
+        <svg viewBox="0 0 24 24" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round">
+          <path className="dd-bell-inner" d="M3.6 7.5q-2 3 0 6M20.4 7.5q2 3 0 6" />
+          <path className="dd-bell-outer" d="M0.7 5.4q-3.6 5.1 0 10.2M23.3 5.4q3.6 5.1 0 10.2" />
+        </svg>
+      )}
+    </span>
   )
 }
