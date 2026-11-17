@@ -9,12 +9,12 @@ export default function NotificationBellIcon({ isActive, ringing }: { isActive: 
       {ringing && (
         <svg viewBox="0 0 24 24" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round">
           <g className="dd-bell-inner">
-            {[undefined, 'translate(24 0) scale(-1 1)'].map((transform, i) => (
+            {[undefined, 'translate(25 0) scale(-1 1)'].map((transform, i) => (
               <path key={i} transform={transform} d="M2.6 7.5q-2 3 0 6" />
             ))}
           </g>
           <g className="dd-bell-outer">
-            {[undefined, 'translate(24 0) scale(-1 1)'].map((transform, i) => (
+            {[undefined, 'translate(25 0) scale(-1 1)'].map((transform, i) => (
               <path key={i} transform={transform} d="M-.3 5.4q-3.6 5.1 0 10.2" />
             ))}
           </g>
